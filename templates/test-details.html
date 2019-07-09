@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+	<h2 style="text-align: center; font-weight: bold;">
+		{{ context.testname }}
+	</h2>
+
+	<div class='inline-block-child'>
+		<h2>
+			System Details
+		</h2>
+		<table>
+			<tr>
+				{% for column in context.system_details %}
+					<th>{{ column }}</th>
+				{% endfor %}
+			</tr>
+
+			<tr>
+				{% for key in context.system_details %}
+					{% if loop.index0 <= 3 %}
+						{% if loop.index0 == 2 %}
+							<td> <a href="/environment-details/{{ context.system_details[key][0] }}">{{ context.system_details[key][0] }}</a></td>
+						{% else %}
+							<td> {{ context.system_details[key][0] }}</td>
+						{% endif %}
+					{% elif loop.index0 == 4 %}
+					<td> <a href="{{ context.system_details[key][0] }}" target="_blank">NAS Link</a>  </td>
+					{% else %}
+					<td> <a href="{{ context.system_details[key][0] }}" target="_blank">Jenkins Link</a>  </td>
+					{% endif %}
+				{% endfor %}
+			</tr>
+
+		</table>
+	</div>
+
+	<div class='inline-block-child'>
+		<h2>
+			Results
+		</h2>
+		{{ context.results | safe }}
+	</div>
+	
+{% endblock %}

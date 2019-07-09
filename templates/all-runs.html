@@ -13,8 +13,14 @@
 			{% for row in range(context.no_of_rows) %}
 				{% set i = loop.index0 %}
 				<tr>
+					
+					<!-- INSERT CHECKBOX AS TABLE CELL HERE -->
 					{% for key in context.data %}
-						<td class="origin-id" onclick="testDetails(this)"> {{ context.data[key][i] }}</td>
+						{% if loop.index0 == 0%}
+							<td class="origin-id" onclick="testDetails(this)"> {{ context.data[key][i] }}</td>
+						{% else %}
+							<td class="origin-id"> {{ context.data[key][i] }}</td>
+						{% endif %}
 					{% endfor %}
 				</tr>
 			{% endfor %}
