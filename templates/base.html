@@ -1,20 +1,16 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title>Performance Comparison</title>
-		<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
-		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-		
-		<script src="../static/script.js"></script>
-		<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-
-	</head>
-	<body>
-
-		<div id="header">
-		{% block header %}
+<head>
+	<title>{% block title %} Home Page {% endblock %}</title>
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/lib/bootstrap.min.css') }}">
+	
+	<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/lib/bootstrap.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/lib/jquery-3.4.1.min.js') }}"></script>
+</head>
+<body>
+	{% block header %}
 		<style>
 			/*FOR HYPERLINKS*/
 			a:link, a:visited {
@@ -36,38 +32,11 @@
 		</style>
 
 		<h1 align="center"><a href="/">Performance Comparison Tool</a></h1>
+	{% endblock %}
+
+	<div id="content">
+		{% block content %}
 		{% endblock %}
-			<form id="comparison-form" action="/" method="POST">
-				<div id="comparison-form-elements">
-					<div>
-						<label style="font-family: Bookman Old Style" for="test_1">Test 1</label>
-						<input required="true" type="text" id="test_1" name="test_1" placeholder="Enter Test Number">
-					</div>
-					
-					<div>
-						<label style="font-family: Bookman Old Style" for="test_2">Test 2</label>
-						<input required="true" type="text" id="test_2" name="test_2" placeholder="Enter Test Number">
-					</div>
-				</div>
-				<div id="last-div">
-
-					<button id="add-test" class="blue" type="button" onclick="addTest()">Add another Test</button>
-					<input id="comparison-submit-button" type="submit" value="Compare">
-				</div>
-			</form>
-
-		<div id="error-message">
-		{% if error %}
-			<h3 class="error">Error: {{ error.message }}</h3>
-		{% endif %}
-		</div>
-
-		{% if context!={} %}
-		<div>
-			<h1>COMPARISON of TESTS</h1>
-			{% include 'compare.html' %}
-		</div>
-		{% endif %}
-
-	</body>
+	</div>
+</body>
 </html>

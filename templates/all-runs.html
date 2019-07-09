@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+	<h2>{{ context.testname }}</h2>
+	<div class='inline-block-child'>
+		<table>
+			<tr>
+				{% for column in context.data %}
+					<th>{{ column }}</th>
+				{% endfor %}
+			</tr>
+
+			{% for row in range(context.no_of_rows) %}
+				{% set i = loop.index0 %}
+				<tr>
+					{% for key in context.data %}
+						<td class="origin-id" onclick="testDetails(this)"> {{ context.data[key][i] }}</td>
+					{% endfor %}
+				</tr>
+			{% endfor %}
+		</table>
+	</div>
+
+{% endblock content %}
