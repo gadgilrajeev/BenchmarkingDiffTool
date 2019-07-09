@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+	<h2 style="text-align: center;">Environment Details</h2>
+
+	<div class='environment-details'>
+		<h2>HW Details</h2>
+		{{ context.hwdetails | safe }}
+	</div>
+	<div class='environment-details'>
+		<h2>Toolchain Details</h2>
+		{{ context.toolchain | safe }}
+	</div>
+	<div class='environment-details'>
+		<h2>OS and Kernel Details</h2>
+		{{ context.ostunings | safe }}
+	</div>
+	<div class='environment-details'>
+		<h2>Node Details</h2>
+		{{ context.node | safe }}
+	</div>
+	<div class='environment-details'>
+		<h2>Run Time BootEnv Details</h2>
+		{{ context.bootenv | safe }}
+	</div>
+
+{% endblock %}
