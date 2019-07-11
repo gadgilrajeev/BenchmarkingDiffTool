@@ -21,6 +21,15 @@ function hideCommon(checkbox) {
     }
 }
 
+function uncheckBoxes(){
+	checkboxes = document.getElementsByClassName("diff-checkbox")
+
+	for(i = 0; i < checkboxes.length; i++)
+		checkboxes[i].checked = false;
+
+	console.log("DONE Unchecking!")
+}
+
 function showAllRuns(tableCell){
 	testName = tableCell.innerHTML.trim()
 	console.log(testName)
