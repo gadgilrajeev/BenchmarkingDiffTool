@@ -2,29 +2,42 @@
 
 {% block content %}
 	<h2>{{ context.testname }}</h2>
-	<div class='inline-block-child'>
-		<table>
-			<tr>
-				{% for column in context.data %}
-					<th>{{ column }}</th>
-				{% endfor %}
-			</tr>
-
-			{% for row in range(context.no_of_rows) %}
-				{% set i = loop.index0 %}
+	<form action="/diff" method="POST">
+		<div>
+			<button id="diff-button" class="blue" type="submit">Compare</button>
+		</div>
+		<div class='inline-block-child'>
+			<table>
 				<tr>
-					
-					<!-- INSERT CHECKBOX AS TABLE CELL HERE -->
-					{% for key in context.data %}
-						{% if loop.index0 == 0%}
-							<td class="origin-id" onclick="testDetails(this)"> {{ context.data[key][i] }}</td>
-						{% else %}
-							<td class="origin-id"> {{ context.data[key][i] }}</td>
-						{% endif %}
+					<th>Select to Compare</th>
+					{% for column in context.data %}
+						<th>{{ column }}</th>
 					{% endfor %}
 				</tr>
-			{% endfor %}
-		</table>
-	</div>
+
+				{% for row in range(context.no_of_rows) %}
+					{% set i = loop.index0 %}
+					<tr>
+						{% for key in context.data %}
+							{% if loop.index0 == 0%}
+								<td><input class="checkbox diff-checkbox" type="checkbox" name="diff-checkbox{{i}}" value="{{ context.data['originID'][i] }}"></td>
+								<td class="origin-id" onclick="testDetails(this)"> {{ context.data[key][i] }}</td>
+							{% else %}
+								<td class="origin-id"> {{ context.data[key][i] }}</td>
+							{% endif %}
+						{% endfor %}
+					</tr>
+				{% endfor %}
+			</table>
+		</div>
+		
+	</form>
+
+<script>
+	$( document ).ready(function() {
+    uncheckBoxes();
+});
+</script>
+	
 
 {% endblock content %}

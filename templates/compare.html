@@ -1,3 +1,7 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
 <label id="checkbox-common"><input id="checkbox-common2" onclick="hideCommon(this)" type="checkbox" name="common" value="hide_common"> Hide Common Properties (to be improved)</label>
 
 <style>
@@ -6,14 +10,57 @@
 	}
 </style>
 
-{% block comparison %}
 <div class="all-tables">
+	<!-- ###############RESULTS############### -->
+    <div>
+	    <h2>Results</h2>
+	    <table>
+	        <th>
+				{% for t_no in context.originID_list %}
+					<td style="font-weight: bold">Test_{{ t_no }}</td>
+				{% endfor %}
+			</th>
+	        
+	        {% for param in context.results_param_list %}
+	        <tr>
+	            <td class="param" style="font-weight: bold">{{ param }}</td>
+
+	            {% for result in context.results %}
+	                <td>{{ result[ param ] }}</td>    
+	            {% endfor %}
+	        </tr>
+	        {% endfor %}
+	    </table>
+	</div>
+
+	<!-- ###############ORIGIN############### -->
+    <div>
+	    <h2>Origin</h2>
+	    <table>
+	        <th>
+				{% for t_no in context.originID_list %}
+					<td style="font-weight: bold">Test_{{ t_no }}</td>
+				{% endfor %}
+			</th>
+	        
+	        {% for param in context.origin_param_list %}
+	        <tr>
+	            <td class="param" style="font-weight: bold">{{ param }}</td>
+
+	            {% for origin in context.origin %}
+	                <td>{{ origin[ param ] }}</td>    
+	            {% endfor %}
+	        </tr>
+	        {% endfor %}
+	    </table>
+	</div>
+
 	<!-- ###############BOOTENV############### -->
 	<div>
 		<h2>Bootenv</h2>
 		<table>
 			<th>
-				{% for t_no in context.test_numbers %}
+				{% for t_no in context.originID_list %}
 					<td style="font-weight: bold">Test_{{ t_no }}</td>
 				{% endfor %}
 			</th>
@@ -35,7 +82,7 @@
 		<h2>Node</h2>
 		<table>
 			<th>
-				{% for t_no in context.test_numbers %}
+				{% for t_no in context.originID_list %}
 					<td style="font-weight: bold">Test_{{ t_no }}</td>
 				{% endfor %}
 			</th>
@@ -57,7 +104,7 @@
 		<h2>HwDetails</h2>
 		<table>
 			<th>
-				{% for t_no in context.test_numbers %}
+				{% for t_no in context.originID_list %}
 					<td style="font-weight: bold">Test_{{ t_no }}</td>
 				{% endfor %}
 			</th>
@@ -78,7 +125,7 @@
 		<h2>OsTunings</h2>
 		<table>
 			<th>
-				{% for t_no in context.test_numbers %}
+				{% for t_no in context.originID_list %}
 					<td style="font-weight: bold">Test_{{ t_no }}</td>
 				{% endfor %}
 			</th>
@@ -100,7 +147,7 @@
 	    <h2>ToolChain</h2>
 	    <table>
 	        <th>
-				{% for t_no in context.test_numbers %}
+				{% for t_no in context.originID_list %}
 					<td style="font-weight: bold">Test_{{ t_no }}</td>
 				{% endfor %}
 			</th>
@@ -117,70 +164,13 @@
 	    </table>
 	</div>
 
-    <!-- ###############TESTDESCRIPTOR############### -->
-    <div>
-	    <h2>TestDescriptor</h2>
-	    <table>
-	        <th>
-				{% for t_no in context.test_numbers %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-	        
-	        {% for param in context.testdescriptor_param_list %}
-	        <tr>
-	            <td class="param" style="font-weight: bold">{{ param }}</td>
-
-	            {% for testdescriptor in context.testdescriptor %}
-	                <td>{{ testdescriptor[ param ] }}</td>    
-	            {% endfor %}
-	        </tr>
-	        {% endfor %}
-	    </table>
-	</div>
-
-    <!-- ###############JENKINS############### -->
-    <div>
-	    <h2>Jenkins</h2>
-	    <table>
-	        <th>
-				{% for t_no in context.test_numbers %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-	        
-	        {% for param in context.jenkins_param_list %}
-	        <tr>
-	            <td class="param" style="font-weight: bold">{{ param }}</td>
-
-	            {% for jenkins in context.jenkins %}
-	                <td>{{ jenkins[ param ] }}</td>    
-	            {% endfor %}
-	        </tr>
-	        {% endfor %}
-	    </table>
-	</div>
-
-   <!-- ###############ORIGIN############### -->
-    <div>
-	    <h2>Origin</h2>
-	    <table>
-	        <th>
-				{% for t_no in context.test_numbers %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-	        
-	        {% for param in context.origin_param_list %}
-	        <tr>
-	            <td class="param" style="font-weight: bold">{{ param }}</td>
-
-	            {% for origin in context.origin %}
-	                <td>{{ origin[ param ] }}</td>    
-	            {% endfor %}
-	        </tr>
-	        {% endfor %}
-	    </table>
-	</div>
 </div>
-{% endblock %}
+
+<script>
+	$( document ).ready(function() {
+    	$("#checkbox-common2").prop("checked", false);
+});
+</script>
+
+
+{% endblock content %}
