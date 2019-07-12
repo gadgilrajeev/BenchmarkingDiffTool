@@ -1,16 +1,30 @@
 {% extends 'base.html' %}
 
+{% block title %}
+Test Details
+{% endblock title %}
+
+
 {% block content %}
+
+	<script>
+		$( document ).ready(function() {
+			console.log("LOADING INTERESTING TABLES")
+			$("#resultsTable").DataTable({
+				"lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+			});
+	});
+	</script>	
 
 	<h2 style="text-align: center; font-weight: bold;">
 		{{ context.testname }}
 	</h2>
 
 	<div class='inline-block-child'>
-		<h2>
+		<h2 style="text-align: center; font-weight: bold;">
 			System Details
 		</h2>
-		<table>
+		<table id="systemDetailsTable">
 			<tr>
 				{% for column in context.system_details %}
 					<th>{{ column }}</th>
@@ -32,15 +46,34 @@
 					{% endif %}
 				{% endfor %}
 			</tr>
-
 		</table>
 	</div>
 
 	<div class='inline-block-child'>
-		<h2>
+		<h2 style="text-align: center; font-weight: bold;">
 			Results
 		</h2>
-		{{ context.results | safe }}
+
+		<table id="resultsTable">
+
+			<thead>
+				<tr>
+					{% for column in context.dict_results %}
+						<th>{{ column }}</th>
+					{% endfor %}
+				</tr>
+			</thead>
+			<tbody>
+				{% for row in range(context.dict_results['number']|length) %}
+					{% set i = loop.index0 %}
+					<tr class="table-row">
+						{% for key in context.dict_results %}
+							<td> {{ context.dict_results[key][i] }}</td>
+						{% endfor %}
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
 	</div>
 	
 {% endblock %}
