@@ -183,6 +183,12 @@ tr.common-attributes{
 	 display: none;
 }
 
+tbody tr td{
+  overflow: hidden;
+  max-width: 400px;
+    word-wrap: break-word;
+}
+
 #header{
 	background-color: #4C8FFB;
 	border: 1px #3079ED solid;
@@ -228,11 +234,14 @@ tr.common-attributes{
 }
 
 .environment-details th{
-  text-align: center
-  color: blue;
-  background-color: #50FFFF;
+  text-align: center;
 }
 
 .environment-details td{
-  text-align: center
+  text-align: center;
+}
+
+/*make it work*/
+#diff-button{
+  margin-right: 10%;
 }
