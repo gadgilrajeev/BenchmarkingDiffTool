@@ -1,27 +1,179 @@
 {% extends 'base.html' %}
 
+{% block title %}
+Environment Details
+{% endblock title %}
+
+
 {% block content %}
 	<h2 style="text-align: center;">Environment Details</h2>
 
 	<div class='environment-details'>
 		<h2>HW Details</h2>
-		{{ context.hwdetails | safe }}
-	</div>
-	<div class='environment-details'>
-		<h2>Toolchain Details</h2>
-		{{ context.toolchain | safe }}
-	</div>
-	<div class='environment-details'>
-		<h2>OS and Kernel Details</h2>
-		{{ context.ostunings | safe }}
-	</div>
-	<div class='environment-details'>
-		<h2>Node Details</h2>
-		{{ context.node | safe }}
-	</div>
-	<div class='environment-details'>
-		<h2>Run Time BootEnv Details</h2>
-		{{ context.bootenv | safe }}
+		<table>
+			<tr>
+				{% for col in context.hwdetails %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+				
+			<tr>
+				{% for col in context.hwdetails %}
+					<td>
+						{{ context.hwdetails[col][0] }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
 	</div>
 
+	<div class='environment-details'>
+		<h2>Toolchain Details</h2>
+		<table>
+			<tr>
+				{% for col in context.toolchain %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+				
+			<tr>
+				{% for col in context.toolchain %}
+					<td>
+						{{ context.toolchain[col][0] }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
+	</div>
+
+	<div class='environment-details'>
+		<h2>OS and Kernel Details</h2>
+		<table>
+			<tr>
+				{% for col in context.ostunings %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+				
+			<tr>
+				{% for col in context.ostunings %}
+					<td>
+						{{ context.ostunings[col][0] }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
+	</div>
+
+	<div class='environment-details'>
+		<h2>Node Details</h2>
+		<table>
+			<tr>
+				{% for col in context.node %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+
+			<tr>
+				{% for col in context.node %}
+					<td>
+						{{ context.node[col][0] }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
+	</div>
+
+	<div class='environment-details'>
+		<h2>Run Time BootEnv Details</h2>
+		<table>
+			<tr>
+				{% for col in context.bootenv %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+
+			<tr>
+				{% for col in context.bootenv %}
+					<td>
+						{{ context.bootenv[col][0] }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
+	</div>
+
+	<div class='environment-details'>
+		<h2>RAM Details</h2>
+		<table>
+			<tr>
+				{% for col in context.ram %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+
+			<tr>
+				{% for col in context.ram %}
+					<td>
+						{{ context.ram[col][0] }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
+	</div>
+
+	<div class='environment-details'>
+		<h2>DISK Details</h2>
+		<table>
+			<tr>
+				{% for col in context.disk %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+
+			<tr>
+				{% for col in context.disk %}
+					<td>
+						{{ context.disk[col][0] }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
+	</div>
+
+	<div class='environment-details'>
+		<h2>NIC Details</h2>
+		<table>
+			<tr>
+				{% for col in context.nic %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+
+			<tr>
+				{% for col in context.nic %}
+					<td>
+						{{ context.nic[col][0] }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
+	</div>
+	
 {% endblock %}
