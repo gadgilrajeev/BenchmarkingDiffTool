@@ -1,9 +1,14 @@
 {% extends 'base.html' %}
 
+{% block title %}
+Comparison of tests
+{% endblock title %}
+
+
 {% block content %}
 
 <label id="checkbox-common"><input id="checkbox-common2" onclick="hideCommon(this)" type="checkbox" name="common" value="hide_common"> Hide Common Properties (to be improved)</label>
-
+<h2 style="margin-left: 40%;">{{ context.testname | capitalize }}</h2>
 <style>
 	h2{
 	font-weight: bold;
@@ -11,157 +16,65 @@
 </style>
 
 <div class="all-tables">
+
 	<!-- ###############RESULTS############### -->
     <div>
-	    <h2>Results</h2>
-	    <table>
-	        <th>
-				{% for t_no in context.originID_list %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-	        
-	        {% for param in context.results_param_list %}
-	        <tr>
-	            <td class="param" style="font-weight: bold">{{ param }}</td>
+    	<h2>Results</h2>
+    	<table style = "clear:left;">
+    		<tr>
+    			{% for index_name in context.index_columns %}
+    			<th style="background-color: grey;"></th>
+    			{% endfor %}
+    			{% for originID in context.originID_list %}
+    				<th style="background-color: grey;" onclick="testDetails(this)">Test_{{ originID }}</th>
+    			{% endfor %}
+    		</tr>
 
-	            {% for result in context.results %}
-	                <td>{{ result[ param ] }}</td>    
+    		<tr>
+    			{% for column_name in context.results %}
+    				<th>{{ column_name }}</th>
+    			{% endfor %}
+    		</tr>
+
+    		<!-- For all rows -->
+    		{% for i in range(context.results | no_of_rows ) %}
+    			{% set i = loop.index0 %}
+    			<tr>
+    				{% for key in context.results %}
+    					<td>{{ context.results[key][i] }}</td>
+    				{% endfor %}
+    			</tr>
+    		{% endfor %}
+    	</table>
+	</div>
+
+
+	<!-- A Loop for displaying ALL Comparison Tables -->
+	<div>
+		{% for i in range(context.parameter_lists | length) %}
+		{% set tablename = table_name(context.parameter_lists.keys(), i) %}
+		<h2>{{ tablename }}</h2>
+		{% set tablename = tablename|lower %}
+
+		<table class="comparison-table">
+			<tr>
+				<th></th>
+				{% for t_no in context.originID_list %}
+					<th style="font-weight: bold">Test_{{ t_no }}</th>
+				{% endfor %}
+			</tr>
+
+			{% for param in context.parameter_lists[tablename~"_param_list"] %}
+			<tr>
+				<td class="param" style="font-weight: bold;"> {{ param }}</td>
+
+				{% for dict in context.compare_lists[tablename~"_list"] %}
+	                <td>{{ dict[ param ] }}</td>    
 	            {% endfor %}
-	        </tr>
-	        {% endfor %}
-	    </table>
-	</div>
-
-	<!-- ###############ORIGIN############### -->
-    <div>
-	    <h2>Origin</h2>
-	    <table>
-	        <th>
-				{% for t_no in context.originID_list %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-	        
-	        {% for param in context.origin_param_list %}
-	        <tr>
-	            <td class="param" style="font-weight: bold">{{ param }}</td>
-
-	            {% for origin in context.origin %}
-	                <td>{{ origin[ param ] }}</td>    
-	            {% endfor %}
-	        </tr>
-	        {% endfor %}
-	    </table>
-	</div>
-
-	<!-- ###############BOOTENV############### -->
-	<div>
-		<h2>Bootenv</h2>
-		<table>
-			<th>
-				{% for t_no in context.originID_list %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-
-			{% for param in context.bootenv_param_list %}
-			<tr>
-				<td class="param" style="font-weight: bold">{{ param }}</td>
-
-				{% for bootenv in context.bootenvs %}
-					<td>{{ bootenv[ param ] }}</td>	
-				{% endfor %}
 			</tr>
 			{% endfor %}
 		</table>
-	</div>
-
-	<!-- ###############NODE############### -->
-	<div>
-		<h2>Node</h2>
-		<table>
-			<th>
-				{% for t_no in context.originID_list %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-			
-			{% for param in context.node_param_list %}
-			<tr>
-				<td class="param" style="font-weight: bold">{{ param }}</td>
-
-				{% for node in context.nodes %}
-					<td>{{ node[ param ] }}</td>	
-				{% endfor %}
-			</tr>
-			{% endfor %}
-		</table>
-	</div>
-
-	<!-- ###############HWDETAILS############### -->
-	<div>
-		<h2>HwDetails</h2>
-		<table>
-			<th>
-				{% for t_no in context.originID_list %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-			
-			{% for param in context.hwdetails_param_list %}
-			<tr>
-				<td class="param" style="font-weight: bold">{{ param }}</td>
-
-				{% for hwdetail in context.hwdetails %}
-					<td>{{ hwdetail[ param ] }}</td>	
-				{% endfor %}
-			</tr>
-			{% endfor %}
-		</table>
-	</div>
-	<!-- ###############OSTUNINGS############### -->
-	<div>
-		<h2>OsTunings</h2>
-		<table>
-			<th>
-				{% for t_no in context.originID_list %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-			
-			{% for param in context.ostunings_param_list %}
-			<tr>
-				<td class="param" style="font-weight: bold">{{ param }}</td>
-
-				{% for ostuning in context.ostunings %}
-					<td>{{ ostuning[ param ] }}</td>	
-				{% endfor %}
-			</tr>
-			{% endfor %}
-		</table>
-	</div>
-
-	<!-- ###############TOOLCHAIN############### -->
-    <div>
-	    <h2>ToolChain</h2>
-	    <table>
-	        <th>
-				{% for t_no in context.originID_list %}
-					<td style="font-weight: bold">Test_{{ t_no }}</td>
-				{% endfor %}
-			</th>
-	        
-	        {% for param in context.toolchain_param_list %}
-	        <tr>
-	            <td class="param" style="font-weight: bold">{{ param }}</td>
-
-	            {% for toolchain in context.toolchain %}
-	                <td>{{ toolchain[ param ] }}</td>    
-	            {% endfor %}
-	        </tr>
-	        {% endfor %}
-	    </table>
+		{% endfor %}
 	</div>
 
 </div>
