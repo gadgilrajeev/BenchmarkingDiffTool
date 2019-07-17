@@ -245,3 +245,8 @@ tbody tr td{
 #diff-button{
   margin-right: 10%;
 }
+
+.comparison-table{
+  margin: 20px;
+  width; 30%;
+}

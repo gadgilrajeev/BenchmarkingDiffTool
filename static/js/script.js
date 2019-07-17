@@ -37,7 +37,8 @@ function showAllRuns(tableCell){
 }
 
 function testDetails(tableCell){
-	originID = tableCell.innerHTML.trim()
+	// replace all non-digits with nothing
+	originID = tableCell.innerHTML.trim().replace( /^\D+/g, '');
 	console.log(originID)
 	window.location.href = '/test-details/'+originID
 }

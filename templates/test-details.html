@@ -58,17 +58,17 @@ Test Details
 
 			<thead>
 				<tr>
-					{% for column in context.dict_results %}
+					{% for column in context.results %}
 						<th>{{ column }}</th>
 					{% endfor %}
 				</tr>
 			</thead>
 			<tbody>
-				{% for row in range(context.dict_results['number']|length) %}
+				{% for row in range(context.results| no_of_rows ) %}
 					{% set i = loop.index0 %}
 					<tr class="table-row">
-						{% for key in context.dict_results %}
-							<td> {{ context.dict_results[key][i] }}</td>
+						{% for key in context.results %}
+							<td> {{ context.results[key][i] }}</td>
 						{% endfor %}
 					</tr>
 				{% endfor %}
