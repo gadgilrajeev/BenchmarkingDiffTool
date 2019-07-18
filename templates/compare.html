@@ -11,22 +11,23 @@ Comparison of tests
 <h2 style="margin-left: 40%;">{{ context.testname | capitalize }}</h2>
 <style>
 	h2{
-	font-weight: bold;
+		font-weight: bold;
 	}
 </style>
 
 <div class="all-tables">
+	<!-- <div id="comparison-graph" style="width:600px;height:250px;"></div> -->
 
 	<!-- ###############RESULTS############### -->
     <div>
     	<h2>Results</h2>
-    	<table style = "clear:left;">
+    	<table id="results-table" style = "clear:left;">
     		<tr>
     			{% for index_name in context.index_columns %}
     			<th style="background-color: grey;"></th>
     			{% endfor %}
     			{% for originID in context.originID_list %}
-    				<th style="background-color: grey;" onclick="testDetails(this)">Test_{{ originID }}</th>
+    				<th class="test-numbers-row" style="background-color: grey;" onclick="testDetails(this)">Test_{{ originID }}</th>
     			{% endfor %}
     		</tr>
 
@@ -81,7 +82,10 @@ Comparison of tests
 
 <script>
 	$( document ).ready(function() {
+
     	$("#checkbox-common2").prop("checked", false);
+
+    	drawGraph({{ context.comparable_results | tojson }})
 });
 </script>
 

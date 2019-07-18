@@ -1,5 +1,4 @@
 function hideCommon(checkbox) {
-    console.log("Hide common is yet to be implemented")
     allRows = document.getElementsByTagName("tr")
 
     for(i = 0; i < allRows.length; i++)
@@ -21,8 +20,48 @@ function hideCommon(checkbox) {
     }
 }
 
-function uncheckBoxes(){
-	checkboxes = document.getElementsByClassName("diff-checkbox")
+function filterTestsByLabel(checkbox){
+	allRows = document.getElementsByClassName("all-tests-rows")
+
+	for(i = 0; i < allRows.length; i++)
+		allRows[i].setAttribute('style','display:none')
+
+	console.log("GAYAB")
+
+
+	filterList = []
+	cbs = document.getElementsByClassName("filter-checkboxes")
+	for(i = 0; i < cbs.length; i++)
+	{
+		if(cbs[i].checked == true)
+			filterList.push(cbs[i].value)
+	}
+	if(filterList.length == 0)
+	{
+		for(i = 0; i < allRows.length; i++)
+			allRows[i].removeAttribute('style')
+	}
+	else
+	{
+		for(i = 0; i < allRows.length; i++)
+		{
+			//get second cell (the label)
+			row = allRows[i]
+			labels = row.children[1].innerHTML.split(',')
+			console.log(labels)
+
+			//if the benchmark has one of the selected labels
+			//then make it visible
+			if(labels.filter(value => filterList.includes(value)).length != 0)
+				row.removeAttribute('style')
+		}
+	}
+	console.log("FILTER LISTS IS: " + filterList)
+
+}
+
+function uncheckBoxes(classname){
+	checkboxes = document.getElementsByClassName(classname)
 
 	for(i = 0; i < checkboxes.length; i++)
 		checkboxes[i].checked = false;
@@ -41,6 +80,39 @@ function testDetails(tableCell){
 	originID = tableCell.innerHTML.trim().replace( /^\D+/g, '');
 	console.log(originID)
 	window.location.href = '/test-details/'+originID
+}
+
+function drawGraph(columns_data){
+
+	function toList(str){
+		return str.replace(/[\[\]\']/g,'').split(',')
+	}
+
+
+	function arrayRemove(arr, value) {
+		return arr.filter(function(ele){
+			return ele != value;
+		});
+	}
+
+	originID_list = arrayRemove(Object.keys(columns_data), 'qualifier');
+
+	console.log(typeof(originID_list))
+	console.log(originID_list)
+	console.log(originID_list[0])
+	console.log(typeof(columns_data))
+	console.log(columns_data)
+	
+	graphDiv = document.getElementById('comparison-graph');
+	data = [{
+		x: originID_list,
+		y: [1, 2,3,4],
+		type: 'bar' 
+	}]
+	Plotly.plot( graphDiv, data);
+
+	return columns_data
+
 }
 
 function addTest(){

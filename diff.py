@@ -58,9 +58,10 @@ def read_all_parameter_lists(parameter_lists, test_name):
             parameter_lists[param_list_name].extend(['number','resultype','unit','qualifier'])
 
         elif param_list_name == 'qualifier':
-            qualifier = results_metadata_parser.get(test_name, 'fields').replace('\"','').replace(' ', '').lower().split(',')[0]
+            parameter_lists[param_list_name] = results_metadata_parser.get(test_name, 'fields').replace('\"','').lower().split(',')
+
         elif param_list_name == 'min_or_max':
-            min_or_max = results_metadata_parser.get(test_name, 'higher_is_better').replace('\"','').replace(' ', '').split(',')[0]
+            parameter_lists[param_list_name] = results_metadata_parser.get(test_name, 'higher_is_better').replace('\"','').split(',')
 
         else:
             #extracts 'example' from 'example_param_list'
@@ -112,19 +113,23 @@ def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
                 compare_lists[table_name + "_details_list"].append(param_values_dictionary)
     return compare_lists
 
-
+#ALL TESTS PAGE
 @app.route('/')
 def home_page():
     parser = configparser.ConfigParser()
     wiki_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
     parser.read(wiki_metadata_file_path)
 
+    filter_labels_dict = {}
+    filter_labels_list = []
     hpc_benchmarks_list = []
     cloud_benchmarks_list = []
     print("###############################")
     print("PRINTING SECTIONS AND MODELS")
     print("###############################")
     for section in parser.sections():
+        filter_labels_list.extend([label for label in parser.get(section, 'label').replace('\"','').replace(' ','').lower().split(',') if label != '' and label not in filter_labels_list])
+        filter_labels_dict[section] = ','.join([label for label in parser.get(section, 'label').replace('\"','').replace(' ','').lower().split(',')])
         print(section + ":" + parser.get(section, 'model'))
         type_of_benchmark = parser.get(section, 'model').strip()
         print(type(type_of_benchmark))
@@ -136,12 +141,21 @@ def home_page():
     print(hpc_benchmarks_list)
     print("\n\n\n")
     print(cloud_benchmarks_list)
+    print("\n\n\n")
+    print("PRINTING FILTER DICT")
+    pprint(filter_labels_dict)
+    print("PRINTING FILTER LIST")
+    print(filter_labels_list)
 
     hpc_benchmarks_list = sorted(hpc_benchmarks_list, key=str.lower)
     cloud_benchmarks_list = sorted(cloud_benchmarks_list, key=str.lower)
+    filter_labels_list = sorted(filter_labels_list, key=str.lower)
+    
     context = {
         'hpc_benchmarks_list': hpc_benchmarks_list,
         'cloud_benchmarks_list': cloud_benchmarks_list,
+        'filter_labels_list': filter_labels_list,
+        'filter_labels_dict': filter_labels_dict,
     }
     return render_template('all-tests.html', context=context)
 
@@ -159,10 +173,10 @@ def showAllRuns(testname):
     print(min_or_max)
 
     if(min_or_max == '0'):
-        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MIN(r.number) as BestResult, o.notes from result r INNER JOIN display disp ON  r.display_displayID = disp.displayID INNER JOIN origin o ON o.originID = r.origin_originID INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID where t.testname = \'" + \
+        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MIN(r.number) as Best" +qualifier.replace(" ",'')+ ", o.notes from result r INNER JOIN display disp ON  r.display_displayID = disp.displayID INNER JOIN origin o ON o.originID = r.origin_originID INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID where t.testname = \'" + \
             testname + "\' AND disp.qualifier LIKE \'%" +qualifier+ "%\' AND r.isvalid = 1 GROUP BY o.originID, o.testdate, o.hostname, o.notes ORDER BY o.originID DESC"
     else:
-        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MAX(r.number) as BestResult, o.notes from result r INNER JOIN display disp ON  r.display_displayID = disp.displayID INNER JOIN origin o ON o.originID = r.origin_originID INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID where t.testname = \'" + \
+        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MAX(r.number) as Best" +qualifier.replace(" ",'')+ ", o.notes from result r INNER JOIN display disp ON  r.display_displayID = disp.displayID INNER JOIN origin o ON o.originID = r.origin_originID INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID where t.testname = \'" + \
             testname + "\' AND disp.qualifier LIKE \'%" +qualifier+ "%\' AND r.isvalid = 1 GROUP BY o.originID, o.testdate, o.hostname, o.notes ORDER BY o.originID DESC"
     db = pymysql.connect(host='10.110.169.149', user='root',
                          passwd='', db='benchtooldb', port=3306)
@@ -339,15 +353,24 @@ def diffTests():
             'nic_details_param_list' : [],
             'disk_details_param_list' : [],
 
-            'qualifier' : None,
-            'min_or_max': None,
+            'qualifier' : [],
+            'min_or_max': [],
         })
 
         parameter_lists = read_all_parameter_lists(parameter_lists, test_name)
 
-        #removes 'qualifier' from parameter_lists and assigns to qualifier variable 
+        #removes 'qualifier' from parameter_lists and assigns to qualifier variable (a list)
         qualifier = parameter_lists.pop('qualifier')
+        print("PRINTING QUALIFIER")
+        print(qualifier)
+        print(type(qualifier))
+        print("DONE")
         min_or_max = parameter_lists.pop('min_or_max')
+        print("PRINTING MINMAX")
+        print(min_or_max)
+        print(type(min_or_max))
+        print("DONE")
+
 
         # Dictionary of List of Dictionaries (tests) to be compared
         compare_lists = OrderedDict({
@@ -386,7 +409,7 @@ def diffTests():
         print("PRINTING INITIAL INTITIAL DATAFRAME")
         print(first_results_dataframe)
 
-        final_results_dataframe = first_results_dataframe
+        intermediate_dataframe = first_results_dataframe
 
         print('\n\nDONE\n\n')
 
@@ -405,16 +428,24 @@ def diffTests():
                 next_dataframe = next_dataframe.groupby(by=join_on_columns_list).max()
 
 
-            final_results_dataframe = final_results_dataframe.merge(next_dataframe, how = 'outer', on = join_on_columns_list, validate="many_to_many")
-
-
-        print("PRINTING RESULTS DATAFRAME\n\n")
-        final_results_dataframe = final_results_dataframe.fillna("").reset_index()
-        print(final_results_dataframe)
+            intermediate_dataframe = intermediate_dataframe.merge(next_dataframe, how = 'outer', on = join_on_columns_list, validate="many_to_many")
 
         #Change column names according to OriginID
-        # del final_results_dataframe['index']
-        final_results_dataframe.columns = join_on_columns_list + ["number_" + originID for originID in originID_compare_list]
+        intermediate_dataframe = intermediate_dataframe.reset_index()
+        intermediate_dataframe.columns = join_on_columns_list + ["number_" + originID for originID in originID_compare_list]
+        
+        #DROP THE NAN rows for comparing results in graphs
+        comparable_results = intermediate_dataframe.dropna()
+        comparable_results = comparable_results[['qualifier'] + [column for column in comparable_results.columns if column not in join_on_columns_list]]
+        print("comparable RESULTS COLUMNS")
+        comparable_results.columns = ['qualifier'] + ["Test_" + originID for originID in originID_compare_list]
+
+        #FILL NAN cells with ""
+        intermediate_dataframe = intermediate_dataframe.fillna("")
+
+        print("PRINTING COMPARABLE RESULTS")
+        print(comparable_results.to_dict(orient='list'))
+        print("DONE")
 
         #Change the result_type according to result_type_map
         #Mapping for Result type field
@@ -422,18 +453,28 @@ def diffTests():
                        2: 'single socket', 3: 'dual socket',
                        4: 'Scaling'}
 
-        final_results_dataframe['resultype'] = final_results_dataframe['resultype'].apply(lambda x: result_type_map[x])
+        intermediate_dataframe['resultype'] = intermediate_dataframe['resultype'].apply(lambda x: result_type_map[x])
 
-        #SUBSET OF ROWS WHICH HAVE "qualifier" AS QUALIFIER
-        performance_mask = (final_results_dataframe['qualifier'] == pd.Series([qualifier] *len(final_results_dataframe)))
-        performance_dataframe = final_results_dataframe[performance_mask]
+        final_results_dataframe = pd.DataFrame(columns=intermediate_dataframe.columns)
+        #SUBSET OF ROWS WHICH HAVE "qualifier" IN QUALIFIER LIST
+        for q in qualifier:
+            mask = (intermediate_dataframe['qualifier'] == pd.Series([q] *len(intermediate_dataframe)))
+            dataframe = intermediate_dataframe[mask]
+            print("PRINTING INTERMEDIATE DATAFRAME")
+            print(dataframe)
+            print("DONE")
+            final_results_dataframe = final_results_dataframe.append(dataframe)
 
+        print("PRINTING THE FINAL DATAFRAME")
+        print(final_results_dataframe)
+        print("DONE")
         #Delete the results_param_list as it is no longer needed
         del parameter_lists['results_param_list']
 
         #read csv files from NAS path
         compare_lists = read_all_csv_files(compare_lists, parameter_lists, originID_compare_list)
-        
+        print("PRINTING THE DICTIONARY")
+        pprint(intermediate_dataframe.to_dict(orient='list'))
 
         # send data to the template compare.html
         context = {
@@ -445,6 +486,7 @@ def diffTests():
             'parameter_lists': parameter_lists,
             'compare_lists': compare_lists,
 
+            'comparable_results':comparable_results.to_dict(orient='list'),
             'results': final_results_dataframe.to_dict(orient='list'),
         }
         return render_template('compare.html', context=context)
