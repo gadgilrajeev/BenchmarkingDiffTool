@@ -113,4 +113,75 @@ Environment Details
 		</table>
 	</div>
 	
+	<div class='environment-details'>
+		<h2>RAM Details</h2>
+		<table>
+			<tr>
+				{% for col in context.ram %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+
+			{% for i in range(context.ram | no_of_rows) %}
+				<tr>
+					{% for col in context.ram %}
+					<td>
+						{{ context.ram[col][i] }}
+					</td>
+					{% endfor %}
+				</tr>
+			{% endfor %}
+		</table>
+	</div>
+
+	<div class='environment-details'>
+		<h2>Disk Details</h2>
+		<table>
+			<tr>
+				{% for col in context.disk %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+
+			{% for i in range(context.disk | no_of_rows) %}
+				<tr>
+					{% for col in context.disk %}
+					<td>
+						{{ context.disk[col][i] }}
+					</td>
+					{% endfor %}
+				</tr>
+			{% endfor %}
+		</table>
+	</div>
+
+	<div class='environment-details'>
+		<h2>NIC Details</h2>
+		<table>
+			<tr>
+				{% for col in context.nic %}
+					<th>
+						{{ col }}
+					</th>
+				{% endfor %}
+			</tr>
+
+			{% for i in range(context.nic | no_of_rows) %}
+				<tr>
+					{% for col in context.nic %}
+					<td>
+						{{ context.nic[col][i] }}
+					</td>
+					{% endfor %}
+				</tr>
+			{% endfor %}
+		</table>
+	</div>
+	
+
+	
 {% endblock %}
