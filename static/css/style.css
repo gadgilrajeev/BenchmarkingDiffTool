@@ -264,3 +264,32 @@ tbody tr td{
 .comparison-table{
   margin: 20px;
 }
+
+#graph-div span{
+  display:flex;
+  margin-left: 20%;
+}
+
+#graph-div  #yParameter {
+  width: 20%;
+}
+
+#graph-div  p {
+  font-weight: bold;
+  margin-left: 5%;
+  width: 5%;
+}
+
+#graph-div  #xParameter {
+  width: 20%;
+}
+
+#graph-div #download-png{
+  margin-left: 5%;
+}
+
+#graph-div > #comparison-graph {
+  margin-left: 20%;
+  width:33.33%;
+  height:350px;
+}
