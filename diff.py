@@ -137,7 +137,6 @@ def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
                 compare_lists[table_name + "_details_list"].append(param_values_dictionary)
     return compare_lists
 
-
 # ALL TESTS PAGE
 @app.route('/')
 def home_page():
@@ -185,31 +184,31 @@ def showAllRuns(testname):
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
-    qualifier = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')[0]
-    min_or_max = \
-    results_metadata_parser.get(testname, 'higher_is_better').replace('\"', '').replace(' ', '').split(',')[0]
+    qualifier_list = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')
+    min_or_max_list = results_metadata_parser.get(testname, 'higher_is_better') \
+                    .replace('\"', '').replace(' ', '').split(',')
 
-    print(qualifier)
-    print(min_or_max)
+    print(qualifier_list)
+    print(min_or_max_list)
 
-    if min_or_max == '0':
-        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MIN(r.number) as Best" +\
-                        qualifier.replace(" ",'') + """, o.notes from result r INNER JOIN display disp 
+    if min_or_max_list[0] == '0':
+        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MIN(r.number) as \'Best" +\
+                        qualifier_list[0].replace(" ",'') + """\', o.notes from result r INNER JOIN display disp 
                         ON  r.display_displayID = disp.displayID
                         INNER JOIN origin o ON o.originID = r.origin_originID 
                         INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
                         where t.testname = \'""" + testname + """\' 
-                        AND disp.qualifier LIKE \'%""" + qualifier + """%\' 
+                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + """%\' 
                         AND r.isvalid = 1 GROUP BY o.originID, o.testdate, o.hostname, o.notes 
                         ORDER BY o.originID DESC"""
     else:
-        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MAX(r.number) as Best" +\
-                        qualifier.replace(" ",'') + """, o.notes from result r INNER JOIN display disp 
+        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MAX(r.number) as \'Best" +\
+                        qualifier_list[0].replace(" ",'') + """\', o.notes from result r INNER JOIN display disp 
                         ON  r.display_displayID = disp.displayID 
                         INNER JOIN origin o ON o.originID = r.origin_originID 
                         INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
                         where t.testname = \'""" + testname + """\' 
-                        AND disp.qualifier LIKE \'%""" + qualifier + """%\' 
+                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + """%\' 
                         AND r.isvalid = 1 GROUP BY o.originID, o.testdate, o.hostname, o.notes 
                         ORDER BY o.originID DESC"""
     
@@ -224,6 +223,7 @@ def showAllRuns(testname):
         'data': dataframe.to_dict(orient='list'),
         'no_of_rows': rows,
         'no_of_columns': columns,
+        'qualifier_list': qualifier_list,
     }
 
     return render_template('all-runs.html', context=context)
@@ -362,8 +362,22 @@ def showEnvDetails(originID):
     # READ RAM.CSV file and add the size to get total RAM in GB
     ram_dataframe = pd.read_csv(results_file_path + '/ram.csv', header=None,
                                 names=parameter_lists['ram_details_param_list'])
+
+    #CUSTOM FILTER
+    # Returns boolean True if the group has all 'ramsize' entries as 'float'
+    def only_numeric_groups(df):
+        ramsize_series = df['ramsize'].astype(str).str.isnumeric().isin([True])
+        return ramsize_series.all()
+
+    ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]).filter(only_numeric_groups).reset_index(drop=True)
+
+    # Convert each entry of 'ramsize' column to float
+    ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: float(x))
+
     ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]) \
-                        .apply(lambda x: x.sum() / 1024).reset_index()
+                        .apply(lambda x: x.sum()/1024).reset_index()
+
+    #Add ' GB' to the size
     ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: str(x) + " GB")
 
     # Read disk dataframe
@@ -548,3 +562,115 @@ def diffTests():
         return render_template('compare.html', context=context)
     else:
         return redirect('/')
+
+# This function handles the AJAX request for graph data. 
+# JS then draws the graph using this data
+@app.route('/get_data_for_graph', methods=['POST'])
+def get_data_for_graph():
+    db = pymysql.connect(host='10.110.169.149', user='root',
+                         passwd='', db='benchtooldb', port=3306)
+
+    data = request.get_json()
+    xParameter = data['xParameter']
+    yParameter = data['yParameter']
+
+    testname = data['testname']
+
+    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_parser = configparser.ConfigParser()
+    results_metadata_parser.read(results_metadata_file_path)
+
+    # GET First parameter from 'fields' 
+    qualifier_list = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')
+    min_or_max_list = results_metadata_parser.get(testname, 'higher_is_better') \
+                    .replace('\"', '').replace(' ', '').split(',')
+    index = qualifier_list.index(yParameter)
+
+    print("XPARAMETER = ", xParameter)
+    print("YPARAMETER = ", yParameter)
+    print("testname = ", testname)
+
+    print("QUALIFIER ="  , qualifier_list)
+    print("MIN MAX = ", min_or_max_list)
+    print("INDEX = " , index)
+   
+    
+    parameter_map = {
+        "Kernel Version": 'os.kernelname', 
+        'OS Version': 'os.osversion', 
+        'OS Name': 'os.osdistro', 
+        "Firmware Version": 'hw.fwversion' , 
+        "ToolChain Name": 'tc.toolchainname', 
+        "ToolChain Version" : 'tc.toolchainversion', 
+        "Flags": 'tc.flags'
+    }
+    table_map = {
+        "Kernel Version": 'ostunings os', 
+        'OS Version': 'ostunings os', 
+        'OS Name': 'ostunings os', 
+        "Firmware Version": 'hwdetails hw', 
+        "ToolChain Name": 'toolchain tc', 
+        "ToolChain Version" : 'toolchain tc', 
+        "Flags": 'toolchain tc'
+    }
+    join_on_map = {
+        'Kernel Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
+        'OS Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
+        'OS Name': 'o.ostunings_ostuningsID = os.ostuningsID',
+        "Firmware Version": 'o.hwdetails_hwdetailsID = hw.hwdetailsID', 
+        "ToolChain Name": 'o.toolchain_toolchainID = tc.toolchainID', 
+        "ToolChain Version" : 'o.toolchain_toolchainID = tc.toolchainID', 
+        "Flags": 'o.toolchain_toolchainID = tc.toolchainID'
+    }
+
+    X_LIST_QUERY = "SELECT DISTINCT " + parameter_map[xParameter] + " as \'" + parameter_map[xParameter] + \
+                    "\' from " + table_map[xParameter] + " INNER JOIN origin o ON " + \
+                    join_on_map[xParameter] + """ INNER JOIN result r ON o.originID = r.origin_originID 
+                    INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID 
+                    WHERE t.testname=\'""" + testname + "\';"
+
+
+    x_df = pd.read_sql(X_LIST_QUERY, db)
+    x_list = sorted(x_df[parameter_map[xParameter]].to_list())
+    print("XLIST = ")
+    print(x_list)
+
+    y_list = []
+
+    # max or min
+    for x_param in x_list:
+        if min_or_max_list[index] == '0':
+            Y_LIST_QUERY = """SELECT MIN(r.number) as number FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
+                                INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
+                                """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                                INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
+                                WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
+                                "\' and t.testname = \'" + testname + \
+                                "\' AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
+                                "%\' group by " + parameter_map[xParameter]  + ";"
+        else:
+            Y_LIST_QUERY = """SELECT MAX(r.number) as number FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
+                                INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
+                                """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                                INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
+                                WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
+                                "\' and t.testname = \'" + testname + \
+                                "\' AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
+                                "%\' group by " + parameter_map[xParameter]  + ";"
+
+
+        y_df = pd.read_sql(Y_LIST_QUERY, db)
+        print("#########PRINTING DATAFRAME")
+        print(y_df)
+        y_list.extend(y_df['number'].to_list())
+
+   
+    print("YLIST = ")
+    print(y_list)
+
+    response = {
+        'x_list': x_list, 
+        'y_list': y_list,
+    }
+
+    return response

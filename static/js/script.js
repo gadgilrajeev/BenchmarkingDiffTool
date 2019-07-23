@@ -21,14 +21,14 @@ function hideCommon(checkbox) {
 }
 
 function filterTestsByLabel(checkbox){
+	// Select all the rows from both tables
 	allRows = document.getElementsByClassName("all-tests-rows")
 
+	// make their visibility false
 	for(i = 0; i < allRows.length; i++)
 		allRows[i].setAttribute('style','display:none')
 
-	console.log("GAYAB")
-
-
+	// This is the list of the checkboxes selected
 	filterList = []
 	cbs = document.getElementsByClassName("filter-checkboxes")
 	for(i = 0; i < cbs.length; i++)
@@ -36,11 +36,14 @@ function filterTestsByLabel(checkbox){
 		if(cbs[i].checked == true)
 			filterList.push(cbs[i].value)
 	}
+
+	// If filterList is empty. Display all the results
 	if(filterList.length == 0)
 	{
 		for(i = 0; i < allRows.length; i++)
 			allRows[i].removeAttribute('style')
 	}
+	//Else display only the filtered results
 	else
 	{
 		for(i = 0; i < allRows.length; i++)
@@ -57,7 +60,6 @@ function filterTestsByLabel(checkbox){
 		}
 	}
 	console.log("FILTER LISTS IS: " + filterList)
-
 }
 
 function uncheckBoxes(classname){
@@ -80,6 +82,35 @@ function testDetails(tableCell){
 	originID = tableCell.innerHTML.trim().replace( /^\D+/g, '');
 	console.log(originID)
 	window.location.href = '/test-details/'+originID
+}
+
+function downloadAsPng(){
+	
+}
+
+function drawComparisonGraph(xList, yList, xParameter = 'Kernel Version', yParameter = 'Performance'){
+	console.log(xList + typeof(xList))
+	console.log(yList + typeof(yList))
+
+	graphDiv = document.getElementById('comparison-graph');
+
+	var layout = {
+		xaxis: {
+			type : 'category',
+			title : xParameter,
+		},
+		yaxis: {
+			title: yParameter,
+		},
+		title: yParameter + ' vs ' + xParameter,
+	}
+
+	data = [{
+		x: xList,
+		y: yList,
+		type: 'bar' 
+	}]
+	Plotly.newPlot( graphDiv, data, layout);
 }
 
 function drawGraph(columns_data){
