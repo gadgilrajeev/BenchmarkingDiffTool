@@ -9,7 +9,6 @@ Test Details
 
 	<script>
 		$( document ).ready(function() {
-			console.log("LOADING INTERESTING TABLES")
 			$("#resultsTable").DataTable({
 				"lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
 			});
@@ -35,7 +34,7 @@ Test Details
 				{% for key in context.system_details %}
 					{% if loop.index0 <= 3 %}
 						{% if loop.index0 == 2 %}
-							<td> <a href="/environment-details/{{ context.system_details[key][0] }}">{{ context.system_details[key][0] }}</a></td>
+							<td> <a href="/environment-details/{{ context.system_details[key][0] }}">Details</a></td>
 						{% else %}
 							<td> {{ context.system_details[key][0] }}</td>
 						{% endif %}
