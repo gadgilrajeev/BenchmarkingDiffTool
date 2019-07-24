@@ -307,7 +307,6 @@ def showTestDetails(originID):
     }
     return render_template('test-details.html', context=context)
 
-
 # View for handling Environment details request
 @app.route('/environment-details/<originID>')
 def showEnvDetails(originID):
@@ -580,21 +579,12 @@ def get_data_for_graph():
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
-    # GET First parameter from 'fields' 
+    # GET qualifier_list and min_max_list from 'fields' and 'higher_is_better' the section 'testname'
     qualifier_list = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')
     min_or_max_list = results_metadata_parser.get(testname, 'higher_is_better') \
                     .replace('\"', '').replace(' ', '').split(',')
     index = qualifier_list.index(yParameter)
 
-    print("XPARAMETER = ", xParameter)
-    print("YPARAMETER = ", yParameter)
-    print("testname = ", testname)
-
-    print("QUALIFIER ="  , qualifier_list)
-    print("MIN MAX = ", min_or_max_list)
-    print("INDEX = " , index)
-   
-    
     parameter_map = {
         "Kernel Version": 'os.kernelname', 
         'OS Version': 'os.osversion', 
@@ -629,14 +619,11 @@ def get_data_for_graph():
                     INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID 
                     WHERE t.testname=\'""" + testname + "\';"
 
-
     x_df = pd.read_sql(X_LIST_QUERY, db)
     x_list = sorted(x_df[parameter_map[xParameter]].to_list())
-    print("XLIST = ")
-    print(x_list)
 
     y_list = []
-
+    x_list_rm = []
     # max or min
     for x_param in x_list:
         if min_or_max_list[index] == '0':
@@ -646,7 +633,7 @@ def get_data_for_graph():
                                 INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
                                 WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
                                 "\' and t.testname = \'" + testname + \
-                                "\' AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
+                                "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
                                 "%\' group by " + parameter_map[xParameter]  + ";"
         else:
             Y_LIST_QUERY = """SELECT MAX(r.number) as number FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
@@ -654,23 +641,147 @@ def get_data_for_graph():
                                 """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
                                 INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
                                 WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
-                                "\' and t.testname = \'" + testname + \
-                                "\' AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
+                                "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
+                                " AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
                                 "%\' group by " + parameter_map[xParameter]  + ";"
 
 
         y_df = pd.read_sql(Y_LIST_QUERY, db)
-        print("#########PRINTING DATAFRAME")
-        print(y_df)
-        y_list.extend(y_df['number'].to_list())
 
-   
-    print("YLIST = ")
-    print(y_list)
+        if y_df.empty is True:
+            x_list_rm.append(x_param)
+        else:
+            y_list.extend(y_df['number'].to_list())
 
+    #Remove everything that has an empty set returned
+    for rm_elem in x_list_rm:
+        x_list.remove(rm_elem)
     response = {
         'x_list': x_list, 
         'y_list': y_list,
+        'xParameter': xParameter,
+        'yParameter': yParameter,
+    }
+
+    return response
+
+
+# This function handles the AJAX request for Best SKU Graph data.
+# JS then draws the graph using this data
+@app.route('/best_sku_graph', methods=['POST'])
+def best_sku_graph():
+    db = pymysql.connect(host='10.110.169.149', user='root',
+                         passwd='', db='benchtooldb', port=3306)
+
+    data = request.get_json()
+    xParameter = data['xParameter']
+    yParameter = data['yParameter']
+    testname = data['testname']
+
+    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_parser = configparser.ConfigParser()
+    results_metadata_parser.read(results_metadata_file_path)
+
+    # GET First qualifier from 'fields' and its corresponding min_or_max from 'higher_is_better' for section 'testname'
+    qualifier = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')[0]
+    min_or_max = results_metadata_parser.get(testname, 'higher_is_better') \
+                    .replace('\"', '').replace(' ', '').split(',')[0]
+
+
+    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    sku_parser = configparser.ConfigParser()
+    sku_parser.read(sku_file_path)
+
+    cpu_data = OrderedDict({section: None for section in sku_parser.sections()})
+
+
+    for section in cpu_data:
+        skuid_list = sku_parser.get(section, 'SKUID').replace('\"', '').split(',')
+        if min_or_max == '0':
+            # Fix this hack
+            BEST_RESULT_QUERY = """SELECT MIN(r.number) as number from origin o inner join hwdetails hw
+                                    on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
+                                    on n.nodeID = hw.node_nodeID inner join testdescriptor t
+                                    on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
+                                    on r.origin_originID = o.originID INNER JOIN display disp 
+                                    ON  r.display_displayID = disp.displayID where r.number > 0 AND r.isvalid = 1 
+                                    AND t.testname = \'""" + testname + "\' AND disp.qualifier LIKE \'%" + qualifier + \
+                                    "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + ";"
+
+        else:
+            BEST_RESULT_QUERY = """SELECT MAX(r.number) as number from origin o inner join hwdetails hw
+                                    on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
+                                    on n.nodeID = hw.node_nodeID inner join testdescriptor t
+                                    on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
+                                    on r.origin_originID = o.originID INNER JOIN display disp 
+                                    ON  r.display_displayID = disp.displayID where r.isvalid = 1 
+                                    AND t.testname = \'""" + testname + "\' AND disp.qualifier LIKE \'%" + qualifier + \
+                                    "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + ";"
+        
+        results_df = pd.read_sql(BEST_RESULT_QUERY, db)
+        cpu_data[section] = results_df['number'].to_list()[0]
+
+    pprint(cpu_data)
+
+    # Remove the entries from dictionary whose values are empty
+    rm_key_list = []
+    for key, val in cpu_data.items():
+        if not val:
+            rm_key_list.append(key)
+
+    for key in rm_key_list:
+        del cpu_data[key]
+
+    color_list = []
+    for section in cpu_data:
+        color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
+    print(color_list)
+
+    response = {
+        'x_list': list(cpu_data.keys()), 
+        'y_list': list(cpu_data.values()),
+        'color_list': color_list,
+        'xParameter': xParameter,
+        'yParameter': yParameter + qualifier,
+    }
+
+    return response
+
+# Returns the NORMALIZED version of the graph with respect to a xParameter
+@app.route('/best_sku_graph_normalized', methods=['POST'])
+def best_sku_graph_normalized():
+    data = request.get_json()
+
+    # X-Axis, Y-Axis values lists and its parameters
+    x_list = data['xList']
+    y_list = data['yList']
+    xParameter = data['xParameter']
+    yParameter = data['yParameter']
+
+    # Normalized with respect to this parameter
+    normalized_wrt = data['normalizedWRT']
+
+    index = x_list.index(normalized_wrt)
+    normalized_y_list = [value/y_list[index] for value in y_list]
+
+    # Colors for the graphs
+    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    sku_parser = configparser.ConfigParser()
+    sku_parser.read(sku_file_path)
+
+    color_list = []
+    for section in x_list:
+        color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
+    print(color_list)
+
+    print("Normalized Y list = ", normalized_y_list)
+
+    response = {
+        'x_list': x_list, 
+        'y_list': normalized_y_list,
+        'color_list': color_list,
+        'xParameter': xParameter,
+        'yParameter': yParameter,
     }
 
     return response

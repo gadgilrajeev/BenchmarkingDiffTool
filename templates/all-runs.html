@@ -9,32 +9,48 @@ All Runs of the test
 
 	<h2 style="font-weight: bold; text-align: center;">{{ context.testname }}</h2>
 	
-	<div id="graph-div">
-		<span>
-			<select id="yParameter" name="yParameter">
-				<!-- TAKING PARAMETERS FROM INI FILE -->
-				{% for qualifier in context.qualifier_list %}
-					{% if loop.index0 == 0 %}
-						<option value="{{ qualifier }}" selected="selected">{{ qualifier }}</option>
-					{% else %}
-						<option value="{{ qualifier }}">{{ qualifier }}</option>
-					{% endif %}
-				{% endfor %}
-			</select>
-			<p>vs</p>
-			<select id="xParameter" name="xParameter">
-				<option value="Kernel Version" selected="selected">Kernel Version</option>
-				<option value="OS Version">OS Version</option>
-				<option value="OS Name">OS Name</option>
-				<option value="Firmware Version">Firmware Version</option>
-				<option value="ToolChain Name">ToolChain Name</option>
-				<option value="ToolChain Version">ToolChain Version</option>
-				<!-- <option value="Flags">Flags</option> -->
-			</select>
+	<div id="outer-graph-div">
+		<div id="graph-div">
+			<span>
+				<select id="yParameter" name="yParameter">
+					<!-- TAKING PARAMETERS FROM INI FILE -->
+					{% for qualifier in context.qualifier_list %}
+						{% if loop.index0 == 0 %}
+							<option value="{{ qualifier }}" selected="selected">{{ qualifier }}</option>
+						{% else %}
+							<option value="{{ qualifier }}">{{ qualifier }}</option>
+						{% endif %}
+					{% endfor %}
+				</select>
+				<p>vs</p>
+				<select id="xParameter" name="xParameter">
+					<option value="Kernel Version" selected="selected">Kernel Version</option>
+					<option value="OS Version">OS Version</option>
+					<option value="OS Name">OS Name</option>
+					<option value="Firmware Version">Firmware Version</option>
+					<option value="ToolChain Name">ToolChain Name</option>
+					<option value="ToolChain Version">ToolChain Version</option>
+					<!-- <option value="Flags">Flags</option> -->
+				</select>
 
-			<button id="download-png" class="blue" onclick="downloadAsPng()">Download as PNG</button>
-		</span>
-		<div id="comparison-graph"></div>
+				<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val(),$('#yParameter option:selected').val(), 'comparison-graph')">Download as PNG</button>
+				<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val(),$('#yParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
+
+			</span>
+		</div>
+		<div id="graph-plot-div">
+			<div id="comparison-graph"></div>
+			<div id="best-sku-graph"></div>
+			<form id="graph-type-form">
+				<label for="Absolute">Absolute</label>
+				<input type="radio" name="typeOfGraph" id="Absolute" checked="checked" value="Absolute">
+				<label for="Normalized">Normalized</label>
+				<input type="radio" name="typeOfGraph" id="Normalized" value="Normalized">
+				<select id="normalized-dropdown" name="normalized-dropdown">
+
+				</select>
+			</form>
+		</div>
 	</div>
 
 	<form action="/diff" method="POST">
@@ -73,24 +89,10 @@ All Runs of the test
 
 <script>
 	uncheckBoxes("diff-checkbox");
-
-	function sendAjaxRequest(xParameter, yParameter){
-		$.ajax({
-	    	url: '/get_data_for_graph',
-			method: "POST",
-			dataType: 'json',
-			contentType: "application/json",
-			data: JSON.stringify({
-				"xParameter" : xParameter,
-				"yParameter" : yParameter,
-				"testname" : "{{ context.testname }}",
-			}),
-		}).done(function(response){
-			console.log("DONEEEEEEE")
-			console.log(response)
-			drawComparisonGraph(response.x_list, response.y_list, xParameter, yParameter)
-		})
-	}
+	
+	document.getElementById("graph-type-form").reset();
+	var $normalizedList = $("#normalized-dropdown");
+	$normalizedList.hide();
 
 	$(document).ready(function() {
 	    // Setup - append a text input to each header cell
@@ -123,12 +125,10 @@ All Runs of the test
 	    
 	    //draw the first graph according to the selected values
 		var xParameter = $("#xParameter option:selected").val();
-		console.log("xParameter is = #" + xParameter + "#")
 		var yParameter = $("#yParameter option:selected").val();
-		console.log("yParameter is = #" + yParameter + "#")
 	    
 	    //Function for drawing INITIAL comparison graph
-	    sendAjaxRequest(xParameter, yParameter)
+	    sendAjaxRequest(xParameter, yParameter, "{{ context.testname }}", url='/get_data_for_graph')
 
 		// AJAX request to get_data_for_graph for redrawing the graph on "xParameter" changed event
 		$(function(){
@@ -136,7 +136,7 @@ All Runs of the test
 				//update the xParameter value
 				xParameter = $('option:selected', this).text()
 
-				sendAjaxRequest(xParameter, yParameter)
+				sendAjaxRequest(xParameter, yParameter, "{{ context.testname }}", url='/get_data_for_graph')
 			})
 		});
 
@@ -146,12 +146,41 @@ All Runs of the test
 			$("#yParameter").change(function(){
 				//update the yParameter value
 				yParameter = $('option:selected', this).text()
-
-				sendAjaxRequest(xParameter, yParameter)
+				console.log("PRINTING Y PARAM" + yParameter + xParameter)
+				sendAjaxRequest(xParameter, yParameter, "{{ context.testname }}", url='/get_data_for_graph')
 			})
 		});
 
+	    //Function for drawing Best SKU graph
+	    sendAjaxRequest('SKUs', 'Best ', "{{ context.testname }}", url='/best_sku_graph')
 
+	    //fill the dropdown list
+	    //and hide it
+	    fillNormalizedDropdown();
+
+	    //Event handler on switching from "Absolute" to "Normalized" best_sku_graph and vice-versa
+		$('input[type=radio][name=typeOfGraph]').change(function() {
+		    if (this.value == 'Absolute') {
+		    	var $normalizedList = $("#normalized-dropdown");
+		    	$normalizedList.hide();
+		    	sendAjaxRequest('SKUs', 'Best ', "{{ context.testname }}", url='/best_sku_graph')
+		        
+		    }
+		    else if (this.value == 'Normalized') {
+		    	var $normalizedList = $("#normalized-dropdown");
+		    	$normalizedList.show();
+
+		    	drawNormalizedGraph('best-sku-graph')
+		        
+		    }
+		});
+
+		$(function(){
+			$("#normalized-dropdown").change(function(){
+				
+				drawNormalizedGraph('best-sku-graph')
+			})
+		});
 
 	});
 
