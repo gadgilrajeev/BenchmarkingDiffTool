@@ -267,11 +267,11 @@ tbody tr td{
 
 #graph-div span{
   display:flex;
-  margin-left: 20%;
+  margin-left: 5%;
 }
 
 #graph-div  #yParameter {
-  width: 20%;
+  width: 12%;
 }
 
 #graph-div  p {
@@ -281,15 +281,33 @@ tbody tr td{
 }
 
 #graph-div  #xParameter {
-  width: 20%;
+  width: 12%;
 }
 
-#graph-div #download-png{
-  margin-left: 5%;
+#graph-div #download-comparison-graph {
+  margin-left: 2%;
 }
 
-#graph-div > #comparison-graph {
+#graph-div #download-best-sku-graph {
   margin-left: 20%;
+}
+
+#graph-plot-div {
+  display: flex;
+}
+
+#graph-plot-div > #comparison-graph {
+  margin-left: 5%;
   width:33.33%;
   height:350px;
+}
+
+#graph-plot-div > #graph-type-form {
+  margin-right: 0%;
+}
+
+#graph-plot-div > #best-sku-graph {
+  margin-left: 15%;
+  width : 33.33%;
+  height : 350px;
 }
