@@ -84,15 +84,72 @@ function testDetails(tableCell){
 	window.location.href = '/test-details/'+originID
 }
 
-function downloadAsPng(){
+function downloadAsPng(xParameter, yParameter, graphID){
+	console.log("DOWNLOADING THE GRAPH?")
+	graphDiv = document.getElementById(graphID);
+
+	// downloadImage will accept the div as the first argument and an object specifying image properties as the other
+	Plotly.downloadImage(graphDiv, {format: 'png', width: 800, height: 600, filename: yParameter + ' vs ' + xParameter});
+}
+
+function sendAjaxRequest(xParameter, yParameter, testname, url) {
+
+	url_graph_map = {
+		// url : graph-div-id
+		'/get_data_for_graph' : 'comparison-graph',
+		'/best_sku_graph' : 'best-sku-graph',
+
+	}
+
+	if(url == '/best_sku_graph')
+		async = false;
+	else
+		async = true;
+
+	$.ajax({
+    	url: url,
+    	async: async,
+		method: "POST",
+		dataType: 'json',
+		contentType: "application/json",
+		data: JSON.stringify({
+			"xParameter" : xParameter,
+			"yParameter" : yParameter,
+			"testname" : testname,
+		}),
+	}).done(function(response){
+		console.log("DONEEEEEEE")
+		console.log(response)
+
+		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url])
+	})
+}
+
+function fillNormalizedDropdown(){
+	//get xList from the graph
+	var gd = document.getElementById('best-sku-graph')
+	cpuList = gd.data[0].x
+
+	//Fill elements of best-sku-graph's DROPDOWN list
+	console.log("FILLING THE DROPDOWN LIST")
+
+	var $normalizedList = $("#normalized-dropdown");
+	$normalizedList.hide();
+	//fill the list
+	$.each(cpuList, function(index, cpuName){
+		if(index == 0)
+			$normalizedList.append("<option selected='selected' value='" + cpuName + "'>" + cpuName + "</option>");
+		else
+			$normalizedList.append("<option value='" + cpuName + "'>" + cpuName + "</option>");
+	});
 	
 }
 
-function drawComparisonGraph(xList, yList, xParameter = 'Kernel Version', yParameter = 'Performance'){
+function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, graphID){
 	console.log(xList + typeof(xList))
 	console.log(yList + typeof(yList))
 
-	graphDiv = document.getElementById('comparison-graph');
+	graphDiv = document.getElementById(graphID);
 
 	var layout = {
 		xaxis: {
@@ -108,96 +165,43 @@ function drawComparisonGraph(xList, yList, xParameter = 'Kernel Version', yParam
 	data = [{
 		x: xList,
 		y: yList,
-		type: 'bar' 
+		marker:{
+			color: colorList
+		},
+		haha : 'gotity',
+		type: 'bar',
 	}]
 	Plotly.newPlot( graphDiv, data, layout);
 }
 
-function drawGraph(columns_data){
-
-	function toList(str){
-		return str.replace(/[\[\]\']/g,'').split(',')
-	}
-
-
-	function arrayRemove(arr, value) {
-		return arr.filter(function(ele){
-			return ele != value;
-		});
-	}
-
-	originID_list = arrayRemove(Object.keys(columns_data), 'qualifier');
-
-	console.log(typeof(originID_list))
-	console.log(originID_list)
-	console.log(originID_list[0])
-	console.log(typeof(columns_data))
-	console.log(columns_data)
+function drawNormalizedGraph(graphID){
+	var gd = document.getElementById(graphID)
 	
-	graphDiv = document.getElementById('comparison-graph');
-	data = [{
-		x: originID_list,
-		y: [1, 2,3,4],
-		type: 'bar' 
-	}]
-	Plotly.plot( graphDiv, data);
+	// get selected element from dropdown list
+	normalizedWRT = $("#normalized-dropdown option:selected").text()
 
-	return columns_data
-
-}
-
-function addTest(){
-	console.log("ADDING TEST")
-	form = document.getElementById('comparison-form-elements')
-	testCount = form.childElementCount
-
-	newDiv = document.createElement('div')
+	console.log("DRAWING NORMALIZED GRAPH")
+	// get the current state of the graph
+	xList = gd.data[0].x
+	yList = gd.data[0].y
+	xParameter = gd.layout.xaxis.title.text 
+	yParameter = gd.layout.yaxis.title.text
 	
-	newLabel = document.createElement('label')
-	newLabel.setAttribute('style','font-family: Bookman Old Style')
-	newLabel.setAttribute('for','test_'+(testCount+1))
-	newLabel.innerHTML='Test '+ (testCount+1)
-	
-	newInput = document.createElement('input')
-	newInput.setAttribute('type',"text")
-	newInput.setAttribute('id',"test_"+(testCount+1))
-	newInput.setAttribute('name',"test_"+(testCount+1))
-	newInput.setAttribute('placeholder','Enter Test Number')
-
-	newDiv.appendChild(newLabel)
-	newDiv.appendChild(newInput)
-	
-	if(testCount == 2)
-	{
-		lastDiv = document.getElementById('last-div')
-	
-		newInput = document.createElement('button')
-		newInput.setAttribute('id','remove-test')
-		newInput.setAttribute('class','red')
-		newInput.setAttribute('type','button')
-		newInput.setAttribute('onclick','removeTest()')
-		newInput.innerHTML = "Remove a Test"
-
-		var submitButton = document.getElementById('comparison-submit-button')
-		lastDiv.removeChild(submitButton)
-
-		lastDiv.appendChild(newInput)
-		lastDiv.appendChild(submitButton)
-	}
-
-	form.appendChild(newDiv)
-	return false
-}
-
-function removeTest(){
-	testCount = form.childElementCount
-	form.removeChild(form.lastChild)
-	if(testCount == 3)
-	{
-		lastDiv = document.getElementById('last-div')
-		removeButton = document.getElementById('remove-test')
-
-		lastDiv.removeChild(removeButton)	
-	}
-	return false
+	$.ajax({
+    	url: '/best_sku_graph_normalized',
+		method: "POST",
+		dataType: 'json',
+		contentType: "application/json",
+		data: JSON.stringify({
+			"xList" : xList,
+			"yList" : yList,
+			"xParameter" : xParameter,
+			"yParameter" : yParameter,
+			"normalizedWRT" : normalizedWRT,
+		}),
+	}).done(function(response){
+		console.log("DONEEEEEEE")
+		console.log(response)
+		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = 'best-sku-graph')
+	})
 }
