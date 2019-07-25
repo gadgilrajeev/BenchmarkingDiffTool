@@ -623,27 +623,28 @@ def get_data_for_graph():
     x_list = sorted(x_df[parameter_map[xParameter]].to_list())
 
     y_list = []
+    originID_list = []
     x_list_rm = []
     # max or min
     for x_param in x_list:
         if min_or_max_list[index] == '0':
-            Y_LIST_QUERY = """SELECT MIN(r.number) as number FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
+            Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
                                 INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
                                 """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
                                 INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
                                 WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
                                 "\' and t.testname = \'" + testname + \
                                 "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
-                                "%\' group by " + parameter_map[xParameter]  + ";"
+                                "%\' group by " + parameter_map[xParameter]  + ", o.originID, r.number order by r.number limit 1;"
         else:
-            Y_LIST_QUERY = """SELECT MAX(r.number) as number FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
+            Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
                                 INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
                                 """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
                                 INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
                                 WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
                                 "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
                                 " AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
-                                "%\' group by " + parameter_map[xParameter]  + ";"
+                                "%\' group by " + parameter_map[xParameter]  + ", o.originID, r.number order by r.number DESC limit 1;"
 
 
         y_df = pd.read_sql(Y_LIST_QUERY, db)
@@ -652,7 +653,9 @@ def get_data_for_graph():
             x_list_rm.append(x_param)
         else:
             y_list.extend(y_df['number'].to_list())
+            originID_list.extend(y_df['originID'].to_list())
 
+    print("PRINTING ORIGIN LIST", originID_list)
     #Remove everything that has an empty set returned
     for rm_elem in x_list_rm:
         x_list.remove(rm_elem)
@@ -661,6 +664,7 @@ def get_data_for_graph():
         'y_list': y_list,
         'xParameter': xParameter,
         'yParameter': yParameter,
+        'originID_list': originID_list,
     }
 
     return response
@@ -693,42 +697,48 @@ def best_sku_graph():
     sku_parser.read(sku_file_path)
 
     cpu_data = OrderedDict({section: None for section in sku_parser.sections()})
-
+    originID_list = []
+    rm_key_list = []
 
     for section in cpu_data:
         skuid_list = sku_parser.get(section, 'SKUID').replace('\"', '').split(',')
         if min_or_max == '0':
             # Fix this hack
-            BEST_RESULT_QUERY = """SELECT MIN(r.number) as number from origin o inner join hwdetails hw
+            BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
                                     on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
                                     on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
                                     on r.origin_originID = o.originID INNER JOIN display disp 
                                     ON  r.display_displayID = disp.displayID where r.number > 0 AND r.isvalid = 1 
                                     AND t.testname = \'""" + testname + "\' AND disp.qualifier LIKE \'%" + qualifier + \
-                                    "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + ";"
+                                    "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
+                                    " group by o.originID, r.number order by r.number;"
 
         else:
-            BEST_RESULT_QUERY = """SELECT MAX(r.number) as number from origin o inner join hwdetails hw
+            BEST_RESULT_QUERY = """SELECT MAX(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
                                     on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
                                     on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
                                     on r.origin_originID = o.originID INNER JOIN display disp 
                                     ON  r.display_displayID = disp.displayID where r.isvalid = 1 
                                     AND t.testname = \'""" + testname + "\' AND disp.qualifier LIKE \'%" + qualifier + \
-                                    "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + ";"
-        
+                                    "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
+                                    " group by o.originID, r.number order by r.number DESC;"
+
+
         results_df = pd.read_sql(BEST_RESULT_QUERY, db)
-        cpu_data[section] = results_df['number'].to_list()[0]
+        if results_df.empty is True:
+            rm_key_list.append(section)
+        else:
+            cpu_data[section] = results_df['number'].to_list()[0]
+            originID_list.append(results_df['originID'].to_list()[0])
 
     pprint(cpu_data)
+    print("ORIGIN ID LIST IN BEST RESUTLS GRAPH")
+    print(originID_list)
 
     # Remove the entries from dictionary whose values are empty
-    rm_key_list = []
-    for key, val in cpu_data.items():
-        if not val:
-            rm_key_list.append(key)
-
+    
     for key in rm_key_list:
         del cpu_data[key]
 
@@ -743,6 +753,7 @@ def best_sku_graph():
         'color_list': color_list,
         'xParameter': xParameter,
         'yParameter': yParameter + qualifier,
+        'originID_list': originID_list,
     }
 
     return response
@@ -757,6 +768,7 @@ def best_sku_graph_normalized():
     y_list = data['yList']
     xParameter = data['xParameter']
     yParameter = data['yParameter']
+    originID_list = data['originIDList']
 
     # Normalized with respect to this parameter
     normalized_wrt = data['normalizedWRT']
@@ -782,6 +794,7 @@ def best_sku_graph_normalized():
         'color_list': color_list,
         'xParameter': xParameter,
         'yParameter': yParameter,
+        'originID_list': originID_list,
     }
 
     return response

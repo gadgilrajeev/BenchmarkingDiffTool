@@ -121,7 +121,7 @@ function sendAjaxRequest(xParameter, yParameter, testname, url) {
 		console.log("DONEEEEEEE")
 		console.log(response)
 
-		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url])
+		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list)
 	})
 }
 
@@ -145,7 +145,7 @@ function fillNormalizedDropdown(){
 	
 }
 
-function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, graphID){
+function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, graphID, originIDList = []){
 	console.log(xList + typeof(xList))
 	console.log(yList + typeof(yList))
 
@@ -168,10 +168,21 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 		marker:{
 			color: colorList
 		},
-		haha : 'gotity',
+		originIDList : originIDList,
 		type: 'bar',
 	}]
 	Plotly.newPlot( graphDiv, data, layout);
+
+	//Add Event on click of bar
+	//Send user to "test-details" page of the respective "originID"
+	graphDiv.on('plotly_click', function(data){
+		console.log("CLICKED ON BAR GRAPH")
+		barNumber = data.points[0].pointNumber
+		originID = data.points[0].data.originIDList[barNumber]
+		console.log("You clicked on " + data.points[0].data.x[barNumber])
+		console.log("Which has originID " + data.points[0].data.originIDList[barNumber])
+		window.location.href = '/test-details/'+originID
+	})
 }
 
 function drawNormalizedGraph(graphID){
@@ -186,6 +197,7 @@ function drawNormalizedGraph(graphID){
 	yList = gd.data[0].y
 	xParameter = gd.layout.xaxis.title.text 
 	yParameter = gd.layout.yaxis.title.text
+	originIDList = gd.data[0].originIDList
 	
 	$.ajax({
     	url: '/best_sku_graph_normalized',
@@ -198,10 +210,11 @@ function drawNormalizedGraph(graphID){
 			"xParameter" : xParameter,
 			"yParameter" : yParameter,
 			"normalizedWRT" : normalizedWRT,
+			"originIDList": originIDList,
 		}),
 	}).done(function(response){
 		console.log("DONEEEEEEE")
 		console.log(response)
-		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = 'best-sku-graph')
+		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = 'best-sku-graph', response.originID_list)
 	})
 }
