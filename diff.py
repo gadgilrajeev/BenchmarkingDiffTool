@@ -400,7 +400,9 @@ def showEnvDetails(originID):
 
 @app.route('/diff', methods=['GET', 'POST'])
 def diffTests():
-    if request.method == "POST":
+    if request.method == "GET":
+        pass
+    elif request.method == "POST":
         db = pymysql.connect(host='10.110.169.149', user='root',
                              passwd='', db='benchtooldb', port=3306)
 
@@ -562,7 +564,7 @@ def diffTests():
     else:
         return redirect('/')
 
-# This function handles the AJAX request for graph data. 
+# This function handles the AJAX request for Comparison graph data. 
 # JS then draws the graph using this data
 @app.route('/get_data_for_graph', methods=['POST'])
 def get_data_for_graph():
@@ -621,30 +623,63 @@ def get_data_for_graph():
 
     x_df = pd.read_sql(X_LIST_QUERY, db)
     x_list = sorted(x_df[parameter_map[xParameter]].to_list())
+    print("PRINTING X LIST \n", x_list)
+    
+    # Remove ALL the entries which are '' in the list 
+    while True:
+        try:
+            x_list.remove('')
+        except:
+            break
+
+    print("AFTER REMOVING wrong entries \n")
+    print("PRINTING X LIST \n", x_list)
 
     y_list = []
     originID_list = []
+    skuid_list = [] 
+
+    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    sku_parser = configparser.ConfigParser()
+    sku_parser.read(sku_file_path)
+
+    # Dictionary mapping from 'skuidname' : 'server_cpu_name'
+    # Example 'Cavium ThunderX2(R) CPU CN9980 v2.2 @ 2.20 GHz' : Marvell TX2-B2
+    skuid_cpu_map = OrderedDict({section: sku_parser.get(section, 'SKUID').replace('\"', '').split(',') for section in sku_parser.sections()})
+    
+    # Fill the sku_cpu_map with all "sku->section" mapping entries
+    for section in sku_parser.sections():
+        skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
+        for sku in skus:
+            skuid_cpu_map[sku] = section
+
     x_list_rm = []
     # max or min
     for x_param in x_list:
         if min_or_max_list[index] == '0':
-            Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
+            Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+                                FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
                                 INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
                                 """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
-                                INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
+                                INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                                INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+                                INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
                                 WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
                                 "\' and t.testname = \'" + testname + \
                                 "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
-                                "%\' group by " + parameter_map[xParameter]  + ", o.originID, r.number order by r.number limit 1;"
+                                "%\' group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
         else:
-            Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
+            Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+                                FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
                                 INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
                                 """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
                                 INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
+                                INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+                                INNER JOIN node n ON hw1.node_nodeID = n.nodeID
                                 WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
                                 "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
                                 " AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
-                                "%\' group by " + parameter_map[xParameter]  + ", o.originID, r.number order by r.number DESC limit 1;"
+                                "%\' group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
 
 
         y_df = pd.read_sql(Y_LIST_QUERY, db)
@@ -654,8 +689,38 @@ def get_data_for_graph():
         else:
             y_list.extend(y_df['number'].to_list())
             originID_list.extend(y_df['originID'].to_list())
+            skuid_list.extend(y_df['skuidname'].to_list())
+            skuid_list[-1] = skuid_list[-1].strip()
 
+    print("PRINTING Y LIST ", y_list)
     print("PRINTING ORIGIN LIST", originID_list)
+    print("PRINTING SKUID LIST", skuid_list)
+
+    # Remove all the entries where skuid = ''
+    while True:
+        try:
+            index = skuid_list.index('')
+            skuid_list.remove(skuid_list[index])
+            y_list.remove(y_list[index])
+            originID_list.remove(originID_list[index])
+        except:
+            print("DONE REMOVING")
+            break
+    
+    print("\n\n###############\n\nPrinting after removing wrong entries")
+    print("PRINTING Y LIST ", y_list)
+    print("PRINTING ORIGIN LIST", originID_list)
+    print("PRINTING SKUID LIST", skuid_list)
+
+
+    # Fill the server_cpus_list
+    server_cpu_list = []
+    for skuid in skuid_list:
+        server_cpu_list.append(skuid_cpu_map[skuid])
+
+    print("PRINTING CPU MANUFACTURER LIST")
+    print(server_cpu_list)
+
     #Remove everything that has an empty set returned
     for rm_elem in x_list_rm:
         x_list.remove(rm_elem)
@@ -665,6 +730,7 @@ def get_data_for_graph():
         'xParameter': xParameter,
         'yParameter': yParameter,
         'originID_list': originID_list,
+        'server_cpu_list': server_cpu_list,
     }
 
     return response
@@ -761,6 +827,10 @@ def best_sku_graph():
 # Returns the NORMALIZED version of the graph with respect to a xParameter
 @app.route('/best_sku_graph_normalized', methods=['POST'])
 def best_sku_graph_normalized():
+    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_parser = configparser.ConfigParser()
+    results_metadata_parser.read(results_metadata_file_path)
+
     data = request.get_json()
 
     # X-Axis, Y-Axis values lists and its parameters
@@ -769,12 +839,26 @@ def best_sku_graph_normalized():
     xParameter = data['xParameter']
     yParameter = data['yParameter']
     originID_list = data['originIDList']
+    testname = data['testName']
 
     # Normalized with respect to this parameter
     normalized_wrt = data['normalizedWRT']
 
+    # Higher is better => 0 or 1
+    higher_is_better = results_metadata_parser.get(testname, 'higher_is_better') \
+                        .replace('\"', '').replace(' ', '').split(',')[0]
+
+    # If lower is better, then take the inverse of the normalized values
     index = x_list.index(normalized_wrt)
-    normalized_y_list = [value/y_list[index] for value in y_list]
+    print("PRINTING X LIST", x_list)
+    print("FOUND AT INDEX" , index)
+    if higher_is_better == "1":
+        print("HIGHER IS BETTER")
+        normalized_y_list = [value/y_list[index] for value in y_list]
+    else:
+        # Inverse
+        print("LOWER IS BETTER")
+        normalized_y_list = [y_list[index]/value for value in y_list]
 
     # Colors for the graphs
     sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
@@ -795,6 +879,7 @@ def best_sku_graph_normalized():
         'xParameter': xParameter,
         'yParameter': yParameter,
         'originID_list': originID_list,
+        'higher_is_better': higher_is_better,
     }
 
     return response

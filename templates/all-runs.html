@@ -39,6 +39,9 @@ All Runs of the test
 			</span>
 		</div>
 		<div id="graph-plot-div">
+			<div id="sku-filters">
+				
+			</div>
 			<div id="comparison-graph"></div>
 			<div id="best-sku-graph"></div>
 			<form id="graph-type-form">
@@ -170,15 +173,15 @@ All Runs of the test
 		    	var $normalizedList = $("#normalized-dropdown");
 		    	$normalizedList.show();
 
-		    	drawNormalizedGraph('best-sku-graph')
+		    	drawNormalizedGraph('best-sku-graph', "{{ context.testname }}")
 		        
 		    }
 		});
 
 		$(function(){
 			$("#normalized-dropdown").change(function(){
-				
-				drawNormalizedGraph('best-sku-graph')
+
+				drawNormalizedGraph('best-sku-graph', "{{ context.testname }}", inverseApplied = true)
 			})
 		});
 

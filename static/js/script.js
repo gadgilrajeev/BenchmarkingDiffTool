@@ -121,7 +121,7 @@ function sendAjaxRequest(xParameter, yParameter, testname, url) {
 		console.log("DONEEEEEEE")
 		console.log(response)
 
-		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list)
+		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list, response.server_cpu_list)
 	})
 }
 
@@ -142,10 +142,9 @@ function fillNormalizedDropdown(){
 		else
 			$normalizedList.append("<option value='" + cpuName + "'>" + cpuName + "</option>");
 	});
-	
 }
 
-function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, graphID, originIDList = []){
+function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, graphID, originIDList, serverCPUList = [], higherIsBetter = "1"){
 	console.log(xList + typeof(xList))
 	console.log(yList + typeof(yList))
 
@@ -169,9 +168,15 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 			color: colorList
 		},
 		originIDList : originIDList,
+		serverCPUList : serverCPUList,
+		higherIsBetter: higherIsBetter,
 		type: 'bar',
 	}]
 	Plotly.newPlot( graphDiv, data, layout);
+
+	if(serverCPUList.length != 0){
+		fillComparisonCheckboxes();
+	}
 
 	//Add Event on click of bar
 	//Send user to "test-details" page of the respective "originID"
@@ -185,7 +190,7 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 	})
 }
 
-function drawNormalizedGraph(graphID){
+function drawNormalizedGraph(graphID, testName){
 	var gd = document.getElementById(graphID)
 	
 	// get selected element from dropdown list
@@ -199,6 +204,22 @@ function drawNormalizedGraph(graphID){
 	yParameter = gd.layout.yaxis.title.text
 	originIDList = gd.data[0].originIDList
 	
+	higherIsBetter = gd.data[0].higherIsBetter
+
+	console.log("PRINTING higher is better")
+	console.log("Higher is better : " + higherIsBetter)
+	// If lower is better, Inverse all the values
+	if(higherIsBetter == '0'){
+		console.log("Higher is better : " + higherIsBetter)
+		console.log("Ylist before " + yList)
+		yList.map((value, index) => {
+  			yList[index] = 1/yList[index]
+  		})
+  		console.log("Ylist is now " + yList)
+	}
+
+	console.log("NOrmalizing wrt" + normalizedWRT)
+
 	$.ajax({
     	url: '/best_sku_graph_normalized',
 		method: "POST",
@@ -211,10 +232,11 @@ function drawNormalizedGraph(graphID){
 			"yParameter" : yParameter,
 			"normalizedWRT" : normalizedWRT,
 			"originIDList": originIDList,
+			"testName": testName,
 		}),
 	}).done(function(response){
 		console.log("DONEEEEEEE")
 		console.log(response)
-		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = 'best-sku-graph', response.originID_list)
+		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = 'best-sku-graph', response.originID_list, serverCPUList = [],  higherIsBetter = response.higher_is_better)
 	})
 }
