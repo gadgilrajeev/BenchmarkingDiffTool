@@ -30,6 +30,10 @@ All Runs of the test
 					<option value="Firmware Version">Firmware Version</option>
 					<option value="ToolChain Name">ToolChain Name</option>
 					<option value="ToolChain Version">ToolChain Version</option>
+					<option value="SMT">SMT</option>
+					<option value="Cores">Cores</option>
+					<!-- <option value="Corefreq">Corefreq</option> -->
+					<option value="DDRfreq">DDRfreq</option>
 					<!-- <option value="Flags">Flags</option> -->
 				</select>
 
@@ -42,7 +46,7 @@ All Runs of the test
 			<div id="sku-filters">
 				
 			</div>
-			<div id="comparison-graph"></div>
+			<div id="clustered-graph"></div>
 			<div id="best-sku-graph"></div>
 			<form id="graph-type-form">
 				<label for="Absolute">Absolute</label>
@@ -54,6 +58,7 @@ All Runs of the test
 				</select>
 			</form>
 		</div>
+		
 	</div>
 
 	<form action="/diff" method="POST">
@@ -184,6 +189,8 @@ All Runs of the test
 				drawNormalizedGraph('best-sku-graph', "{{ context.testname }}", inverseApplied = true)
 			})
 		});
+
+		// drawClusteredGraph();
 
 	});
 
