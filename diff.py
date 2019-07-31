@@ -587,58 +587,6 @@ def get_data_for_graph():
                     .replace('\"', '').replace(' ', '').split(',')
     index = qualifier_list.index(yParameter)
 
-    parameter_map = {
-        "Kernel Version": 'os.kernelname', 
-        'OS Version': 'os.osversion', 
-        'OS Name': 'os.osdistro', 
-        "Firmware Version": 'hw.fwversion' , 
-        "ToolChain Name": 'tc.toolchainname', 
-        "ToolChain Version" : 'tc.toolchainversion', 
-        "Flags": 'tc.flags'
-    }
-    table_map = {
-        "Kernel Version": 'ostunings os', 
-        'OS Version': 'ostunings os', 
-        'OS Name': 'ostunings os', 
-        "Firmware Version": 'hwdetails hw', 
-        "ToolChain Name": 'toolchain tc', 
-        "ToolChain Version" : 'toolchain tc', 
-        "Flags": 'toolchain tc'
-    }
-    join_on_map = {
-        'Kernel Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
-        'OS Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
-        'OS Name': 'o.ostunings_ostuningsID = os.ostuningsID',
-        "Firmware Version": 'o.hwdetails_hwdetailsID = hw.hwdetailsID', 
-        "ToolChain Name": 'o.toolchain_toolchainID = tc.toolchainID', 
-        "ToolChain Version" : 'o.toolchain_toolchainID = tc.toolchainID', 
-        "Flags": 'o.toolchain_toolchainID = tc.toolchainID'
-    }
-
-    X_LIST_QUERY = "SELECT DISTINCT " + parameter_map[xParameter] + " as \'" + parameter_map[xParameter] + \
-                    "\' from " + table_map[xParameter] + " INNER JOIN origin o ON " + \
-                    join_on_map[xParameter] + """ INNER JOIN result r ON o.originID = r.origin_originID 
-                    INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID 
-                    WHERE t.testname=\'""" + testname + "\';"
-
-    x_df = pd.read_sql(X_LIST_QUERY, db)
-    x_list = sorted(x_df[parameter_map[xParameter]].to_list())
-    print("PRINTING X LIST \n", x_list)
-    
-    # Remove ALL the entries which are '' in the list 
-    while True:
-        try:
-            x_list.remove('')
-        except:
-            break
-
-    print("AFTER REMOVING wrong entries \n")
-    print("PRINTING X LIST \n", x_list)
-
-    y_list = []
-    originID_list = []
-    skuid_list = [] 
-
     sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
@@ -653,84 +601,174 @@ def get_data_for_graph():
         for sku in skus:
             skuid_cpu_map[sku] = section
 
-    x_list_rm = []
-    # max or min
-    for x_param in x_list:
-        if min_or_max_list[index] == '0':
-            Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
-                                FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
-                                INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
-                                """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
-                                INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
-                                INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
-                                INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
-                                WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
-                                "\' and t.testname = \'" + testname + \
-                                "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
-                                "%\' group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
-        else:
-            Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
-                                FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
-                                INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
-                                """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
-                                INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
-                                INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
-                                INNER JOIN node n ON hw1.node_nodeID = n.nodeID
-                                WHERE """ + parameter_map[xParameter] + " = \'" + x_param + \
-                                "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
-                                " AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
-                                "%\' group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
 
+    parameter_map = {
+        "Kernel Version": 'os.kernelname', 
+        'OS Version': 'os.osversion', 
+        'OS Name': 'os.osdistro', 
+        "Firmware Version": 'hw.fwversion' , 
+        "ToolChain Name": 'tc.toolchainname', 
+        "ToolChain Version" : 'tc.toolchainversion', 
+        "Flags": 'tc.flags',
+        "SMT" : 'b.smt',
+        "Cores": 'b.cores',
+        "Corefreq": 'b.corefreq',
+        "DDRfreq": 'b.ddrfreq',
+    }
+    table_map = {
+        "Kernel Version": 'ostunings os', 
+        'OS Version': 'ostunings os', 
+        'OS Name': 'ostunings os', 
+        "Firmware Version": 'hwdetails hw', 
+        "ToolChain Name": 'toolchain tc', 
+        "ToolChain Version" : 'toolchain tc', 
+        "Flags": 'toolchain tc',
+        "SMT" : 'bootenv b',
+        "Cores": 'bootenv b',
+        "Corefreq": 'bootenv b',
+        "DDRfreq": 'bootenv b',
+    }
+    join_on_map = {
+        'Kernel Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
+        'OS Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
+        'OS Name': 'o.ostunings_ostuningsID = os.ostuningsID',
+        "Firmware Version": 'o.hwdetails_hwdetailsID = hw.hwdetailsID', 
+        "ToolChain Name": 'o.toolchain_toolchainID = tc.toolchainID', 
+        "ToolChain Version" : 'o.toolchain_toolchainID = tc.toolchainID', 
+        "Flags": 'o.toolchain_toolchainID = tc.toolchainID',
+        "SMT" : 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
+        "Cores": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
+        "Corefreq": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
+        "DDRfreq": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
+    }
 
-        y_df = pd.read_sql(Y_LIST_QUERY, db)
-
-        if y_df.empty is True:
-            x_list_rm.append(x_param)
-        else:
-            y_list.extend(y_df['number'].to_list())
-            originID_list.extend(y_df['originID'].to_list())
-            skuid_list.extend(y_df['skuidname'].to_list())
-            skuid_list[-1] = skuid_list[-1].strip()
-
-    print("PRINTING Y LIST ", y_list)
-    print("PRINTING ORIGIN LIST", originID_list)
-    print("PRINTING SKUID LIST", skuid_list)
-
-    # Remove all the entries where skuid = ''
-    while True:
-        try:
-            index = skuid_list.index('')
-            skuid_list.remove(skuid_list[index])
-            y_list.remove(y_list[index])
-            originID_list.remove(originID_list[index])
-        except:
-            print("DONE REMOVING")
-            break
-    
-    print("\n\n###############\n\nPrinting after removing wrong entries")
-    print("PRINTING Y LIST ", y_list)
-    print("PRINTING ORIGIN LIST", originID_list)
-    print("PRINTING SKUID LIST", skuid_list)
-
-
-    # Fill the server_cpus_list
     server_cpu_list = []
-    for skuid in skuid_list:
-        server_cpu_list.append(skuid_cpu_map[skuid])
 
-    print("PRINTING CPU MANUFACTURER LIST")
+    # List of lists
+    # Each list has entries for a single CPU Manufacturer
+    x_list_list = []
+    y_list_list = []
+    originID_list_list = []
+    # server_cpu_list.append(skuid_cpu_map[skuid])
+
+    # For each cpu manufacturer
+    for section in sku_parser.sections():
+        skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
+
+        X_LIST_QUERY = "SELECT DISTINCT " + parameter_map[xParameter] + " as \'" + parameter_map[xParameter] + \
+                        "\' from " + table_map[xParameter] + " INNER JOIN origin o ON " + \
+                        join_on_map[xParameter] + """ INNER JOIN result r ON o.originID = r.origin_originID 
+                        INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID 
+                        WHERE t.testname=\'""" + testname + "\';"
+
+        x_df = pd.read_sql(X_LIST_QUERY, db)
+        x_list = sorted(x_df[parameter_map[xParameter]].to_list())
+        x_list = list(map(lambda x: str(x), x_list))
+        print("PRINTING X LIST AFTER CONVERTING TO STR \n", x_list)
+        
+        # Remove ALL the entries which are '' in the list 
+        while True:
+            try:
+                x_list.remove('')
+            except:
+                break
+
+        print("AFTER REMOVING wrong entries \n")
+        print("PRINTING X LIST \n", x_list)
+
+        y_list = []
+        originID_list = []
+        skuid_list = []     
+
+        x_list_rm = []
+        # max or min
+        for x_param in x_list:
+            if min_or_max_list[index] == '0':
+                Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+                                    FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
+                                    INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
+                                    """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                                    INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                                    INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+                                    INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+                                    WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+                                    " and " + parameter_map[xParameter] + " = \'" + x_param + \
+                                    "\' and t.testname = \'" + testname + \
+                                    "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
+                                    "%\' group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
+            else:
+                Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+                                    FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
+                                    INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
+                                    """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                                    INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
+                                    INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+                                    INNER JOIN node n ON hw1.node_nodeID = n.nodeID
+                                    WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+                                    " and " + parameter_map[xParameter] + " = \'" + x_param + \
+                                    "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
+                                    " AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
+                                    "%\' group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
+
+            
+            y_df = pd.read_sql(Y_LIST_QUERY, db)
+
+            if y_df.empty is True:
+                x_list_rm.append(x_param)
+            else:
+                y_list.extend(y_df['number'].to_list())
+                originID_list.extend(y_df['originID'].to_list())
+                skuid_list.extend(y_df['skuidname'].to_list())
+                skuid_list[-1] = skuid_list[-1].strip()
+
+        print("PRINTING Y LIST ", y_list)
+        print("PRINTING ORIGIN LIST", originID_list)
+        print("PRINTING SKUID LIST", skuid_list)
+
+        # Remove all the entries where skuid = ''
+        while True:
+            try:
+                index = skuid_list.index('')
+                skuid_list.remove(skuid_list[index])
+                y_list.remove(y_list[index])
+                originID_list.remove(originID_list[index])
+            except:
+                print("DONE REMOVING")
+                break
+    
+        print("\n\n###############\n\nPrinting after removing wrong entries")
+        print("PRINTING Y LIST ", y_list)
+        print("PRINTING ORIGIN LIST", originID_list)
+        print("PRINTING SKUID LIST", skuid_list)
+
+        #Remove everything that has an empty set returned
+        for rm_elem in x_list_rm:
+            x_list.remove(rm_elem)
+
+        # Do not append Empty Lists
+        if(x_list):
+            x_list_list.append(x_list)
+            y_list_list.append(y_list)
+            originID_list_list.append(originID_list)
+            server_cpu_list.append(section)
+
+
+    print("PRINTING FINAL SERVER CPU LIST")
     print(server_cpu_list)
+    # Get colours for cpu manufacturer
+    color_list = []
+    for section in server_cpu_list:
+        color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
+    print(color_list)
 
-    #Remove everything that has an empty set returned
-    for rm_elem in x_list_rm:
-        x_list.remove(rm_elem)
     response = {
-        'x_list': x_list, 
-        'y_list': y_list,
+        'x_list_list': x_list_list, 
+        'y_list_list': y_list_list,
         'xParameter': xParameter,
         'yParameter': yParameter,
-        'originID_list': originID_list,
+        'originID_list_list': originID_list_list,
         'server_cpu_list': server_cpu_list,
+        'color_list': color_list,
     }
 
     return response
