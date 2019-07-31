@@ -296,7 +296,7 @@ tbody tr td{
   display: flex;
 }
 
-#graph-plot-div > #comparison-graph {
+#graph-plot-div > #clustered-graph {
   margin-left: 5%;
   width:33.33%;
   height:350px;
