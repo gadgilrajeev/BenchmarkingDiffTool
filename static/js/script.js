@@ -96,7 +96,7 @@ function sendAjaxRequest(xParameter, yParameter, testname, url) {
 
 	url_graph_map = {
 		// url : graph-div-id
-		'/get_data_for_graph' : 'comparison-graph',
+		'/get_data_for_graph' : 'clustered-graph',
 		'/best_sku_graph' : 'best-sku-graph',
 
 	}
@@ -121,14 +121,30 @@ function sendAjaxRequest(xParameter, yParameter, testname, url) {
 		console.log("DONEEEEEEE")
 		console.log(response)
 
-		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list, response.server_cpu_list)
+		if(url == '/get_data_for_graph'){
+			console.log("CALLING DRAW CLUSTERED GERAPH")
+			console.log(response)
+			drawClusteredGraph(response.x_list_list, response.y_list_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list_list, response.server_cpu_list )
+		}
+		else{
+			console.log("CALLING DRAW OTHER GRAPH")
+			drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list, response.server_cpu_list)
+		}
 	})
 }
 
 function fillNormalizedDropdown(){
 	//get xList from the graph
 	var gd = document.getElementById('best-sku-graph')
-	cpuList = gd.data[0].x
+	// cpuList = gd.data[0].x
+	cpuList = []
+
+	data = gd.data
+
+	data.forEach((value, index) => {
+		cpuList.push(data[index].x[0])
+	})
+
 
 	//Fill elements of best-sku-graph's DROPDOWN list
 	console.log("FILLING THE DROPDOWN LIST")
@@ -159,23 +175,51 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 			title: yParameter,
 		},
 		title: yParameter + ' vs ' + xParameter,
+		showlegend: true,
 	}
 
-	data = [{
-		x: xList,
-		y: yList,
-		marker:{
-			color: colorList
-		},
-		originIDList : originIDList,
-		serverCPUList : serverCPUList,
-		higherIsBetter: higherIsBetter,
-		type: 'bar',
-	}]
+	// If the colorList is empty, fill the colorList with default values
+	if(!colorList)
+	{
+		console.log("SETTING COLOR LIST")
+		colorList = Array.from(xList, x=> '#1f77b4')
+	}
+
+	traceList = []
+	xList.forEach((value, index) => {
+		traceList.push({
+			x: [xList[index]],
+			y: [yList[index]],
+			marker: {
+				color: colorList[index],
+			},
+			name: xList[index], //name in the legend
+			originID : originIDList[index],
+			serverCPU : serverCPUList[index],
+			higherIsBetter: higherIsBetter,
+			type: 'bar',
+		})
+	})
+	console.log("Printing tracelist ")
+	console.log(traceList) 
+
+	data = traceList
+
+	// data = [{
+	// 	x: xList,
+	// 	y: yList,
+	// 	marker:{
+	// 		color: colorList
+	// 	},
+	// 	originIDList : originIDList,
+	// 	serverCPUList : serverCPUList,
+	// 	higherIsBetter: higherIsBetter,
+	// 	type: 'bar',
+	// }]
 	Plotly.newPlot( graphDiv, data, layout);
 
 	if(serverCPUList.length != 0){
-		fillComparisonCheckboxes();
+		// fillComparisonCheckboxes();
 	}
 
 	//Add Event on click of bar
@@ -183,11 +227,86 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 	graphDiv.on('plotly_click', function(data){
 		console.log("CLICKED ON BAR GRAPH")
 		barNumber = data.points[0].pointNumber
-		originID = data.points[0].data.originIDList[barNumber]
+		originID = data.points[0].data.originID
 		console.log("You clicked on " + data.points[0].data.x[barNumber])
-		console.log("Which has originID " + data.points[0].data.originIDList[barNumber])
-		window.location.href = '/test-details/'+originID
+		console.log("Which has originID " + data.points[0].data.originID)
+		// window.location.href = '/test-details/'+originID
+		window.open('/test-details/'+originID)
 	})
+}
+
+function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter="X Parameter", yParameter="Y Parameter", graphID="comparison-graph", originIDListList=[], serverCPUList = []){
+	console.log("DRAWING CLUSTERED GRAPH")
+	graphDiv = document.getElementById('clustered-graph');
+
+	var layout = {
+		xaxis: {
+			type : 'category',
+			title : xParameter,
+		},
+		yaxis: {
+			title: yParameter,
+		},
+		title: yParameter + ' vs ' + xParameter,
+		showlegend: true,
+		barmode: 'group'
+	}
+	
+	// If the colorList is empty, fill the colorList with default values
+	// if(!colorList)
+	// {
+	// 	console.log("SETTING COLOR LIST")
+	// 	colorList = Array.from(xList, x=> '#1f77b4')
+	// }
+
+	// xListList = [['Ubuntu', 'openSUSE'],['Ubuntu', 'openSUSE'],['Ubuntu', 'MacOS']]
+	// yListList = [[1,2],[3,4],[5,6]]
+	// colorList = [ "FireBrick", "OrangeRed", "DodgerBlue"]
+	// serverCPUList = ['Marvell-TX2-B2', 'Intel Skylake Gold', 'AMD CPU']
+	// originIDListList = [[742,709], [1187,1189],[702,669]]
+
+	traceList = []
+	xListList.forEach((value, index) => {
+		traceList.push({
+			x: xListList[index],
+			y: yListList[index],
+			marker: {
+				color: colorList[index],
+			},
+			name: serverCPUList[index], 	//name of the CPU (Marvell, Intel, etc.) in the legend
+			originIDList : originIDListList[index],
+			// serverCPU : serverCPUList[index],
+			// higherIsBetter: higherIsBetter,
+			type: 'bar',
+		})
+	})
+	console.log("Printing tracelist ")
+	console.log(traceList) 
+
+	data = traceList
+
+	Plotly.newPlot( graphDiv, data, layout);
+
+	//Add Event on click of bar
+	//Send user to "test-details" page of the respective "originID"
+	graphDiv.on('plotly_click', function(data){
+		console.log("PRINTING DATA")
+		console.log(data)
+
+		console.log("\nClicked ON BAR GRAPH")
+		allBars = data.points
+		for(i = 0; i < allBars.length; i++){
+			barData = allBars[i]
+			console.log(allBars[i])
+			index = barData.data.x.indexOf(barData.x)
+			console.log("INDEX = " + index)
+
+			originID = barData.data.originIDList[index]
+			console.log("ORIGIN ID IS" + originID)
+			window.open('/test-details/'+originID)
+		}
+	})
+
 }
 
 function drawNormalizedGraph(graphID, testName){
@@ -198,13 +317,26 @@ function drawNormalizedGraph(graphID, testName){
 
 	console.log("DRAWING NORMALIZED GRAPH")
 	// get the current state of the graph
-	xList = gd.data[0].x
-	yList = gd.data[0].y
+	xList = []
+	yList = []
+	originIDList = []
+
+	data = gd.data
+
+	console.log("PRINTING DATA" + data)
+	console.log(data[0])
+
+
+	data.forEach((value, index) => {
+		xList.push(data[index].x[0])
+		yList.push(data[index].y[0])
+		originIDList.push(data[index].originID)
+	})
+
 	xParameter = gd.layout.xaxis.title.text 
 	yParameter = gd.layout.yaxis.title.text
-	originIDList = gd.data[0].originIDList
 	
-	higherIsBetter = gd.data[0].higherIsBetter
+	higherIsBetter = data[0].higherIsBetter
 
 	console.log("PRINTING higher is better")
 	console.log("Higher is better : " + higherIsBetter)
