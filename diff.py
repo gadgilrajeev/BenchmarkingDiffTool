@@ -401,13 +401,11 @@ def showEnvDetails(originID):
 @app.route('/diff', methods=['GET', 'POST'])
 def diffTests():
     if request.method == "GET":
-        pass
-    elif request.method == "POST":
         db = pymysql.connect(host='10.110.169.149', user='root',
                              passwd='', db='benchtooldb', port=3306)
 
         # take checked rows from table
-        originID_compare_list = [value for key, value in request.form.items() if "diff-checkbox" in key]
+        originID_compare_list = [value for key, value in request.args.items() if "diff-checkbox" in key]
 
         originID_compare_list.sort()
         print(originID_compare_list)
@@ -921,3 +919,4 @@ def best_sku_graph_normalized():
     }
 
     return response
+

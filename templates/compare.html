@@ -8,6 +8,7 @@ Comparison of tests
 {% block content %}
 
 <label id="checkbox-common"><input id="checkbox-common2" onclick="hideCommon(this)" type="checkbox" name="common" value="hide_common"> Hide Common Properties (to be improved)</label>
+
 <h2 style="margin-left: 40%;">{{ context.testname | capitalize }}</h2>
 <style>
 	h2{
@@ -15,8 +16,10 @@ Comparison of tests
 	}
 </style>
 
+<div class='toast'>Copied to Clipboard!</div>
+
 <div class="all-tables">
-	<!-- <div id="comparison-graph" style="width:600px;height:250px;"></div> -->
+	<!-- <div id="comparison-graph" style="width:33.33%;height:350px;"></div> -->
 
 	<!-- ###############RESULTS############### -->
     <div>
@@ -82,11 +85,13 @@ Comparison of tests
 
 <script>
 	$( document ).ready(function() {
+		// $.noConflict();
 
     	$("#checkbox-common2").prop("checked", false);
-
+		
     	drawGraph({{ context.comparable_results | tojson }})
-});
+	
+	});
 </script>
 
 
