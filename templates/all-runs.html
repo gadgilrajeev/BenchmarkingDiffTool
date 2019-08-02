@@ -34,10 +34,11 @@ All Runs of the test
 					<option value="Cores">Cores</option>
 					<!-- <option value="Corefreq">Corefreq</option> -->
 					<option value="DDRfreq">DDRfreq</option>
+					<option value="SKUID">SKUID</option>
 					<!-- <option value="Flags">Flags</option> -->
 				</select>
 
-				<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val(),$('#yParameter option:selected').val(), 'comparison-graph')">Download as PNG</button>
+				<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val(),$('#yParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
 				<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val(),$('#yParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
 
 			</span>
@@ -61,7 +62,7 @@ All Runs of the test
 		
 	</div>
 
-	<form action="/diff" method="POST">
+	<form action="/diff" method="GET">
 
 		<div class='inline-block-child'>
 			<table id="allRunsTable">
