@@ -144,6 +144,16 @@ def home_page():
     wiki_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
     parser.read(wiki_metadata_file_path)
 
+    # Reference for best_of_all_graph
+    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    sku_parser = configparser.ConfigParser()
+    sku_parser.read(sku_file_path)
+
+    reference_list = sku_parser.sections();
+    print("SECTIONS")
+    print(reference_list)
+
+
     filter_labels_dict = {}
     filter_labels_list = []
     hpc_benchmarks_list = []
@@ -173,6 +183,7 @@ def home_page():
         'cloud_benchmarks_list': cloud_benchmarks_list,
         'filter_labels_list': filter_labels_list,
         'filter_labels_dict': filter_labels_dict,
+        'reference_list': reference_list,
     }
     return render_template('all-tests.html', context=context)
 
@@ -612,6 +623,7 @@ def get_data_for_graph():
         "Cores": 'b.cores',
         "Corefreq": 'b.corefreq',
         "DDRfreq": 'b.ddrfreq',
+        "SKUID": 'n1.skuidname',
     }
     table_map = {
         "Kernel Version": 'ostunings os', 
@@ -625,6 +637,7 @@ def get_data_for_graph():
         "Cores": 'bootenv b',
         "Corefreq": 'bootenv b',
         "DDRfreq": 'bootenv b',
+        "SKUID": 'node n1',
     }
     join_on_map = {
         'Kernel Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
@@ -638,6 +651,7 @@ def get_data_for_graph():
         "Cores": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
         "Corefreq": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
         "DDRfreq": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
+        "SKUID": 'o.hwdetails_node_nodeID = n1.nodeID',
     }
 
     server_cpu_list = []
@@ -647,7 +661,6 @@ def get_data_for_graph():
     x_list_list = []
     y_list_list = []
     originID_list_list = []
-    # server_cpu_list.append(skuid_cpu_map[skuid])
 
     # For each cpu manufacturer
     for section in sku_parser.sections():
@@ -678,9 +691,11 @@ def get_data_for_graph():
         originID_list = []
         skuid_list = []     
 
+        # For removing 'not found' entries from x_list
         x_list_rm = []
-        # max or min
+        
         for x_param in x_list:
+            # max or min
             if min_or_max_list[index] == '0':
                 Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
                                     FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
@@ -836,7 +851,7 @@ def best_sku_graph():
             originID_list.append(results_df['originID'].to_list()[0])
 
     pprint(cpu_data)
-    print("ORIGIN ID LIST IN BEST RESUTLS GRAPH")
+    print("ORIGIN ID LIST IN BEST RESULTS GRAPH")
     print(originID_list)
 
     # Remove the entries from dictionary whose values are empty
@@ -920,3 +935,220 @@ def best_sku_graph_normalized():
 
     return response
 
+@app.route('/best_of_all_graph', methods=['POST'])
+def best_of_all_graph():
+    db = pymysql.connect(host='10.110.169.149', user='root',
+                     passwd='', db='benchtooldb', port=3306)
+
+    wiki_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_parser = configparser.ConfigParser()
+    results_metadata_parser.read(wiki_metadata_file_path)    
+
+    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    sku_parser = configparser.ConfigParser()
+    sku_parser.read(sku_file_path)
+
+    json = request.get_json()
+    data = json['data']
+    
+    print(data)
+
+    normalized_wrt = data['normalizedWRT']
+    # print("\n\n\n###################################\nNORMALIXED WRT", normalized_wrt)
+
+    # If No filters are applied, select all tests
+    try:
+        test_name_list = [test_name.strip() for test_name in data['test_name_list']]
+
+        # If test_name_list is empty, read everything
+        if(not test_name_list):
+            raise Exception
+    except:
+        # Read all test names from .ini file
+        test_name_list = [test_name.strip() for test_name in results_metadata_parser.sections()]
+
+    # The list of the first qualifier for all tests
+    # and the corresponding higher_is_better
+    qualifier_list = [results_metadata_parser.get(test_name, 'fields').replace('\"', '').split(',')[0] for test_name in test_name_list]
+    higher_is_better_list = [results_metadata_parser.get(test_name, 'higher_is_better').replace('\"', '').replace(' ','').split(',')[0] for test_name in test_name_list]
+
+    # Remove all the entries where fields = ""
+    while True:
+        try:
+            index = qualifier_list.index('')
+            qualifier_list.remove(qualifier_list[index])
+            higher_is_better_list.remove(higher_is_better_list[index])
+            test_name_list.remove(test_name_list[index])
+        except:
+            print("DONE REMOVING")
+            break
+
+    # print(test_name_list)
+    # print(qualifier_list)
+    # print(higher_is_better_list)
+
+    # Create a reference_results_map having entries for "testname" -> best_result
+    # This will be for the selected reference CPU manufacturer i.e. normalized_wrt
+    reference_results_map = {test_name: None for test_name in test_name_list}
+
+    # Get colour and skuid_list for reference Cpu 
+    reference_color = sku_parser.get(normalized_wrt, 'color').replace('\"', '').split(',')[0]
+    reference_skuid_list = sku_parser.get(normalized_wrt, 'SKUID').replace('\"', '').split(',')
+    
+    for test_name, qualifier, higher_is_better in zip(test_name_list, qualifier_list, higher_is_better_list):
+        if higher_is_better == '0':
+            # Fix this hack
+            # print("SELECTING MIN", higher_is_better)
+            BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
+                                    on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
+                                    on n.nodeID = hw.node_nodeID inner join testdescriptor t
+                                    on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
+                                    on r.origin_originID = o.originID INNER JOIN display disp 
+                                    ON  r.display_displayID = disp.displayID where r.number > 0 AND r.isvalid = 1 
+                                    AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
+                                    "%\' AND n.skuidname in """ + str(reference_skuid_list).replace('[', '(').replace(']', ')') + \
+                                    " group by o.originID, r.number order by r.number limit 1;"
+
+        else:
+            # print("SELECTING MAX", higher_is_better)
+            BEST_RESULT_QUERY = """SELECT MAX(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
+                                    on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
+                                    on n.nodeID = hw.node_nodeID inner join testdescriptor t
+                                    on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
+                                    on r.origin_originID = o.originID INNER JOIN display disp 
+                                    ON  r.display_displayID = disp.displayID where r.isvalid = 1 
+                                    AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
+                                    "%\' AND n.skuidname in """ + str(reference_skuid_list).replace('[', '(').replace(']', ')') + \
+                                    " group by o.originID, r.number order by r.number DESC limit 1;"
+
+
+        results_df = pd.read_sql(BEST_RESULT_QUERY, db)
+        # print("PRINTING RESULTS DF for", test_name)
+        # print(results_df)
+
+        if not results_df.empty:
+            reference_results_map[test_name] = results_df['number'][0]
+
+    print("\n\nPRINTING FINAL REFERENCE MAP")
+    for k,v in reference_results_map.items():
+        if v:
+            print(k,':', v)
+
+
+    x_list_list = []
+    y_list_list = []
+    originID_list_list = []
+    server_cpu_list = []
+    color_list = []
+    # Start querying the database for best of each CPU MANUFACTURER
+    for section in sku_parser.sections():
+        # Only for sections other than selected 'reference'
+        if section != normalized_wrt:
+            # print("SECTION DID NOT MATCH.","Proceeding with queries", section, ":", normalized_wrt)
+            skuid_list = sku_parser.get(section, 'SKUID').replace('\"', '').split(',')
+            x_list = []
+            y_list = []
+            originID_list = []
+
+            for test_name, qualifier, higher_is_better in zip(test_name_list, qualifier_list, higher_is_better_list):
+                # If the test_result is not Empty (None) in the reference_results_map
+                if reference_results_map[test_name]:
+                    # print("RESULT", test_name, "exists in REFERENCE")
+                    if higher_is_better == '0':
+                        # Fix this hack
+                        BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
+                                                on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
+                                                on n.nodeID = hw.node_nodeID inner join testdescriptor t
+                                                on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
+                                                on r.origin_originID = o.originID INNER JOIN display disp 
+                                                ON  r.display_displayID = disp.displayID where r.number > 0 AND r.isvalid = 1 
+                                                AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
+                                                "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
+                                                " group by o.originID, r.number order by r.number limit 1;"
+
+                    else:
+                        BEST_RESULT_QUERY = """SELECT MAX(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
+                                                on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
+                                                on n.nodeID = hw.node_nodeID inner join testdescriptor t
+                                                on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
+                                                on r.origin_originID = o.originID INNER JOIN display disp 
+                                                ON  r.display_displayID = disp.displayID where r.isvalid = 1 
+                                                AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
+                                                "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
+                                                " group by o.originID, r.number order by r.number DESC limit 1;"
+            
+
+                    results_df = pd.read_sql(BEST_RESULT_QUERY, db)
+                    # print("\n\n########################\n\nPRINTING RESULTS DF for", section)
+                    # print(results_df)
+
+                    # A function which returns the normalized value y_list[-1] w.r.t. reference_results_map[test_name] 
+                    def normalized_value():
+                        try:
+                            # Take inverse if lower is better
+                            if higher_is_better == '0':
+                                return reference_results_map[test_name]/y_list[-1]
+                            else:
+                                return y_list[-1]/reference_results_map[test_name]
+                        except:
+                            # If divide by zero what to do????
+                            pass
+
+                    if not results_df.empty:
+                        # print("ENTERING")
+                        x_list.append(test_name)
+                        y_list.extend(results_df['number'])
+                        print("Y_LIST = ", y_list, test_name)
+
+                        # Normalize IT
+                        y_list[-1] = normalized_value()
+                        print("AFTER NORMALIZING")
+                        print("Y_LIST = ", y_list, test_name)                        
+                        originID_list.extend(results_df['originID'])
+                    else:
+                        pass
+                        # print("NOT ENTERING")
+
+                else:
+                    pass
+                    # print("######################RESULT", test_name, "DOES NOT EXIST in REFERENCE")
+                
+            print("\n\n####################\nSection:",section,"\n\nAPPENDING Y_LIST : ", y_list)
+            x_list_list.append(x_list)
+            y_list_list.append(y_list)
+            originID_list_list.append(originID_list)
+            server_cpu_list.append(section)
+            color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
+
+        else:
+            print("SECTION MATCHED", section, ".\tSkipping")
+        # break
+
+
+    # print("\n\nX_LIST_LIST")
+    # print(x_list_list)
+    # print(len(x_list_list))
+    # print(len(x_list_list[0]))
+    # print("\n\nY_LIST_LIST")
+    # print(y_list_list)
+    # print(len(y_list_list))
+    # print(len(y_list_list[0]))
+    # print("\n\nOriginID_LIST_LIST")
+    # print(originID_list_list)
+    # print(len(originID_list_list))
+    # print(len(originID_list_list[0]))
+
+
+    response = {
+        'x_list_list': x_list_list, 
+        'y_list_list': y_list_list,
+        'xParameter': "All Tests",
+        'yParameter': "",
+        'originID_list_list': originID_list_list,
+        'server_cpu_list': server_cpu_list,
+        'color_list': color_list,
+        'reference_color' : reference_color,
+    }
+
+
+    return response
