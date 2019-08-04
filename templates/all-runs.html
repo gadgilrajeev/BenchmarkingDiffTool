@@ -38,8 +38,8 @@ All Runs of the test
 					<!-- <option value="Flags">Flags</option> -->
 				</select>
 
-				<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val(),$('#yParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
-				<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val(),$('#yParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
+				<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val() + '-vs-' + $('#yParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
+				<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val() + '-vs-' + $('#yParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
 
 			</span>
 		</div>
