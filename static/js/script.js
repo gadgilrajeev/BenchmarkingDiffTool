@@ -55,11 +55,56 @@ function filterTestsByLabel(checkbox){
 
 			//if the benchmark has one of the selected labels
 			//then make it visible
-			if(labels.filter(value => filterList.includes(value)).length != 0)
+			if(labels.filter(value => filterList.includes(value)).length != 0){
 				row.removeAttribute('style')
+			}
 		}
 	}
 	console.log("FILTER LISTS IS: " + filterList)
+
+	//Draw new best_of_all_graph according to filters
+	drawBestOfAllGraph()
+
+}
+
+function drawBestOfAllGraph(data = {}){
+	console.log("DRAWING BEST GRAPH")
+
+	// Selected tests which are to be displayed on the graph
+	allRows = $("tr").filter(function() { return $(this).css("display") != "none" })
+
+	selectedTestsList = []
+	for(i = 0; i < allRows.length; i++)
+		selectedTestsList.push(allRows[i].children[0].innerHTML)
+
+	// Normalized (Reference CPU Manufacturer)
+	normalizedWRT = $('#reference-for-normalized option:selected').text()
+
+	data = {
+		'normalizedWRT' : normalizedWRT,
+		'test_name_list' : selectedTestsList,
+	}
+
+	// Show "Loading..." message before the graph loads 
+	$("#best-of-all-graph").html("Loading Graph...");
+
+	$.ajax({
+    	url: '/best_of_all_graph',
+    	// async: async,
+		method: "POST",
+		dataType: 'json',
+		contentType: "application/json",
+		data: JSON.stringify({
+			'data': data,
+		}),
+	}).done(function(response){
+		console.log("DONEEEEEEE BEST OF ALL")
+		console.log(response)
+
+		// Remove the Loading... message
+		$("#best-of-all-graph").empty()
+		drawClusteredGraph(response.x_list_list, response.y_list_list, response.color_list, response.xParameter, response.yParameter, graphID = 'best-of-all-graph', response.originID_list_list, response.server_cpu_list, response.reference_color)
+	})
 }
 
 function uncheckBoxes(classname){
@@ -84,13 +129,49 @@ function testDetails(tableCell){
 	window.location.href = '/test-details/'+originID
 }
 
-function downloadAsPng(xParameter, yParameter, graphID){
+function downloadAsPng(filename, graphID){
 	console.log("DOWNLOADING THE GRAPH?")
 	graphDiv = document.getElementById(graphID);
 
 	// downloadImage will accept the div as the first argument and an object specifying image properties as the other
-	Plotly.downloadImage(graphDiv, {format: 'png', width: 800, height: 600, filename: yParameter + ' vs ' + xParameter});
+	Plotly.downloadImage(graphDiv, {format: 'png', width: 800, height: 600, filename: filename});
 }
+
+// /* This function is used to copy the text contained in "elementID" to the clipboard */
+// function copyToClipboard(elementID){
+// 	console.log("IN COPYING FUNCTION")
+
+// 	/* Get the text field */
+// 	var copyText = document.getElementById(elementID);
+
+//   /*
+//   	Create a textarea and set its contents to the text you want copied to the clipboard.
+// 	Append the textarea to the DOM.
+// 	Select the text in the textarea.
+// 	Call document.execCommand("copy")
+// 	Remove the textarea from the dom.
+//   */
+// 	var textarea = document.createElement("textarea");
+// 	textarea.textContent = copyText.innerHTML;
+
+// 	textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+//     document.body.appendChild(textarea);
+//     textarea.select();
+//     try {
+//     	console.log("REMOVING ELEMENT?")
+//         document.execCommand("copy");  // Security exception may be thrown by some browsers.
+//     } catch (ex) {
+//         console.warn("Copy to clipboard failed.", ex);
+//     } finally {
+//     	console.log("REMOVING ELEMENT?")
+//         document.body.removeChild(textarea);
+//     }
+
+//   //add a android-toast like notification here so that user gets alerted 
+//   // "Copied Text to Clipboard"
+//   console.log("Toast showing")
+//   $('.toast').stop().fadeIn(400).delay(2000).fadeOut(400); //fade out after 3 seconds
+// }
 
 function sendAjaxRequest(xParameter, yParameter, testname, url) {
 
@@ -235,9 +316,14 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 	})
 }
 
-function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter="X Parameter", yParameter="Y Parameter", graphID="comparison-graph", originIDListList=[], serverCPUList = []){
+function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter="X Parameter", yParameter="Y Parameter", graphID="comparison-graph", originIDListList=[], serverCPUList = [], referenceColor=""){
 	console.log("DRAWING CLUSTERED GRAPH")
-	graphDiv = document.getElementById('clustered-graph');
+	graphDiv = document.getElementById(graphID);
+
+	if(graphID == 'best-of-all-graph')
+		title = "Best results normalized w.r.t. " + $('#reference-for-normalized option:selected').text()
+	else
+		title = yParameter + ' vs ' + xParameter
 
 	var layout = {
 		xaxis: {
@@ -247,11 +333,13 @@ function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter
 		yaxis: {
 			title: yParameter,
 		},
-		title: yParameter + ' vs ' + xParameter,
+		title: title,
 		showlegend: true,
-		barmode: 'group'
+		barmode: 'group',
 	}
 	
+	console.log("REFERENCE COLOR " + referenceColor)
+
 	// If the colorList is empty, fill the colorList with default values
 	// if(!colorList)
 	// {
@@ -287,9 +375,63 @@ function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter
 
 	Plotly.newPlot( graphDiv, data, layout);
 
-	//Add Event on click of bar
-	//Send user to "test-details" page of the respective "originID"
-	graphDiv.on('plotly_click', function(data){
+	// Draw Reference Line if graphID is 'best-of-all-graph'
+	console.log("REDRAWING ANNA")
+	if(graphID == 'best-of-all-graph'){
+		function drawReferenceLine(data){	
+			console.log("REDRAWING REFERENCE LINE")	
+			// delete the earlier shapes
+
+			console.log("SHAPES BEFORE")
+			console.log(graphDiv.layout.shapes)
+
+			graphDiv.layout.shapes = []
+			console.log("SHAPES AFTER DELETION")
+			console.log(graphDiv.layout.shapes)
+
+
+			// Redraw the graph to get xStart and xEnd
+			Plotly.update(graphDiv, graphDiv.data, graphDiv.layout).then(() => {
+					// get the new endpoints
+				xStart = graphDiv.layout.xaxis.range[0]
+				xEnd = graphDiv.layout.xaxis.range[1]
+			
+				shapes = [{
+					type:'line',
+					xref:'paper',
+					yref: 'y',
+					x0: xStart,
+					y0: 1, 
+					x1: xEnd,
+					y1: 1,
+					opacity: 0.7,
+					line: {
+						color: referenceColor,
+						width: 5,
+					},
+				}]
+
+				// set new shape
+				graphDiv.layout.shapes = shapes
+
+				console.log("SHAPES AFTER")
+				console.log(graphDiv.layout.shapes)
+
+				// Redraw again to get Perfect reference line
+				Plotly.update(graphDiv, graphDiv.data, graphDiv.layout).then(() => {console.log("DONE REDRAWING REFERENCE LINE")})
+
+			});
+		}
+
+		//Draw the initial reference Line
+		drawReferenceLine({})
+
+		// If legend is clicked, graph is resized
+		// Therefore, redraw the reference Line
+		graphDiv.on('plotly_legendclick', drawReferenceLine)
+	}
+
+	function openTestDetailsPage(data){
 		console.log("PRINTING DATA")
 		console.log(data)
 
@@ -305,7 +447,11 @@ function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter
 			console.log("ORIGIN ID IS" + originID)
 			window.open('/test-details/'+originID)
 		}
-	})
+	}
+
+	//Add Event on click of bar
+	//Send user to "test-details" page of the respective "originID"
+	graphDiv.on('plotly_click', openTestDetailsPage)
 
 }
 
