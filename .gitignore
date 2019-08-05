@@ -101,3 +101,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Temporary CSV files saved while downloading
+csv_temp_files/
