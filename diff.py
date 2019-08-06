@@ -1,11 +1,12 @@
 from pprint import pprint
-import os
+import os, shutil
 import pandas as pd
 import pymysql
 import configparser
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, send_file
 from collections import OrderedDict
 import csv
+import json
 
 # from datetime import datetime
 app = Flask(__name__)
@@ -315,6 +316,7 @@ def showTestDetails(originID):
         'system_details': system_details_dataframe.to_dict(orient='list'),
         'description_list': description_string.split(','),
         'results': results_dataframe.to_dict(orient='list'),
+        'originID': originID,
     }
     return render_template('test-details.html', context=context)
 
@@ -1152,3 +1154,44 @@ def best_of_all_graph():
 
 
     return response
+
+@app.route('/download_as_csv', methods=['POST'])
+def download_as_csv():
+    print("\n\n\n#REQUEST#########")
+    print(request)
+    print(request.form)
+    json_data = json.loads(request.form.get('data'))
+    print("JSON STATHAM")
+    print(json_data)
+    data = json_data['data']
+
+    print(data)
+    print(type(data))
+    print("\n\n\n")
+
+    csv_df = pd.DataFrame(columns=data.keys());
+
+    for column in data:
+        csv_df[column] = data[column]
+
+    # Clear the csv_temp_files directory
+    base_path = os.getcwd() + '/csv_temp_files/'
+    shutil.rmtree(base_path)    #this removes the directory too
+    os.mkdir(base_path)         #So create it again
+
+    # Save the current csv file there
+    print(csv_df)
+    print(os.getcwd())
+
+    filename = base_path + json_data['filename'] + '.csv'
+    csv_df.to_csv(filename, index=False, header=True)
+    print("\n\n\n")
+
+    try:
+        return send_file(filename,
+            mimetype='text/csv',
+            attachment_filename= json_data['filename'] + '.csv',
+            as_attachment=True)
+
+    except:
+        return "File Not Found", 404
