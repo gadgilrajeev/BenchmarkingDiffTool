@@ -28,13 +28,13 @@ Test Details
 
 			<tr>
 				{% for key in context.system_details %}
-					{% if loop.index0 <= 3 %}
+					{% if loop.index0 < 3 %}
 						{% if loop.index0 == 2 %}
 							<td> <a href="/environment-details/{{ context.system_details[key][0] }}">Details</a></td>
 						{% else %}
 							<td> {{ context.system_details[key][0] }}</td>
 						{% endif %}
-					{% elif loop.index0 == 4 %}
+					{% elif loop.index0 == 3 %}
 					<td> <a href="{{ context.system_details[key][0] }}" target="_blank">NAS Link</a>  </td>
 					{% else %}
 					<td> <a href="{{ context.system_details[key][0] }}" target="_blank">Jenkins Link</a>  </td>
@@ -69,14 +69,37 @@ Test Details
 				{% endfor %}
 			</tbody>
 		</table>
+		<button type="button" id="download-results-table-csv" class="blue">Download as CSV</button>
 	</div>
-	<button type="button" id="download-results-table-csv" class="blue">Download as CSV</button>
+	
 	
 	<script>
 		$( document ).ready(function() {
-			$("#resultsTable").DataTable({
+			//Create a DataTable 
+			var table = $("#resultsTable").DataTable({
 				"lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
 			});
+
+			// Setup - append a text input to each header cell
+	    	$('#resultsTable thead tr').clone(true).appendTo( '#resultsTable thead' );
+			//Add the Filter bars for each column
+			$('#resultsTable thead tr:eq(1) th').each( function (i) {
+	    	
+	        	var title = $(this).text();
+	        	$(this).html( '<input style="width: 150px;" type="text" placeholder="Search '+title+'" />' );
+	        
+		 
+		        $( 'input', this ).on( 'keyup change', function () {
+		            if ( table.column(i).search() !== this.value ) {
+		                table
+		                    .column(i)
+		                    .search( this.value )
+		                    .draw();
+		            }
+		        });
+	    	});
+
+	    	table.columns.adjust().draw();
 		});
 
 		$('#download-results-table-csv').click(function(){
