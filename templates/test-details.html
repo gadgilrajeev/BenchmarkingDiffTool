@@ -7,13 +7,9 @@ Test Details
 
 {% block content %}
 
-	<script>
-		$( document ).ready(function() {
-			$("#resultsTable").DataTable({
-				"lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-			});
-	});
-	</script>	
+	<!-- Hidden form for Downloading data as CSV -->
+	<form action="/download_as_csv" method="POST" id="download-csv-form" style="display:none;">
+	</form>
 
 	<h2 style="text-align: center; font-weight: bold;">
 		{{ context.testname }}
@@ -74,5 +70,39 @@ Test Details
 			</tbody>
 		</table>
 	</div>
+	<button type="button" id="download-results-table-csv" class="blue">Download as CSV</button>
 	
+	<script>
+		$( document ).ready(function() {
+			$("#resultsTable").DataTable({
+				"lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+			});
+		});
+
+		$('#download-results-table-csv').click(function(){
+
+			filename = "{{context.testname}}-{{context.originID}}"
+			data = {}
+
+			$tableRows = $("#resultsTable th")
+			$table = $("#resultsTable").DataTable()
+			$allColumnsData = $table.columns({ filter : 'applied'}).data()
+
+			for( i = 0; i < $tableRows.length; i++){
+	  			column = $tableRows[i].innerHTML
+
+	  			console.log(column)
+	  			data[column] = $allColumnsData[i]
+	  		}
+
+
+			console.log("DATA")
+			console.log(data)
+
+			$form = $('#download-csv-form')
+
+			downloadAsCsv(filename, data, $form)
+		})
+	</script>	
+
 {% endblock %}
