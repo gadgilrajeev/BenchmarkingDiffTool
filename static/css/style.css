@@ -230,6 +230,10 @@ tbody tr td{
   margin-left: 15%;
 }
 
+#download-all-results-table-csv{
+  margin-left: 80%;
+}
+
 .all-results-page {
 
   width: 25%;
@@ -290,7 +294,11 @@ tbody tr td{
 }
 
 #graph-div #download-best-sku-graph {
-  margin-left: 20%;
+  margin-left: 10%;
+}
+
+#graph-div #download-best-sku-graph-csv{
+  margin-left: 10%;
 }
 
 #graph-plot-div {
