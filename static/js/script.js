@@ -137,6 +137,22 @@ function downloadAsPng(filename, graphID){
 	Plotly.downloadImage(graphDiv, {format: 'png', width: 800, height: 600, filename: filename});
 }
 
+function downloadAsCsv(filename, data, $form){
+	// data will be in the form of dictionary of lists
+	// key->[list]
+
+	console.log("Downloading as CSV, manually clicking on the link")
+	data_string = JSON.stringify({ 'data': data, 'filename': filename})
+	$form.append($("<input name= 'data' type= 'text' value = '" + data_string + "'/>"))
+
+	console.log($form)
+	$form.submit()
+
+	// Clear the contents of the form
+	$form.empty()
+
+}
+
 // /* This function is used to copy the text contained in "elementID" to the clipboard */
 // function copyToClipboard(elementID){
 // 	console.log("IN COPYING FUNCTION")
@@ -205,7 +221,7 @@ function sendAjaxRequest(xParameter, yParameter, testname, url) {
 		if(url == '/get_data_for_graph'){
 			console.log("CALLING DRAW CLUSTERED GERAPH")
 			console.log(response)
-			drawClusteredGraph(response.x_list_list, response.y_list_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list_list, response.server_cpu_list )
+			drawClusteredGraph(response.x_list_list, response.y_list_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list_list, response.server_cpu_list, response.reference_color, response.visible_list)
 		}
 		else{
 			console.log("CALLING DRAW OTHER GRAPH")
@@ -316,9 +332,12 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 	})
 }
 
-function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter="X Parameter", yParameter="Y Parameter", graphID="comparison-graph", originIDListList=[], serverCPUList = [], referenceColor=""){
+function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter="X Parameter", yParameter="Y Parameter", graphID="comparison-graph", originIDListList=[], serverCPUList = [], referenceColor="", visibleList = []){
 	console.log("DRAWING CLUSTERED GRAPH")
 	graphDiv = document.getElementById(graphID);
+
+	if(!visibleList)
+		visibleList = Array.from(colorList, v=> true)
 
 	if(graphID == 'best-of-all-graph')
 		title = "Best results normalized w.r.t. " + $('#reference-for-normalized option:selected').text()
@@ -366,6 +385,7 @@ function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter
 			// serverCPU : serverCPUList[index],
 			// higherIsBetter: higherIsBetter,
 			type: 'bar',
+			visible : visibleList[index],
 		})
 	})
 	console.log("Printing tracelist ")
