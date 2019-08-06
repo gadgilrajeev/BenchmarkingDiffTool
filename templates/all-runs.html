@@ -39,6 +39,8 @@ All Runs of the test
 				</select>
 
 				<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val() + '-vs-' + $('#yParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
+				
+				<button id="download-best-sku-graph-csv" class="blue">Download as CSV</button>
 				<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val() + '-vs-' + $('#yParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
 
 			</span>
@@ -92,8 +94,13 @@ All Runs of the test
 					{% endfor %}
 				</tbody>
 			</table>
+			<button type="button" id="download-all-results-table-csv" class="blue">Download as CSV</button>
 		</div>
 		
+	</form>
+
+	<!-- Hidden form for Downloading data as CSV -->
+	<form action="/download_as_csv" method="POST" id="download-csv-form" style="display:none;">
 	</form>
 
 <script>
@@ -194,6 +201,62 @@ All Runs of the test
 		// drawClusteredGraph();
 
 	});
+
+	$('#download-best-sku-graph-csv').click(function(){
+
+		data = {
+			'x': [],
+			'y': [],
+		}
+
+		$bestSkuGraph = $('#best-sku-graph')
+
+		for(i = 0; i < $bestSkuGraph[0].data.length; i++){
+			data['x'].push(...$bestSkuGraph[0].data[i].x)
+			data['y'].push(...$bestSkuGraph[0].data[i].y)
+		}
+
+		console.log("DATA")
+		console.log(data)
+
+		$form = $('#download-csv-form')
+
+		downloadAsCsv($('#xParameter option:selected').val() +'-vs-'+ $('#yParameter option:selected').val(), data, $form)
+	})
+
+	$('#download-all-results-table-csv').click(function(){
+
+		filename = "{{context.testname}}"
+
+		data = {
+
+		}
+
+		$tableRows = $("#allRunsTable th")
+		$table = $("#allRunsTable").DataTable()
+		$allColumnsData = $table.columns({ filter : 'applied'}).data()
+
+		for( i = 1; i < $tableRows.length/2; i++){
+  			column = $tableRows[i].innerHTML
+
+  			console.log(column)
+  			if(i == 1)
+  				data[column] = jQuery.map($allColumnsData[i], function( value, index ) {
+									return jQuery(value).text()
+  								});
+  			else
+  				data[column] = $allColumnsData[i]
+  		}
+
+
+		console.log("DATA")
+		console.log(data)
+
+		$form = $('#download-csv-form')
+
+		downloadAsCsv(filename, data, $form)
+	})
+
 
 </script>
 	
