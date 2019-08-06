@@ -254,14 +254,14 @@ def showTestDetails(originID):
     test_name = get_test_name(originID)
 
     # Get some System details
-    SYSTEM_DETAILS_QUERY = """SELECT DISTINCT O.hostname, O.testdate, O.originID as 'Environment Details',
-                            S.resultype FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID 
-                            INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + ";"
+    SYSTEM_DETAILS_QUERY = """SELECT DISTINCT O.hostname, O.testdate, O.originID as 'Environment Details'
+                            FROM result R INNER JOIN origin O ON O.originID=R.origin_originID 
+                            WHERE O.originID=""" + originID + ";"
     system_details_dataframe = pd.read_sql(SYSTEM_DETAILS_QUERY, db)
 
-    # Update the Result type (E.g. 0->single thread)
-    system_details_dataframe.update(pd.DataFrame(
-        {'resultype': [result_type_map[system_details_dataframe['resultype'][0]]]}))
+    # # Update the Result type (E.g. 0->single thread)
+    # system_details_dataframe.update(pd.DataFrame(
+    #     {'resultype': [result_type_map[system_details_dataframe['resultype'][0]]]}))
 
     # Get the rest of the system details from jenkins table
     JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O INNER JOIN jenkins J 
@@ -772,9 +772,12 @@ def get_data_for_graph():
     print(server_cpu_list)
     # Get colours for cpu manufacturer
     color_list = []
+    visibile_list = []
     for section in server_cpu_list:
         color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
+        visibile_list.extend(sku_parser.get(section, 'visible').replace('\"','').split(','))
     print(color_list)
+    print(visibile_list)
 
     response = {
         'x_list_list': x_list_list, 
@@ -784,6 +787,7 @@ def get_data_for_graph():
         'originID_list_list': originID_list_list,
         'server_cpu_list': server_cpu_list,
         'color_list': color_list,
+        'visible_list':visibile_list,
     }
 
     return response
