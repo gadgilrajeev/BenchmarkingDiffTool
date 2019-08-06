@@ -5,6 +5,25 @@ All tests page
 {% endblock title %}
 
 {% block content %}
+	
+	<div id="best-of-all-graph-div">
+		<h2>Select Reference</h2>
+		<select id="reference-for-normalized" name="reference-for-normalized">
+			<!-- ALL CPU MANUFACTURERES -->
+			{% for reference in context.reference_list %}
+				{% if loop.index0 == 0 %}
+					<option value="{{ qualifier }}" selected="selected">{{ reference }}</option>
+				{% else %}
+					<option value="{{ qualifier }}">{{ reference }}</option>
+				{% endif %}
+			{% endfor %}
+		</select>
+
+		<button id="download-comparison-graph" class="blue" onclick="downloadAsPng('Best results Normalized w.r.t. ' + $('#reference-for-normalized option:selected').text(), 'best-of-all-graph')">Download as PNG</button>
+		<div id="best-of-all-graph">
+		</div>
+	</div>
+
 	<div class='all-results-page'>
 		<h2>Filter tests</h2>
 		<form>
@@ -18,7 +37,7 @@ All tests page
 	</div>
 	<div class='all-results-page'>
 		<h2>HPC BENCHMARKS</h2>
-		<table id="hpc_benchmarks_list">
+		<table id="hpc-benchmarks-list">
 			{% for benchmark in context.hpc_benchmarks_list %}
 				<tr class="all-tests-rows">
 					<td class="all-tests-cells" onclick="showAllRuns(this)"> {{ benchmark }} </td>
@@ -29,7 +48,7 @@ All tests page
 	</div>
 	<div class='all-results-page'>
 		<h2>CLOUD BENCHMARKS</h2>
-		<table id="cloud_benchmarks_list">
+		<table id="cloud-benchmarks-list">
 			{% for benchmark in context.cloud_benchmarks_list %}
 				<tr class="all-tests-rows">
 					<td class="all-tests-cells" onclick="showAllRuns(this)"> {{ benchmark }} </td>
@@ -38,12 +57,29 @@ All tests page
 			{% endfor %}
 		</table>
 	</div>
-{% endblock content %}
 
 <script>
-	$( document ).ready(function() {
+	
+	$(document).ready(function() {
 		
     	uncheckBoxes("filter-checkboxes")
 
-});
+		console.log("SENDING REQUEST")
+
+		//Draw the initial best-of-all-graph
+    	drawBestOfAllGraph()
+
+	});
+
+	// Re- Draw the best-of-all-graph when reference CPU is changed
+	$(function(){
+		$("#reference-for-normalized").change(function(){
+			drawBestOfAllGraph()
+		})
+	});
+
+
 </script>
+
+{% endblock content %}
+
