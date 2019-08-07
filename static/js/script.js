@@ -153,42 +153,6 @@ function downloadAsCsv(filename, data, $form){
 
 }
 
-// /* This function is used to copy the text contained in "elementID" to the clipboard */
-// function copyToClipboard(elementID){
-// 	console.log("IN COPYING FUNCTION")
-
-// 	/* Get the text field */
-// 	var copyText = document.getElementById(elementID);
-
-//   /*
-//   	Create a textarea and set its contents to the text you want copied to the clipboard.
-// 	Append the textarea to the DOM.
-// 	Select the text in the textarea.
-// 	Call document.execCommand("copy")
-// 	Remove the textarea from the dom.
-//   */
-// 	var textarea = document.createElement("textarea");
-// 	textarea.textContent = copyText.innerHTML;
-
-// 	textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
-//     document.body.appendChild(textarea);
-//     textarea.select();
-//     try {
-//     	console.log("REMOVING ELEMENT?")
-//         document.execCommand("copy");  // Security exception may be thrown by some browsers.
-//     } catch (ex) {
-//         console.warn("Copy to clipboard failed.", ex);
-//     } finally {
-//     	console.log("REMOVING ELEMENT?")
-//         document.body.removeChild(textarea);
-//     }
-
-//   //add a android-toast like notification here so that user gets alerted 
-//   // "Copied Text to Clipboard"
-//   console.log("Toast showing")
-//   $('.toast').stop().fadeIn(400).delay(2000).fadeOut(400); //fade out after 3 seconds
-// }
-
 function sendAjaxRequest(xParameter, yParameter, testname, url) {
 
 	url_graph_map = {
