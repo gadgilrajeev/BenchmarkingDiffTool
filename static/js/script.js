@@ -94,16 +94,14 @@ function drawBestOfAllGraph(data = {}){
 		method: "POST",
 		dataType: 'json',
 		contentType: "application/json",
-		data: JSON.stringify({
-			'data': data,
-		}),
+		data: JSON.stringify(data),
 	}).done(function(response){
 		console.log("DONEEEEEEE BEST OF ALL")
 		console.log(response)
 
 		// Remove the Loading... message
 		$("#best-of-all-graph").empty()
-		drawClusteredGraph(response.x_list_list, response.y_list_list, response.color_list, response.xParameter, response.yParameter, graphID = 'best-of-all-graph', response.originID_list_list, response.server_cpu_list, response.reference_color)
+		drawClusteredGraph(response, graphID = 'best-of-all-graph')
 	})
 }
 
@@ -153,15 +151,16 @@ function downloadAsCsv(filename, data, $form){
 
 }
 
-function sendAjaxRequest(xParameter, yParameter, testname, url) {
+function sendAjaxRequest(ajaxData, url) {
 
 	url_graph_map = {
 		// url : graph-div-id
 		'/get_data_for_graph' : 'clustered-graph',
 		'/best_sku_graph' : 'best-sku-graph',
-
+		'/best_sku_graph_normalized' : 'best-sku-graph',
 	}
 
+	// Async is kept false as we have to call fillNormalizedDropdown only after graph is drawn!
 	if(url == '/best_sku_graph')
 		async = false;
 	else
@@ -173,11 +172,8 @@ function sendAjaxRequest(xParameter, yParameter, testname, url) {
 		method: "POST",
 		dataType: 'json',
 		contentType: "application/json",
-		data: JSON.stringify({
-			"xParameter" : xParameter,
-			"yParameter" : yParameter,
-			"testname" : testname,
-		}),
+		data: JSON.stringify(ajaxData),
+
 	}).done(function(response){
 		console.log("DONEEEEEEE")
 		console.log(response)
@@ -185,11 +181,11 @@ function sendAjaxRequest(xParameter, yParameter, testname, url) {
 		if(url == '/get_data_for_graph'){
 			console.log("CALLING DRAW CLUSTERED GERAPH")
 			console.log(response)
-			drawClusteredGraph(response.x_list_list, response.y_list_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list_list, response.server_cpu_list, response.reference_color, response.visible_list)
+			drawClusteredGraph(response, graphID = url_graph_map[url])
 		}
 		else{
 			console.log("CALLING DRAW OTHER GRAPH")
-			drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = url_graph_map[url], response.originID_list, response.server_cpu_list)
+			drawComparisonGraph(response, graphID = url_graph_map[url])
 		}
 	})
 }
@@ -221,11 +217,23 @@ function fillNormalizedDropdown(){
 	});
 }
 
-function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, graphID, originIDList, serverCPUList = [], higherIsBetter = "1"){
-	console.log(xList + typeof(xList))
-	console.log(yList + typeof(yList))
+function drawComparisonGraph(response, graphID){
+	xList = response.x_list
+	yList = response.y_list
+	colorList = response.color_list
+	xParameter = response.xParameter
+	yParameter = response.yParameter
+	originIDList = response.originID_list
+	serverCPUList = response.server_cpu_list ? response.server_cpu_list : []
+	higherIsBetter = response.higher_is_better
 
 	graphDiv = document.getElementById(graphID);
+
+	// If it is a normalized graph, then change the title
+	if(graphID == 'best-sku-graph' && $('#normalized-checkbox')[0].checked)
+		title = "Best results normalized w.r.t. " + $('#normalized-dropdown option:selected').text()
+	else
+		title = yParameter + ' vs ' + xParameter
 
 	var layout = {
 		xaxis: {
@@ -235,17 +243,11 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 		yaxis: {
 			title: yParameter,
 		},
-		title: yParameter + ' vs ' + xParameter,
+		title: title,
 		showlegend: true,
 	}
 
-	// If the colorList is empty, fill the colorList with default values
-	if(!colorList)
-	{
-		console.log("SETTING COLOR LIST")
-		colorList = Array.from(xList, x=> '#1f77b4')
-	}
-
+	// List  of traces to be drawn
 	traceList = []
 	xList.forEach((value, index) => {
 		traceList.push({
@@ -266,22 +268,7 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 
 	data = traceList
 
-	// data = [{
-	// 	x: xList,
-	// 	y: yList,
-	// 	marker:{
-	// 		color: colorList
-	// 	},
-	// 	originIDList : originIDList,
-	// 	serverCPUList : serverCPUList,
-	// 	higherIsBetter: higherIsBetter,
-	// 	type: 'bar',
-	// }]
-	Plotly.newPlot( graphDiv, data, layout);
-
-	if(serverCPUList.length != 0){
-		// fillComparisonCheckboxes();
-	}
+	Plotly.newPlot(graphDiv, data, layout);
 
 	//Add Event on click of bar
 	//Send user to "test-details" page of the respective "originID"
@@ -291,12 +278,22 @@ function drawComparisonGraph(xList, yList, colorList, xParameter, yParameter, gr
 		originID = data.points[0].data.originID
 		console.log("You clicked on " + data.points[0].data.x[barNumber])
 		console.log("Which has originID " + data.points[0].data.originID)
-		// window.location.href = '/test-details/'+originID
+
 		window.open('/test-details/'+originID)
 	})
 }
 
-function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter="X Parameter", yParameter="Y Parameter", graphID="comparison-graph", originIDListList=[], serverCPUList = [], referenceColor="", visibleList = []){
+function drawClusteredGraph(response, graphID){
+	xListList = response.x_list_list
+	yListList = response.y_list_list
+	colorList = response.color_list
+	xParameter = response.xParameter
+	yParameter = response.yParameter
+	originIDListList = response.originID_list_list
+	serverCPUList = response.server_cpu_list
+	referenceColor = response.reference_color
+	visibleList = response.visible_list
+
 	console.log("DRAWING CLUSTERED GRAPH")
 	graphDiv = document.getElementById(graphID);
 
@@ -321,21 +318,7 @@ function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter
 		barmode: 'group',
 	}
 	
-	console.log("REFERENCE COLOR " + referenceColor)
-
-	// If the colorList is empty, fill the colorList with default values
-	// if(!colorList)
-	// {
-	// 	console.log("SETTING COLOR LIST")
-	// 	colorList = Array.from(xList, x=> '#1f77b4')
-	// }
-
-	// xListList = [['Ubuntu', 'openSUSE'],['Ubuntu', 'openSUSE'],['Ubuntu', 'MacOS']]
-	// yListList = [[1,2],[3,4],[5,6]]
-	// colorList = [ "FireBrick", "OrangeRed", "DodgerBlue"]
-	// serverCPUList = ['Marvell-TX2-B2', 'Intel Skylake Gold', 'AMD CPU']
-	// originIDListList = [[742,709], [1187,1189],[702,669]]
-
+	// List  of traces to be drawn
 	traceList = []
 	xListList.forEach((value, index) => {
 		traceList.push({
@@ -346,8 +329,6 @@ function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter
 			},
 			name: serverCPUList[index], 	//name of the CPU (Marvell, Intel, etc.) in the legend
 			originIDList : originIDListList[index],
-			// serverCPU : serverCPUList[index],
-			// higherIsBetter: higherIsBetter,
 			type: 'bar',
 			visible : visibleList[index],
 		})
@@ -440,12 +421,13 @@ function drawClusteredGraph(xListList=[], yListList=[], colorList=[], xParameter
 }
 
 function drawNormalizedGraph(graphID, testName){
+	console.log("DRAWING NORMALIZED GRAPH")
+
 	var gd = document.getElementById(graphID)
 	
 	// get selected element from dropdown list
 	normalizedWRT = $("#normalized-dropdown option:selected").text()
 
-	console.log("DRAWING NORMALIZED GRAPH")
 	// get the current state of the graph
 	xList = []
 	yList = []
@@ -453,52 +435,38 @@ function drawNormalizedGraph(graphID, testName){
 
 	data = gd.data
 
-	console.log("PRINTING DATA" + data)
-	console.log(data[0])
-
-
+	// Fill the xList, yList and originIDList from the Graph's data
 	data.forEach((value, index) => {
 		xList.push(data[index].x[0])
 		yList.push(data[index].y[0])
 		originIDList.push(data[index].originID)
 	})
 
+	// get x and y parameters
 	xParameter = gd.layout.xaxis.title.text 
 	yParameter = gd.layout.yaxis.title.text
 	
+	// get Higher is better value from the graph data
 	higherIsBetter = data[0].higherIsBetter
-
-	console.log("PRINTING higher is better")
 	console.log("Higher is better : " + higherIsBetter)
+
 	// If lower is better, Inverse all the values
 	if(higherIsBetter == '0'){
-		console.log("Higher is better : " + higherIsBetter)
-		console.log("Ylist before " + yList)
+		// map applies the function passed to each element of the list
 		yList.map((value, index) => {
   			yList[index] = 1/yList[index]
   		})
-  		console.log("Ylist is now " + yList)
 	}
 
-	console.log("NOrmalizing wrt" + normalizedWRT)
+	ajaxData = {
+		"xList" : xList,
+		"yList" : yList,
+		"xParameter" : xParameter,
+		"yParameter" : yParameter,
+		"normalizedWRT" : normalizedWRT,
+		"originIDList": originIDList,
+		"testName": testName,
+	}
 
-	$.ajax({
-    	url: '/best_sku_graph_normalized',
-		method: "POST",
-		dataType: 'json',
-		contentType: "application/json",
-		data: JSON.stringify({
-			"xList" : xList,
-			"yList" : yList,
-			"xParameter" : xParameter,
-			"yParameter" : yParameter,
-			"normalizedWRT" : normalizedWRT,
-			"originIDList": originIDList,
-			"testName": testName,
-		}),
-	}).done(function(response){
-		console.log("DONEEEEEEE")
-		console.log(response)
-		drawComparisonGraph(response.x_list, response.y_list, response.color_list, response.xParameter, response.yParameter, graphID = 'best-sku-graph', response.originID_list, serverCPUList = [],  higherIsBetter = response.higher_is_better)
-	})
+	sendAjaxRequest(ajaxData, '/best_sku_graph_normalized')
 }
