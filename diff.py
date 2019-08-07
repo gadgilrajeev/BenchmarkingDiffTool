@@ -200,6 +200,7 @@ def showAllRuns(testname):
     min_or_max_list = results_metadata_parser.get(testname, 'higher_is_better') \
                     .replace('\"', '').replace(' ', '').split(',')
 
+    print("########PRINTING QUALIFIER LIST AND MIN OR MAX LIST#########")
     print(qualifier_list)
     print(min_or_max_list)
 
@@ -626,6 +627,7 @@ def get_data_for_graph():
         "Corefreq": 'b.corefreq',
         "DDRfreq": 'b.ddrfreq',
         "SKUID": 'n1.skuidname',
+        "Hostname": 'o1.hostname',
     }
     table_map = {
         "Kernel Version": 'ostunings os', 
@@ -640,6 +642,7 @@ def get_data_for_graph():
         "Corefreq": 'bootenv b',
         "DDRfreq": 'bootenv b',
         "SKUID": 'node n1',
+        "Hostname": 'origin o1'
     }
     join_on_map = {
         'Kernel Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
@@ -654,6 +657,7 @@ def get_data_for_graph():
         "Corefreq": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
         "DDRfreq": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
         "SKUID": 'o.hwdetails_node_nodeID = n1.nodeID',
+        "Hostname" : 'o1.originID = o.originID'
     }
 
     server_cpu_list = []
@@ -676,8 +680,10 @@ def get_data_for_graph():
 
         x_df = pd.read_sql(X_LIST_QUERY, db)
         x_list = sorted(x_df[parameter_map[xParameter]].to_list())
+        
+        # Convert each element to type "str"
         x_list = list(map(lambda x: str(x), x_list))
-        print("PRINTING X LIST AFTER CONVERTING TO STR \n", x_list)
+
         
         # Remove ALL the entries which are '' in the list 
         while True:
@@ -779,9 +785,23 @@ def get_data_for_graph():
     print(color_list)
     print(visibile_list)
 
+    # Get the unit for the selected yParamter (qualifier)
+    UNIT_QUERY = """SELECT disp.qualifier, disp.unit FROM origin o INNER JOIN testdescriptor t 
+                    ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r 
+                    ON o.originID = r.origin_originID  INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                    where t.testname = \'""" + testname + "\' and disp.qualifier LIKE \'%" + yParameter.strip() +"%\' limit 1;"
+    unit_df = pd.read_sql(UNIT_QUERY, db)
+    try:
+        y_axis_unit = unit_df['unit'][0]
+    except Exception as error_message:
+        print("\n\n\n\n\n\n\nTHERE SEEMES TO BE AN ERROR IN YOUR APPLICATOIN")
+        print(error_message)
+
+
     response = {
         'x_list_list': x_list_list, 
         'y_list_list': y_list_list,
+        'y_axis_unit': y_axis_unit,
         'xParameter': xParameter,
         'yParameter': yParameter,
         'originID_list_list': originID_list_list,
@@ -870,12 +890,21 @@ def best_sku_graph():
         color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
     print(color_list)
 
+    # Get the unit for the selected yParamter (qualifier)
+    UNIT_QUERY = """SELECT disp.qualifier, disp.unit FROM origin o INNER JOIN testdescriptor t 
+                    ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r 
+                    ON o.originID = r.origin_originID  INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                    where t.testname = \'""" + testname + "\' and disp.qualifier LIKE \'%" + yParameter +"%\' limit 1;"
+    unit_df = pd.read_sql(UNIT_QUERY, db)
+    y_axis_unit = unit_df['unit'][0]
+
     response = {
         'x_list': list(cpu_data.keys()), 
         'y_list': list(cpu_data.values()),
+        'y_axis_unit': y_axis_unit,
         'color_list': color_list,
         'xParameter': xParameter,
-        'yParameter': yParameter + qualifier,
+        'yParameter': 'Best ' + qualifier,
         'originID_list': originID_list,
     }
 
@@ -932,6 +961,7 @@ def best_sku_graph_normalized():
     response = {
         'x_list': x_list, 
         'y_list': normalized_y_list,
+        'y_axis_unit': "ratio",
         'color_list': color_list,
         'xParameter': xParameter,
         'yParameter': yParameter,
@@ -954,8 +984,7 @@ def best_of_all_graph():
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
-    json = request.get_json()
-    data = json['data']
+    data = request.get_json()
     
     print(data)
 
@@ -1128,26 +1157,12 @@ def best_of_all_graph():
 
         else:
             print("SECTION MATCHED", section, ".\tSkipping")
-        # break
-
-
-    # print("\n\nX_LIST_LIST")
-    # print(x_list_list)
-    # print(len(x_list_list))
-    # print(len(x_list_list[0]))
-    # print("\n\nY_LIST_LIST")
-    # print(y_list_list)
-    # print(len(y_list_list))
-    # print(len(y_list_list[0]))
-    # print("\n\nOriginID_LIST_LIST")
-    # print(originID_list_list)
-    # print(len(originID_list_list))
-    # print(len(originID_list_list[0]))
 
 
     response = {
         'x_list_list': x_list_list, 
         'y_list_list': y_list_list,
+        'y_axis_unit': "ratio",
         'xParameter': "All Tests",
         'yParameter': "",
         'originID_list_list': originID_list_list,
@@ -1187,15 +1202,20 @@ def download_as_csv():
     print(csv_df)
     print(os.getcwd())
 
-    filename = base_path + json_data['filename'] + '.csv'
+    # "CLEAN" the filename.
+    # Example -> if the file is 'Mop/s vs OSName', then replace '/' with '-per-'
+    filename = base_path + json_data['filename'].replace('/', '_per_') + '.csv'
+    
+    print("PRINTING FILENAME AFTER" + filename)
+
     csv_df.to_csv(filename, index=False, header=True)
     print("\n\n\n")
 
     try:
         return send_file(filename,
             mimetype='text/csv',
-            attachment_filename= json_data['filename'] + '.csv',
+            attachment_filename= json_data['filename'].replace('/', '_per_') + '.csv',
             as_attachment=True)
 
-    except:
-        return "File Not Found", 404
+    except Exception as error_message:
+        return error_message, 404

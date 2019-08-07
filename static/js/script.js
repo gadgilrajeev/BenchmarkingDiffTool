@@ -226,6 +226,7 @@ function drawComparisonGraph(response, graphID){
 	originIDList = response.originID_list
 	serverCPUList = response.server_cpu_list ? response.server_cpu_list : []
 	higherIsBetter = response.higher_is_better
+	yAxisUnit = response.y_axis_unit
 
 	graphDiv = document.getElementById(graphID);
 
@@ -241,7 +242,7 @@ function drawComparisonGraph(response, graphID){
 			title : xParameter,
 		},
 		yaxis: {
-			title: yParameter,
+			title: yParameter + ' (' + yAxisUnit + ')',
 		},
 		title: title,
 		showlegend: true,
@@ -293,6 +294,7 @@ function drawClusteredGraph(response, graphID){
 	serverCPUList = response.server_cpu_list
 	referenceColor = response.reference_color
 	visibleList = response.visible_list
+	yAxisUnit = response.y_axis_unit
 
 	console.log("DRAWING CLUSTERED GRAPH")
 	graphDiv = document.getElementById(graphID);
@@ -303,7 +305,7 @@ function drawClusteredGraph(response, graphID){
 	if(graphID == 'best-of-all-graph')
 		title = "Best results normalized w.r.t. " + $('#reference-for-normalized option:selected').text()
 	else
-		title = yParameter + ' vs ' + xParameter
+		title = yParameter +'(' + yAxisUnit + ')' + ' vs ' + xParameter
 
 	var layout = {
 		xaxis: {
@@ -445,6 +447,9 @@ function drawNormalizedGraph(graphID, testName){
 	// get x and y parameters
 	xParameter = gd.layout.xaxis.title.text 
 	yParameter = gd.layout.yaxis.title.text
+
+	// Remove the 'yAxisUnit' part from the yParameter
+	yParameter = yParameter.substring(0, yParameter.indexOf('('))
 	
 	// get Higher is better value from the graph data
 	higherIsBetter = data[0].higherIsBetter
