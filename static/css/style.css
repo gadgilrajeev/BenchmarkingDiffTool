@@ -270,6 +270,14 @@ tbody tr td{
   margin: 20px;
 }
 
+#outer-graph-div{
+  border-radius: 25px;
+  background-color: #eaeaea;
+  padding-top: 50px;
+  padding-bottom: 50px;
+  margin-top: 20px;
+}
+
 #graph-div span{
   display:flex;
   margin-left: 5%;
@@ -308,7 +316,7 @@ tbody tr td{
 #graph-plot-div > #clustered-graph {
   margin-left: 5%;
   width:33.33%;
-  height:350px;
+  height:400px;
 }
 
 #graph-plot-div > #graph-type-form {
@@ -318,15 +326,53 @@ tbody tr td{
 #graph-plot-div > #best-sku-graph {
   margin-left: 15%;
   width : 33.33%;
-  height : 350px;
+  height : 400px;
+}
+
+#best-of-all-graph-div{
+  border-radius: 25px;
+  background-color: #eaeaea;
+  padding-top: 30px;
+  padding-bottom: 70px;
+  margin-top: 10px;
+  margin-bottom: 20px;
 }
 
 #best-of-all-graph-div > #download-comparison-graph{
+  margin-left: 20%;
+  margin-right: 20%;
+}
+
+#best-of-all-graph-div h2{
   margin-left: 10%;
 }
 
 #reference-for-normalized{
+  margin-left: 10%;
   width: 20%;
+}
+
+#input-parameters-div{
+  display: flex;
+  flex-direction: row;
+  margin-top: 30px;
+}
+
+.input-parameter-select{
+  margin-left: 20px;
+  margin-right: 20px;
+  width: 20%;
+  height: 50px;
+}
+
+.flex-horizontal{
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-vertical{
+  display: flex;
+  flex-direction: column;
 }
 
 #best-of-all-graph {
