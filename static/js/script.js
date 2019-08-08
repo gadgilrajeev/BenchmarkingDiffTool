@@ -131,6 +131,9 @@ function downloadAsPng(filename, graphID){
 	console.log("DOWNLOADING THE GRAPH?")
 	graphDiv = document.getElementById(graphID);
 
+	if(graphID == "best-sku-graph")
+		filename = "Best " + filename;
+
 	// downloadImage will accept the div as the first argument and an object specifying image properties as the other
 	Plotly.downloadImage(graphDiv, {format: 'png', width: 800, height: 600, filename: filename});
 }
