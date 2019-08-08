@@ -47,6 +47,12 @@ def get_test_name(originID):
 
     return test_name
 
+# Takes input as a list containg duplicate elements. 
+# Returns a list having unique elements
+@app.template_filter('unique_list')
+def unique_list(input_list):
+    # OrderedDict creates unique keys. It also preserves the order of insertion
+    return list(OrderedDict.fromkeys(input_list))
 
 @app.template_filter('no_of_rows')
 def no_of_rows(dictionary):
@@ -231,12 +237,33 @@ def showAllRuns(testname):
     dataframe = pd.read_sql(ALL_RUNS_QUERY, db)
     rows, columns = dataframe.shape  # returns a tuple (rows,columns)
 
+    # Dropdown for input file
+    input_parameters = results_metadata_parser.get(testname, 'description') \
+                                                .replace('\"', '').replace(' ', '').split(',')
+
+    INPUT_FILE_QUERY = """SELECT DISTINCT s.description FROM origin o INNER JOIN testdescriptor t
+                            ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
+                            ON o.originID = r.origin_originID INNER JOIN subtest s
+                            ON  r.subtest_subtestID = s.subtestID WHERE r.isvalid = 1 and t.testname = \'""" + testname + "\';"
+    input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
+    print(input_parameters)
+    print(input_details_df)
+
+    # Split the 'description' column into multiple columns
+    for index, param in enumerate(input_parameters):
+        input_details_df[param] = input_details_df['description'].apply(lambda x: x.split(',')[index])
+
+    # Delete the 'description' column
+    del input_details_df['description']
+    print(input_details_df)
+
     context = {
         'testname': testname,
         'data': dataframe.to_dict(orient='list'),
         'no_of_rows': rows,
         'no_of_columns': columns,
         'qualifier_list': qualifier_list,
+        'input_details': input_details_df.to_dict(orient='list')
     }
 
     return render_template('all-runs.html', context=context)
@@ -593,6 +620,21 @@ def get_data_for_graph():
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
+    # For the input filters
+    input_parameters = results_metadata_parser.get(testname, 'description') \
+                                                .replace('\"', '').replace(' ', '').split(',')
+    try:
+        input_filters_list = data['inputFiltersList']
+        INPUT_FILTER_CONDITION = ""
+        for index, input_filter in enumerate(input_filters_list):
+            if(input_filter != "None"):
+                if(input_filter.isnumeric()):
+                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1)=" + input_filter 
+                else:
+                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1)=\'" + input_filter  + "\'"
+    except:
+        pass
+
     # GET qualifier_list and min_max_list from 'fields' and 'higher_is_better' the section 'testname'
     qualifier_list = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')
     min_or_max_list = results_metadata_parser.get(testname, 'higher_is_better') \
@@ -712,11 +754,13 @@ def get_data_for_graph():
                                     INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
                                     INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
                                     INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+                                    INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
                                     WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
                                     " and " + parameter_map[xParameter] + " = \'" + x_param + \
                                     "\' and t.testname = \'" + testname + \
-                                    "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
-                                    "%\' group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
+                                    "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+                                    INPUT_FILTER_CONDITION + \
+                                    " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
             else:
                 Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
                                     FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
@@ -724,14 +768,15 @@ def get_data_for_graph():
                                     """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
                                     INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
                                     INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
-                                    INNER JOIN node n ON hw1.node_nodeID = n.nodeID
+                                    INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+                                    INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
                                     WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
                                     " and " + parameter_map[xParameter] + " = \'" + x_param + \
                                     "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
-                                    " AND disp.qualifier LIKE \'%" + qualifier_list[index] + \
-                                    "%\' group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
+                                    " AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+                                    INPUT_FILTER_CONDITION + \
+                                    " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
 
-            
             y_df = pd.read_sql(Y_LIST_QUERY, db)
 
             if y_df.empty is True:
@@ -829,6 +874,22 @@ def best_sku_graph():
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
+    # For the input filters
+    input_parameters = results_metadata_parser.get(testname, 'description') \
+                                                .replace('\"', '').replace(' ', '').split(',')
+    try:
+        input_filters_list = data['inputFiltersList']
+        
+        INPUT_FILTER_CONDITION = ""
+        for index, input_filter in enumerate(input_filters_list):
+            if(input_filter != "None"):
+                if(input_filter.isnumeric()):
+                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1)=" + input_filter 
+                else:
+                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1)=\'" + input_filter  + "\'"
+    except:
+        pass
+
     # GET First qualifier from 'fields' and its corresponding min_or_max from 'higher_is_better' for section 'testname'
     qualifier = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')[0]
     min_or_max = results_metadata_parser.get(testname, 'higher_is_better') \
@@ -852,9 +913,11 @@ def best_sku_graph():
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
                                     on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
                                     on r.origin_originID = o.originID INNER JOIN display disp 
-                                    ON  r.display_displayID = disp.displayID where r.number > 0 AND r.isvalid = 1 
+                                    ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
+                                    ON r.subtest_subtestID=s.subtestID where r.number > 0 AND r.isvalid = 1 
                                     AND t.testname = \'""" + testname + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                     "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
+                                    INPUT_FILTER_CONDITION + \
                                     " group by o.originID, r.number order by r.number;"
 
         else:
@@ -863,9 +926,11 @@ def best_sku_graph():
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
                                     on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
                                     on r.origin_originID = o.originID INNER JOIN display disp 
-                                    ON  r.display_displayID = disp.displayID where r.isvalid = 1 
+                                    ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
+                                    ON r.subtest_subtestID=s.subtestID where r.isvalid = 1 
                                     AND t.testname = \'""" + testname + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                     "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
+                                    INPUT_FILTER_CONDITION + \
                                     " group by o.originID, r.number order by r.number DESC;"
 
 

@@ -39,10 +39,10 @@ All Runs of the test
 					<!-- <option value="Flags">Flags</option> -->
 				</select>
 
-				<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val() + '-vs-' + $('#yParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
+				<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
 				
 				<button id="download-best-sku-graph-csv" class="blue">Download as CSV</button>
-				<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#xParameter option:selected').val() + '-vs-' + $('#yParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
+				<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
 
 			</span>
 		</div>
@@ -62,7 +62,23 @@ All Runs of the test
 				</select>
 			</form>
 		</div>
-		
+		<div id="input-parameters-div">
+			<h2 style="font-weight: bold; margin-right: 20px;">Filters</h2>
+			{% for column in context.input_details %}
+				
+				{% set options_list = context.input_details[column] | unique_list %}
+			
+				<label class = "h4" for="input-parameter-{{column}}">{{column}}</label>
+				<select class="input-parameter-select" name="input-parameter-{{column}}" id="input-parameter-{{column}}">
+					<option value="None" selected="selected">None</option>
+					{% for option in options_list %}
+						<option value="option">{{option}}</option>
+					{% endfor %}
+
+				</select>
+			
+			{% endfor %}			
+		</div>
 	</div>
 
 	<form action="/diff" method="GET">
@@ -147,6 +163,17 @@ All Runs of the test
 		ajaxData.yParameter = $("#yParameter option:selected").val();
 		ajaxData.testname = "{{ context.testname }}"
 
+		// Get the initial input filters list
+		inputFiltersList = []
+		$allInputFilters = $('.input-parameter-select')
+
+		jQuery.each($allInputFilters, (index, value) => {
+		    filter = $('option:selected', value)[0].innerHTML
+		    inputFiltersList.push(filter)
+		})
+
+		ajaxData.inputFiltersList = inputFiltersList
+
 	    //Function for drawing INITIAL comparison graph
 	    sendAjaxRequest(ajaxData, url='/get_data_for_graph')
 
@@ -173,6 +200,7 @@ All Runs of the test
 
 	    //Function for drawing Best SKU graph
 	    bestSkuAjaxData = {'xParameter': 'SKUs', 'yParameter': "", 'testname' : "{{ context.testname }}"}
+	    bestSkuAjaxData.inputFiltersList = inputFiltersList
 	    sendAjaxRequest(bestSkuAjaxData, url='/best_sku_graph')
 
 	    //fill the dropdown list
@@ -258,6 +286,24 @@ All Runs of the test
 		$form = $('#download-csv-form')
 
 		downloadAsCsv(filename, data, $form)
+	})
+
+	$('.input-parameter-select').change(function(){
+		
+		inputFiltersList = []
+		$allInputFilters = $('.input-parameter-select')
+
+		jQuery.each($allInputFilters, (index, value) => {
+		    filter = $('option:selected', value)[0].innerHTML
+		    inputFiltersList.push(filter)
+		})
+
+		ajaxData.inputFiltersList = inputFiltersList
+		sendAjaxRequest(ajaxData, url='/get_data_for_graph')
+	
+		bestSkuAjaxData.inputFiltersList = inputFiltersList
+		sendAjaxRequest(bestSkuAjaxData, url='/best_sku_graph')
+
 	})
 
 
