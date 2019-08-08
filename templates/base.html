@@ -3,12 +3,14 @@
 <head>
 	<title>{% block title %} Home Page {% endblock %}</title>
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/lib/datatables.min.css') }}"/>
 	
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/lib/bootstrap.css') }}" />
 
-	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	<script  src="{{ url_for('static', filename='js/lib/plotly-latest.min.js') }}"></script>
 	<script src="{{ url_for('static', filename='js/lib/jquery-3.4.1.js') }}"></script>
 	<script type="text/javascript" src="{{ url_for('static', filename='js/lib/datatables.min.js') }}"></script>
+	
 	<script src="{{ url_for('static', filename='js/lib/bootstrap.js') }}"></script>
 	<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </head>
