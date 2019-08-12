@@ -10,74 +10,85 @@ All Runs of the test
 	<h2 style="font-weight: bold; text-align: center;">{{ context.testname }}</h2>
 	
 	<div id="outer-graph-div">
-		<div id="graph-div">
-			<span>
-				<select id="yParameter" name="yParameter">
-					<!-- TAKING PARAMETERS FROM INI FILE -->
-					{% for qualifier in context.qualifier_list %}
-						{% if loop.index0 == 0 %}
-							<option value="{{ qualifier }}" selected="selected">{{ qualifier }}</option>
-						{% else %}
-							<option value="{{ qualifier }}">{{ qualifier }}</option>
-						{% endif %}
-					{% endfor %}
-				</select>
-				<p>vs</p>
-				<select id="xParameter" name="xParameter">
-					<option value="Kernel Version" selected="selected">Kernel Version</option>
-					<option value="OS Version">OS Version</option>
-					<option value="OS Name">OS Name</option>
-					<option value="Firmware Version">Firmware Version</option>
-					<option value="ToolChain Name">ToolChain Name</option>
-					<option value="ToolChain Version">ToolChain Version</option>
-					<option value="SMT">SMT</option>
-					<option value="Cores">Cores</option>
-					<!-- <option value="Corefreq">Corefreq</option> -->
-					<option value="DDRfreq">DDRfreq</option>
-					<option value="SKUID">SKUID</option>
-					<option value="Hostname">Hostname</option>
-					<!-- <option value="Flags">Flags</option> -->
-				</select>
-
-				<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
-				
-				<button id="download-best-sku-graph-csv" class="blue">Download as CSV</button>
-				<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
-
-			</span>
+		<div id="input-filter-div">
+			<h2>Filters</h2>
+				{% for column in context.input_details %}
+					{% set i = loop.index0 %}
+					{% set options_list = context.input_details[column] | unique_list %}
+					<div>
+						<form>
+							<label class = "h4" for="input-parameter-{{column}}">{{column}}</label>
+							<select class="input-parameter-select" name="input-parameter-{{column}}" id="input-parameter-{{column}}">
+								<option value="None">None</option>
+								{% for option in options_list %}
+									{% if option == context.default_input_filters[i] %}
+										<option value="option" selected>{{option}}</option>
+									{% else %}
+										<option value="option">{{option}}</option>
+									{% endif %}
+								{% endfor %}
+							</select>
+						</form>		
+					</div>
+				{% endfor %}
 		</div>
-		<div id="graph-plot-div">
-			<div id="sku-filters">
-				
-			</div>
+
+		<div id="engineering-graph-div">
+			<div id="engineering-team-title"><h2>For Engineering Team</h2></div>
 			<div id="clustered-graph"></div>
-			<div id="best-sku-graph"></div>
-			<form id="graph-type-form">
-				<label for="Absolute">Absolute</label>
-				<input type="radio" name="typeOfGraph" id="absolute-checkbox" checked="checked" value="Absolute">
-				<label for="Normalized">Normalized</label>
-				<input type="radio" name="typeOfGraph" id="normalized-checkbox" value="Normalized">
-				<select id="normalized-dropdown" name="normalized-dropdown">
 
-				</select>
-			</form>
+			<select id="yParameter" name="yParameter">
+				<!-- TAKING PARAMETERS FROM INI FILE -->
+				{% for qualifier in context.qualifier_list %}
+					{% if loop.index0 == 0 %}
+						<option value="{{ qualifier }}" selected="selected">{{ qualifier }}</option>
+					{% else %}
+						<option value="{{ qualifier }}">{{ qualifier }}</option>
+					{% endif %}
+				{% endfor %}
+			</select>
+			<p>vs</p>
+			<select id="xParameter" name="xParameter">
+				<option value="Kernel Version" selected="selected">Kernel Version</option>
+				<option value="OS Version">OS Version</option>
+				<option value="OS Name">OS Name</option>
+				<option value="Firmware Version">Firmware Version</option>
+				<option value="ToolChain Name">ToolChain Name</option>
+				<option value="ToolChain Version">ToolChain Version</option>
+				<option value="SMT">SMT</option>
+				<option value="Cores">Cores</option>
+				<!-- <option value="Corefreq">Corefreq</option> -->
+				<option value="DDRfreq">DDRfreq</option>
+				<option value="SKUID">SKUID</option>
+				<option value="Hostname">Hostname</option>
+				<!-- <option value="Flags">Flags</option> -->
+			</select>
+
+			<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
+			
 		</div>
-		<div id="input-parameters-div">
-			<h2 style="font-weight: bold; margin-right: 20px;">Filters</h2>
-			{% for column in context.input_details %}
-				
-				{% set options_list = context.input_details[column] | unique_list %}
-			
-				<label class = "h4" for="input-parameter-{{column}}">{{column}}</label>
-				<select class="input-parameter-select" name="input-parameter-{{column}}" id="input-parameter-{{column}}">
-					<option value="None" selected="selected">None</option>
-					{% for option in options_list %}
-						<option value="option">{{option}}</option>
-					{% endfor %}
 
-				</select>
+		<div id="marketing-graph-div">
+			<div id="marketing-team-title"><h2>For Marketing and Communication Team</h2></div>
+			<div id="best-sku-graph"></div>
+
+			<div id="absolute-radio-div">
+				<label for="absolute-radio-button">Absolute</label>
+				<input type="radio" name="typeOfGraph" id="absolute-radio-button" checked="checked" value="Absolute">
+			</div>
+			<div id="normalized-radio-div">
+				<label for="normalized-radio-button">Normalized</label>
+				<input type="radio" name="typeOfGraph" id="normalized-radio-button" value="Normalized">
+			</div>
+			<select id="normalized-dropdown" name="normalized-dropdown">
+
+			</select>
 			
-			{% endfor %}			
+
+			<button id="download-best-sku-graph-csv" class="blue">Download as CSV</button>
+			<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
+
+
 		</div>
 	</div>
 
@@ -123,7 +134,6 @@ All Runs of the test
 <script>
 	uncheckBoxes("diff-checkbox");
 	
-	document.getElementById("graph-type-form").reset();
 	var $normalizedList = $("#normalized-dropdown");
 	$normalizedList.hide();
 
@@ -289,7 +299,7 @@ All Runs of the test
 	})
 
 	$('.input-parameter-select').change(function(){
-		
+
 		inputFiltersList = []
 		$allInputFilters = $('.input-parameter-select')
 
@@ -301,8 +311,15 @@ All Runs of the test
 		ajaxData.inputFiltersList = inputFiltersList
 		sendAjaxRequest(ajaxData, url='/get_data_for_graph')
 	
+		console.log("SENDING AJAX REQUEST")
+		console.log(ajaxData)
+
 		bestSkuAjaxData.inputFiltersList = inputFiltersList
 		sendAjaxRequest(bestSkuAjaxData, url='/best_sku_graph')
+
+		//fill new normalizedDropdown
+		//hide it. and make absolute as checked
+		fillNormalizedDropdown();
 
 	})
 
