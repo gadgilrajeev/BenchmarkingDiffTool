@@ -1,6 +1,7 @@
 from pprint import pprint
 import os, shutil
 import pandas as pd
+import numpy as np
 import pymysql
 import configparser
 from flask import Flask, render_template, request, redirect, send_file
@@ -48,11 +49,40 @@ def get_test_name(originID):
     return test_name
 
 # Takes input as a list containg duplicate elements. 
-# Returns a list having unique elements
+# Returns a sorted list having unique elements
 @app.template_filter('unique_list')
 def unique_list(input_list):
+    def str_is_int(s):
+        try:
+            int(s)
+            return True
+        except:
+            return False
+
+    def str_is_float(s):
+        try:
+            # This fails if string isn't float
+            float(s) == int(s)
+            return True
+        except:
+            return False
+
     # OrderedDict creates unique keys. It also preserves the order of insertion
-    return list(OrderedDict.fromkeys(input_list))
+    lst = list(OrderedDict.fromkeys(input_list))
+
+    print(lst)
+
+    if all(str_is_int(x) for x in lst):
+        print("WAS INSTANCE OF INT MAN")
+        lst = [int(x) for x in lst]
+    elif all(str_is_float(x) for x in lst):
+        print("WAS INSTANCE OF FLOAT MAN")
+        lst = [float(x) for x in lst]
+    else:
+        print("WAS INSTANCE OF NONE MAN")
+
+    # Return all values as STR
+    return list(map(lambda x: str(x), sorted(lst)))
 
 @app.template_filter('no_of_rows')
 def no_of_rows(dictionary):
@@ -143,6 +173,36 @@ def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
             else:
                 compare_lists[table_name + "_details_list"].append(param_values_dictionary)
     return compare_lists
+
+# Returns INPUT_FILTER_CONDITION from 'test_name' and 'input_filters_list'
+def get_input_filter_condition(test_name, input_filters_list):
+    INPUT_FILTER_CONDITION = ""
+
+    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_parser = configparser.ConfigParser()
+    results_metadata_parser.read(results_metadata_file_path)
+
+    # For the input filters
+    input_parameters = results_metadata_parser.get(test_name, 'description') \
+                                                .replace('\"', '').replace(' ', '').split(',')
+
+    try:
+        for index, input_filter in enumerate(input_filters_list):
+            if(input_filter != "None"):
+                if(input_filter.isnumeric()):
+                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1) LIKE \'%" + input_filter  + "%\'"
+                else:
+                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1) LIKE \'%" + input_filter  + "%\'"
+    except Exception as error_message:
+        print("ERRORS::::::: ", error_message)
+        pass
+
+    if test_name == "cp2k":
+        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+        print(input_filters_list)
+        print(INPUT_FILTER_CONDITION)
+
+    return INPUT_FILTER_CONDITION
 
 # ALL TESTS PAGE
 @app.route('/')
@@ -249,13 +309,28 @@ def showAllRuns(testname):
     print(input_parameters)
     print(input_details_df)
 
+    # Function which splits the description string into various parameters 
+    # according to 'description' field of the '.ini' file
+    def split_description(index, description):
+        try:
+            return description.split(',')[index]
+        except Exception as error_message:
+            print(error_message)
+            return np.nan
+
     # Split the 'description' column into multiple columns
     for index, param in enumerate(input_parameters):
-        input_details_df[param] = input_details_df['description'].apply(lambda x: x.split(',')[index])
+        input_details_df[param] = input_details_df['description'].apply(lambda x: split_description(index, x))
 
     # Delete the 'description' column
     del input_details_df['description']
-    print(input_details_df)
+    
+    # Drop all the rows which have NaN as an element
+    input_details_df.dropna(inplace=True)
+    
+    # Get default_inputs from wiki_description.ini
+    default_input_filters_list = results_metadata_parser.get(testname, 'default_input') \
+                                            .replace('\"', '').split(',')
 
     context = {
         'testname': testname,
@@ -263,11 +338,31 @@ def showAllRuns(testname):
         'no_of_rows': rows,
         'no_of_columns': columns,
         'qualifier_list': qualifier_list,
-        'input_details': input_details_df.to_dict(orient='list')
+        'input_details': input_details_df.to_dict(orient='list'),
+        'default_input_filters': default_input_filters_list,
     }
 
     return render_template('all-runs.html', context=context)
 
+# Page for marking a test 'originID' invalid
+@app.route('/allruns/secret/<testname>')
+def showAllRunsSecret(testname):
+    return redirect('/allruns/'+testname)
+
+# Page for marking Individual test 'result' as invalid 
+@app.route('/test-details/secret/<originID>')
+def showTestDetailsSecret(originID):
+    return redirect('/test-details/' + originID)    
+
+@app.route('/mark-origin-id-invalid/<originID>')
+def markOriginIDInvalid(originID):
+    # INVALID_ORIGINID_QUERY = "UPDATE result r SET r.isvalid=0 where r.origin_originID = " + originID + ";"
+    pass
+
+@app.route('/mark-result-id-invalid/<resultID>')
+def markResultIDInvalid(resultID):
+    # INVALID_RESULTID_QUERY = "UPDATE result r SET r.isvalid=0 where r.resultID = " + resultID + ";"    
+    pass
 
 # View for handling Test details request
 @app.route('/test-details/<originID>')
@@ -330,14 +425,24 @@ def showTestDetails(originID):
     for col in reversed(description_string.split(',')):
         results_dataframe.insert(0, col, 'default value')
 
+    # Function which splits the description string into various parameters 
+    # according to 'description' field of the '.ini' file
+    def split_description(index, description):
+        try:
+            return description.split(',')[index]
+        except Exception as error_message:
+            print(error_message)
+            return np.nan
 
     # For all the rows in the dataframe, set the description_list values
     description_list = description_string.split(',')
     for j in range(len(description_list)):
-        results_dataframe[description_list[j]] = [value.split(',')[j] for value in results_dataframe['description']]
+        results_dataframe[description_list[j]] = results_dataframe['description'].apply(lambda x: split_description(j, x))
 
     # Drop the 'description' column as we have now split it into various columns according to description_string
     del results_dataframe['description']
+
+    results_dataframe.dropna(inplace=True)
 
     context = {
         'testname': test_name,
@@ -616,24 +721,13 @@ def get_data_for_graph():
 
     testname = data['testname']
 
+    # Get input_filter_condition by calling the function
+    input_filters_list = data['inputFiltersList']
+    INPUT_FILTER_CONDITION = get_input_filter_condition(testname, input_filters_list)
+
     results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
-
-    # For the input filters
-    input_parameters = results_metadata_parser.get(testname, 'description') \
-                                                .replace('\"', '').replace(' ', '').split(',')
-    try:
-        input_filters_list = data['inputFiltersList']
-        INPUT_FILTER_CONDITION = ""
-        for index, input_filter in enumerate(input_filters_list):
-            if(input_filter != "None"):
-                if(input_filter.isnumeric()):
-                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1)=" + input_filter 
-                else:
-                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1)=\'" + input_filter  + "\'"
-    except:
-        pass
 
     # GET qualifier_list and min_max_list from 'fields' and 'higher_is_better' the section 'testname'
     qualifier_list = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')
@@ -990,7 +1084,7 @@ def best_sku_graph_normalized():
     xParameter = data['xParameter']
     yParameter = data['yParameter']
     originID_list = data['originIDList']
-    testname = data['testName']
+    testname = data['testname']
 
     # Normalized with respect to this parameter
     normalized_wrt = data['normalizedWRT']
@@ -1054,7 +1148,6 @@ def best_of_all_graph():
     print(data)
 
     normalized_wrt = data['normalizedWRT']
-    # print("\n\n\n###################################\nNORMALIXED WRT", normalized_wrt)
 
     # If No filters are applied, select all tests
     try:
@@ -1096,6 +1189,12 @@ def best_of_all_graph():
     reference_skuid_list = sku_parser.get(normalized_wrt, 'SKUID').replace('\"', '').split(',')
     
     for test_name, qualifier, higher_is_better in zip(test_name_list, qualifier_list, higher_is_better_list):
+        # Get input_filter_condition by calling the function
+        input_filters_list = results_metadata_parser.get(test_name, 'default_input') \
+                                                    .replace('\"', '').split(',')
+        INPUT_FILTER_CONDITION = get_input_filter_condition(test_name, input_filters_list)
+
+        # Build the query along with the input filters condition
         if higher_is_better == '0':
             # Fix this hack
             # print("SELECTING MIN", higher_is_better)
@@ -1104,9 +1203,11 @@ def best_of_all_graph():
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
                                     on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
                                     on r.origin_originID = o.originID INNER JOIN display disp 
-                                    ON  r.display_displayID = disp.displayID where r.number > 0 AND r.isvalid = 1 
+                                    ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
+                                    ON r.subtest_subtestID=s.subtestID where r.number > 0 AND r.isvalid = 1 
                                     AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                     "%\' AND n.skuidname in """ + str(reference_skuid_list).replace('[', '(').replace(']', ')') + \
+                                    INPUT_FILTER_CONDITION + \
                                     " group by o.originID, r.number order by r.number limit 1;"
 
         else:
@@ -1116,9 +1217,11 @@ def best_of_all_graph():
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
                                     on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
                                     on r.origin_originID = o.originID INNER JOIN display disp 
-                                    ON  r.display_displayID = disp.displayID where r.isvalid = 1 
+                                    ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
+                                    ON r.subtest_subtestID=s.subtestID where r.isvalid = 1 
                                     AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                     "%\' AND n.skuidname in """ + str(reference_skuid_list).replace('[', '(').replace(']', ')') + \
+                                    INPUT_FILTER_CONDITION + \
                                     " group by o.originID, r.number order by r.number DESC limit 1;"
 
 
@@ -1153,6 +1256,12 @@ def best_of_all_graph():
             for test_name, qualifier, higher_is_better in zip(test_name_list, qualifier_list, higher_is_better_list):
                 # If the test_result is not Empty (None) in the reference_results_map
                 if reference_results_map[test_name]:
+                    # Get input_filter_condition by calling the function
+                    input_filters_list = results_metadata_parser.get(test_name, 'default_input') \
+                                                                .replace('\"', '').split(',')                                                    
+                    INPUT_FILTER_CONDITION = get_input_filter_condition(test_name, input_filters_list)
+
+
                     # print("RESULT", test_name, "exists in REFERENCE")
                     if higher_is_better == '0':
                         # Fix this hack
@@ -1161,9 +1270,11 @@ def best_of_all_graph():
                                                 on n.nodeID = hw.node_nodeID inner join testdescriptor t
                                                 on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
                                                 on r.origin_originID = o.originID INNER JOIN display disp 
-                                                ON  r.display_displayID = disp.displayID where r.number > 0 AND r.isvalid = 1 
+                                                ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
+                                                ON r.subtest_subtestID=s.subtestID where r.number > 0 AND r.isvalid = 1 
                                                 AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                                 "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
+                                                INPUT_FILTER_CONDITION + \
                                                 " group by o.originID, r.number order by r.number limit 1;"
 
                     else:
@@ -1172,9 +1283,11 @@ def best_of_all_graph():
                                                 on n.nodeID = hw.node_nodeID inner join testdescriptor t
                                                 on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
                                                 on r.origin_originID = o.originID INNER JOIN display disp 
-                                                ON  r.display_displayID = disp.displayID where r.isvalid = 1 
+                                                ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
+                                                ON r.subtest_subtestID=s.subtestID where r.isvalid = 1 
                                                 AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                                 "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
+                                                INPUT_FILTER_CONDITION + \
                                                 " group by o.originID, r.number order by r.number DESC limit 1;"
             
 

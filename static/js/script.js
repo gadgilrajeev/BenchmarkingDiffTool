@@ -244,7 +244,7 @@ function drawComparisonGraph(response, graphID){
 	graphDiv = document.getElementById(graphID);
 
 	// If it is a normalized graph, then change the title
-	if(graphID == 'best-sku-graph' && $('#normalized-checkbox')[0].checked)
+	if(graphID == 'best-sku-graph' && $('#normalized-radio-button')[0].checked)
 		title = "Best results normalized w.r.t. " + $('#normalized-dropdown option:selected').text()
 	else
 		title = yParameter + ' vs ' + xParameter
@@ -363,7 +363,10 @@ function drawClusteredGraph(response, graphID){
 
 	data = traceList
 
-	Plotly.react( graphDiv, data, layout);
+	if(graphID == 'best-of-all-graph')
+		Plotly.newPlot( graphDiv, data, layout);
+	else
+		Plotly.react( graphDiv, data, layout);
 
 	// Draw Reference Line if graphID is 'best-of-all-graph'
 	console.log("REDRAWING ANNA")
