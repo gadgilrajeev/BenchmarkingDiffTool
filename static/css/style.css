@@ -235,7 +235,6 @@ tbody tr td{
 }
 
 .all-results-page {
-
   width: 25%;
   margin-left: : 30px;
   margin-right: 30px;
@@ -261,16 +260,16 @@ tbody tr td{
   text-align: center;
 }
 
-/*make it work*/
-#diff-button{
-  margin-right: 10%;
-}
-
 .comparison-table{
   margin: 20px;
 }
 
 #outer-graph-div{
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: minmax(50px, auto);
+  grid-gap: 20px;
+
   border-radius: 25px;
   background-color: #eaeaea;
   padding-top: 50px;
@@ -278,62 +277,140 @@ tbody tr td{
   margin-top: 20px;
 }
 
-#graph-div span{
-  display:flex;
-  margin-left: 5%;
+#input-filter-div{
+  grid-column: 1/13;
+
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: minmax(50px, auto);
+  grid-gap: 10px;
+  padding: 0;
+  margin: 0;
 }
 
-#graph-div  #yParameter {
-  width: 12%;
-}
-
-#graph-div  p {
+#input-filter-div h2{
   font-weight: bold;
-  margin-left: 5%;
-  width: 5%;
+  align-self: center;
+  grid-row: 1/3;
 }
 
-#graph-div  #xParameter {
-  width: 12%;
+#input-filter-div select {
+  width: 80%;
+  height: 50px;
 }
 
-#graph-div #download-comparison-graph {
-  margin-left: 2%;
+#engineering-graph-div {
+  background-color: #d3d3d3;
+  grid-column: span 6;
+
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-auto-rows: minmax(100px, auto);
+  grid-gap: 10px;
+  padding: 0;
+  margin: 0;
 }
 
-#graph-div #download-best-sku-graph {
-  margin-left: 10%;
+#engineering-graph-div #engineering-team-title {
+  grid-column: span 6;
+  grid-row: 1/2;
+  font-weight: bold;
 }
 
-#graph-div #download-best-sku-graph-csv{
-  margin-left: 10%;
+#engineering-graph-div #clustered-graph {
+  grid-column: 1/10;
+  grid-row: 2/5;
 }
 
-#graph-plot-div {
-  display: flex;
+#engineering-graph-div  #yParameter {
+  grid-column: 1/4;
+  width: 80%;
+  height: 50px;
+  justify-self: end;
 }
 
-#graph-plot-div > #clustered-graph {
-  margin-left: 5%;
-  width:33.33%;
-  height:400px;
+#engineering-graph-div  p {
+  grid-column: 4/5;
+  font-weight: bold;
+  justify-self: center;
 }
 
-#graph-plot-div > #graph-type-form {
-  margin-right: 0%;
+#engineering-graph-div  #xParameter {
+  grid-column: 5/8;
+  width: 80%;
+  height: 50px;
 }
 
-#graph-plot-div > #best-sku-graph {
-  margin-left: 15%;
-  width : 33.33%;
-  height : 400px;
+#engineering-graph-div #download-comparison-graph {
+  grid-column: 8/11;
+  justify-self: start;
+  height: 60px;
+}
+
+#marketing-graph-div {
+  background-color: #d3d3d3;
+  grid-column: span 6;
+  
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-auto-rows: minmax(100px, auto);
+  grid-gap: 10px;
+  padding: 0;
+  margin: 0;
+}
+
+#marketing-graph-div #marketing-team-title {
+  grid-column: span 10;
+  grid-row: 1/2;
+  font-weight: bold;
+}
+
+#marketing-graph-div #best-sku-graph {
+  grid-column: 1/10;
+  grid-row: 2/6;
+}
+
+#marketing-graph-div #absolute-radio-div {
+  grid-column: 1/4;
+  grid-row: 6;
+  align-self: start;
+  justify-self: center;
+  padding: 5px;
+}
+
+#marketing-graph-div #normalized-radio-div {
+  grid-column: 1/4;
+  grid-row: 6;
+  align-self: end;
+  justify-self: center;
+  padding: 5px;
+}
+
+#marketing-graph-div #normalized-dropdown {
+  grid-column: 1/4;
+  grid-row: 7;
+  align-self: start;
+  justify-self: center;
+  width: 80%;
+}
+
+#marketing-graph-div #download-best-sku-graph {
+  grid-column: 5/7;
+  grid-row: 6;
+  height: 60px;
+}
+
+#marketing-graph-div #download-best-sku-graph-csv{
+  grid-column: 8/10;
+  grid-row: 6;
+  height: 60px;
 }
 
 #best-of-all-graph-div{
   border-radius: 25px;
   background-color: #eaeaea;
   padding-top: 30px;
-  padding-bottom: 70px;
+  padding-bottom: 50px;
   margin-top: 10px;
   margin-bottom: 20px;
 }
@@ -352,32 +429,10 @@ tbody tr td{
   width: 20%;
 }
 
-#input-parameters-div{
-  display: flex;
-  flex-direction: row;
-  margin-top: 30px;
-}
-
-.input-parameter-select{
-  margin-left: 20px;
-  margin-right: 20px;
-  width: 20%;
-  height: 50px;
-}
-
-.flex-horizontal{
-  display: flex;
-  flex-direction: row;
-}
-
-.flex-vertical{
-  display: flex;
-  flex-direction: column;
-}
-
 #best-of-all-graph {
   margin-left: 5%;
   margin-right: 5%;
+  margin-bottom: 2%;
   width:75%;
   height:350px;
 }
