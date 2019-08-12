@@ -220,7 +220,7 @@ function fillNormalizedDropdown(){
 
 	//hide it
 	$normalizedList.hide();
-	
+
 	//fill the list
 	$.each(cpuList, function(index, cpuName){
 		if(index == 0)
@@ -283,6 +283,9 @@ function drawComparisonGraph(response, graphID){
 	data = traceList
 
 	Plotly.react(graphDiv, data, layout);
+
+	//remove the previous listeners to avoid multiple function calls on click
+	graphDiv.removeAllListeners('plotly_click')
 
 	//Add Event on click of bar
 	//Send user to "test-details" page of the respective "originID"
@@ -435,6 +438,9 @@ function drawClusteredGraph(response, graphID){
 			window.open('/test-details/'+originID)
 		}
 	}
+
+	//remove the previous listeners to avoid multiple function calls on click
+	graphDiv.removeAllListeners('plotly_click')
 
 	//Add Event on click of bar
 	//Send user to "test-details" page of the respective "originID"
