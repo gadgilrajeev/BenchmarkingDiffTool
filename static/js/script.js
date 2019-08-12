@@ -194,6 +194,10 @@ function sendAjaxRequest(ajaxData, url) {
 }
 
 function fillNormalizedDropdown(){
+	//make "Absolute" as "checked"
+	var $radios = $('input[type=radio][name=typeOfGraph]')
+	$radios.filter('[value=Absolute]').prop('checked', true);
+
 	//get xList from the graph
 	var gd = document.getElementById('best-sku-graph')
 	// cpuList = gd.data[0].x
@@ -210,7 +214,13 @@ function fillNormalizedDropdown(){
 	console.log("FILLING THE DROPDOWN LIST")
 
 	var $normalizedList = $("#normalized-dropdown");
+
+	// Clear all the earlier values
+	$normalizedList.empty()
+
+	//hide it
 	$normalizedList.hide();
+	
 	//fill the list
 	$.each(cpuList, function(index, cpuName){
 		if(index == 0)
@@ -272,7 +282,7 @@ function drawComparisonGraph(response, graphID){
 
 	data = traceList
 
-	Plotly.newPlot(graphDiv, data, layout);
+	Plotly.react(graphDiv, data, layout);
 
 	//Add Event on click of bar
 	//Send user to "test-details" page of the respective "originID"
@@ -305,10 +315,16 @@ function drawClusteredGraph(response, graphID){
 	if(!visibleList)
 		visibleList = Array.from(colorList, v=> true)
 
-	if(graphID == 'best-of-all-graph')
+	if(graphID == 'best-of-all-graph'){
 		title = "Best results normalized w.r.t. " + $('#reference-for-normalized option:selected').text()
-	else
+		titlefont = {
+    		"size": 30
+  		}
+  	}
+	else{
 		title = yParameter +'(' + yAxisUnit + ')' + ' vs ' + xParameter
+		titlefont = 24
+	}
 
 	var layout = {
 		xaxis: {
@@ -318,6 +334,7 @@ function drawClusteredGraph(response, graphID){
 		yaxis: {
 			title: yParameter,
 		},
+		titlefont: titlefont,
 		title: title,
 		showlegend: true,
 		barmode: 'group',
@@ -343,7 +360,7 @@ function drawClusteredGraph(response, graphID){
 
 	data = traceList
 
-	Plotly.newPlot( graphDiv, data, layout);
+	Plotly.react( graphDiv, data, layout);
 
 	// Draw Reference Line if graphID is 'best-of-all-graph'
 	console.log("REDRAWING ANNA")
@@ -425,7 +442,7 @@ function drawClusteredGraph(response, graphID){
 
 }
 
-function drawNormalizedGraph(graphID, testName){
+function drawNormalizedGraph(graphID, testname){
 	console.log("DRAWING NORMALIZED GRAPH")
 
 	var gd = document.getElementById(graphID)
@@ -466,15 +483,15 @@ function drawNormalizedGraph(graphID, testName){
   		})
 	}
 
-	ajaxData = {
+	data = {
 		"xList" : xList,
 		"yList" : yList,
 		"xParameter" : xParameter,
 		"yParameter" : yParameter,
 		"normalizedWRT" : normalizedWRT,
 		"originIDList": originIDList,
-		"testName": testName,
+		"testname": testname,
 	}
 
-	sendAjaxRequest(ajaxData, '/best_sku_graph_normalized')
+	sendAjaxRequest(data, '/best_sku_graph_normalized')
 }
