@@ -11,9 +11,11 @@ Test Details
 	<form action="/download_as_csv" method="POST" id="download-csv-form" style="display:none;">
 	</form>
 
-	<h2 style="text-align: center; font-weight: bold;">
-		{{ context.testname }}
-	</h2>
+	<div style="display: grid; grid-template-columns: repeat(12, 1fr); padding:0; margin:0;">
+		<h2 class="btn btn-link" onclick="showAllRuns(this)" style="grid-column: 5/8; justify-self: stretch; align-self: center; font-size: 40px; font-weight: bold;">
+			{{ context.testname }}
+		</h2>
+	</div>
 
 	<div class='inline-block-child'>
 		<h2 style="text-align: center; font-weight: bold;">
