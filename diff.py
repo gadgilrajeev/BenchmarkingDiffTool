@@ -514,6 +514,7 @@ def showEnvDetails(originID):
         ramsize_series = df['ramsize'].astype(str).str.isnumeric().isin([True])
         return ramsize_series.all()
 
+
     ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]).filter(only_numeric_groups).reset_index(drop=True)
 
     # Convert each entry of 'ramsize' column to float
@@ -524,7 +525,6 @@ def showEnvDetails(originID):
 
     #Add ' GB' to the size
     ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: str(x) + " GB")
-
     # Read disk dataframe
     disk_dataframe = pd.read_csv(results_file_path + '/disk.csv', header=None,
                                  names=parameter_lists['disk_details_param_list'])
@@ -1053,7 +1053,7 @@ def best_sku_graph():
     UNIT_QUERY = """SELECT disp.qualifier, disp.unit FROM origin o INNER JOIN testdescriptor t 
                     ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r 
                     ON o.originID = r.origin_originID  INNER JOIN display disp ON  r.display_displayID = disp.displayID 
-                    where t.testname = \'""" + testname + "\' and disp.qualifier LIKE \'%" + yParameter +"%\' limit 1;"
+                    where t.testname = \'""" + testname + "\' and disp.qualifier LIKE \'%" + qualifier +"%\' limit 1;"
     unit_df = pd.read_sql(UNIT_QUERY, db)
     y_axis_unit = unit_df['unit'][0]
 
