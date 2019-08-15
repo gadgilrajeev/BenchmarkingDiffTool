@@ -7,7 +7,11 @@ All Runs of the test
 
 {% block content %}
 
-	<h2 style="font-weight: bold; text-align: center;">{{ context.testname }}</h2>
+	<div style="display: grid; grid-template-columns: repeat(12, 1fr); padding:0; margin:0;">
+		<h2 class="btn btn-link" style="grid-column: 5/8; justify-self: stretch; align-self: center; font-size: 40px; font-weight: bold;">
+			{{ context.testname }}
+		</h2>
+	</div>
 	
 	<div id="outer-graph-div">
 		<div id="input-filter-div">
