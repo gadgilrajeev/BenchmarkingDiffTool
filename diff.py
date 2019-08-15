@@ -4,13 +4,16 @@ import pandas as pd
 import numpy as np
 import pymysql
 import configparser
-from flask import Flask, render_template, request, redirect, send_file
+from flask import Flask, render_template, request, redirect, send_file, url_for, session
 from collections import OrderedDict
 import csv
 import json
 
 # from datetime import datetime
 app = Flask(__name__)
+
+# Just a random secret key. Created by md5 hashing the string 'secretactividad'
+app.secret_key = "05ec4a13767ac57407c4000e55bdc32c"
 pd.set_option('display.max_rows', 500)
 
 
@@ -254,9 +257,7 @@ def home_page():
     }
     return render_template('all-tests.html', context=context)
 
-
-@app.route('/allruns/<testname>')
-def showAllRuns(testname):
+def getAllRunsData(testname, secret=False):
     # Read metadata for results in wiki_description.ini file
     results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
@@ -270,25 +271,30 @@ def showAllRuns(testname):
     print(qualifier_list)
     print(min_or_max_list)
 
+    if secret == True:
+        RESULTS_VALIDITY_CONDITION = " "
+    else:
+        RESULTS_VALIDITY_CONDITION = " AND r.isvalid = 1 "
+
     if min_or_max_list[0] == '0':
         ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MIN(r.number) as \'Best" +\
-                        qualifier_list[0].replace(" ",'') + """\', o.notes from result r INNER JOIN display disp 
+                        qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp 
                         ON  r.display_displayID = disp.displayID
                         INNER JOIN origin o ON o.originID = r.origin_originID 
                         INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
                         where t.testname = \'""" + testname + """\' 
-                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + """%\' 
-                        AND r.isvalid = 1 GROUP BY o.originID, o.testdate, o.hostname, o.notes 
+                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + \
+                        RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid
                         ORDER BY o.originID DESC"""
     else:
         ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MAX(r.number) as \'Best" +\
-                        qualifier_list[0].replace(" ",'') + """\', o.notes from result r INNER JOIN display disp 
+                        qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp 
                         ON  r.display_displayID = disp.displayID 
                         INNER JOIN origin o ON o.originID = r.origin_originID 
                         INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
                         where t.testname = \'""" + testname + """\' 
-                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + """%\' 
-                        AND r.isvalid = 1 GROUP BY o.originID, o.testdate, o.hostname, o.notes 
+                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + \
+                        RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid
                         ORDER BY o.originID DESC"""
     
     db = pymysql.connect(host='10.110.169.149', user='root',
@@ -297,72 +303,158 @@ def showAllRuns(testname):
     dataframe = pd.read_sql(ALL_RUNS_QUERY, db)
     rows, columns = dataframe.shape  # returns a tuple (rows,columns)
 
-    # Dropdown for input file
-    input_parameters = results_metadata_parser.get(testname, 'description') \
-                                                .replace('\"', '').replace(' ', '').split(',')
+    # For secret page, return only context. The secret function will redirect to secret page
+    if secret == True:
+        secret_context = {
+            'testname': testname,
+            'data': dataframe.to_dict(orient='list'),
+            'no_of_rows': rows,
+            'no_of_columns': columns,
+        }
 
-    INPUT_FILE_QUERY = """SELECT DISTINCT s.description FROM origin o INNER JOIN testdescriptor t
-                            ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
-                            ON o.originID = r.origin_originID INNER JOIN subtest s
-                            ON  r.subtest_subtestID = s.subtestID WHERE r.isvalid = 1 and t.testname = \'""" + testname + "\';"
-    input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
-    print(input_parameters)
-    print(input_details_df)
+        return secret_context
+    # Else render all-runs.html
+    else:
+        del dataframe['isvalid']
+        rows, columns = dataframe.shape  # returns a tuple (rows,columns)
 
-    # Function which splits the description string into various parameters 
-    # according to 'description' field of the '.ini' file
-    def split_description(index, description):
-        try:
-            return description.split(',')[index]
-        except Exception as error_message:
-            print(error_message)
-            return np.nan
+        # Dropdown for input file
+        input_parameters = results_metadata_parser.get(testname, 'description') \
+                                                    .replace('\"', '').replace(' ', '').split(',')
 
-    # Split the 'description' column into multiple columns
-    for index, param in enumerate(input_parameters):
-        input_details_df[param] = input_details_df['description'].apply(lambda x: split_description(index, x))
+        INPUT_FILE_QUERY = """SELECT DISTINCT s.description FROM origin o INNER JOIN testdescriptor t
+                                ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
+                                ON o.originID = r.origin_originID INNER JOIN subtest s
+                                ON  r.subtest_subtestID = s.subtestID WHERE r.isvalid = 1 and t.testname = \'""" + testname + "\';"
+        input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
+        print(input_parameters)
+        print(input_details_df)
 
-    # Delete the 'description' column
-    del input_details_df['description']
-    
-    # Drop all the rows which have NaN as an element
-    input_details_df.dropna(inplace=True)
-    
-    # Get default_inputs from wiki_description.ini
-    default_input_filters_list = results_metadata_parser.get(testname, 'default_input') \
-                                            .replace('\"', '').split(',')
+        # Function which splits the description string into various parameters 
+        # according to 'description' field of the '.ini' file
+        def split_description(index, description):
+            try:
+                return description.split(',')[index]
+            except Exception as error_message:
+                print(error_message)
+                return np.nan
 
-    context = {
-        'testname': testname,
-        'data': dataframe.to_dict(orient='list'),
-        'no_of_rows': rows,
-        'no_of_columns': columns,
-        'qualifier_list': qualifier_list,
-        'input_details': input_details_df.to_dict(orient='list'),
-        'default_input_filters': default_input_filters_list,
-    }
+        # Split the 'description' column into multiple columns
+        for index, param in enumerate(input_parameters):
+            input_details_df[param] = input_details_df['description'].apply(lambda x: split_description(index, x))
+
+        # Delete the 'description' column
+        del input_details_df['description']
+        
+        # Drop all the rows which have NaN as an element
+        input_details_df.dropna(inplace=True)
+        
+        # Get default_inputs from wiki_description.ini
+        default_input_filters_list = results_metadata_parser.get(testname, 'default_input') \
+                                                .replace('\"', '').split(',')
+
+        context = {
+            'testname': testname,
+            'data': dataframe.to_dict(orient='list'),
+            'no_of_rows': rows,
+            'no_of_columns': columns,
+            'qualifier_list': qualifier_list,
+            'input_details': input_details_df.to_dict(orient='list'),
+            'default_input_filters': default_input_filters_list,
+        }
+
+        return context
+
+
+@app.route('/allruns/<testname>', methods=['GET'])
+def showAllRuns(testname):
+    context = getAllRunsData(testname)
 
     return render_template('all-runs.html', context=context)
 
 # Page for marking a test 'originID' invalid
-@app.route('/allruns/secret/<testname>')
+@app.route('/allruns/secret/<testname>', methods=['GET', 'POST'])
 def showAllRunsSecret(testname):
-    return redirect('/allruns/'+testname)
+    if request.method == 'GET':
+        return render_template('secret-all-runs.html', testname={'name':testname}, context={})
+    else:
+        success = {}
+        error = {}
+        keyerror = {}
+        print("#######POSTED###########")
+        print(request.args)
+        
+        # Get doesn't throw error. 
+        # If key is not present it sets to default ('None' most of the times)
+        success = session.get('success')
+        error = session.get('error')
+        keyerror = session.get('keyerror')
+    
+        print('success', success)
+        print('error', error)
+        print('keyerror', keyerror)
+
+        print("#######SESSION BEFORE ####")
+        print(session)
+        print("########SESSION AFTER $$$$")
+        # Clear the contents of the session (cookies)
+        session.clear()
+        print(session)
+
+        context = context = getAllRunsData(testname, secret=True)
+        
+        return render_template('secret-all-runs.html', success=success, error=error, keyerror=keyerror, context=context)
+
+@app.route('/mark-origin-id-invalid', methods=['POST'])
+def markOriginIDInvalid():
+    print("\n\n\n#REQUEST#########")
+    print(request.form)
+
+    data = json.loads(request.form.get('data'))
+    print("JSON STATHAM")
+    print(data)
+
+    originID = data.get('originID')
+    testname = data.get('testname')
+    valid = data.get('valid')
+    secret_key = data.get('secretKey')
+
+    success = {}
+    error = {}
+    keyerror = {}
+
+    if secret_key == 'secret_123':
+        print("CAUTION!!! MArking result invalid")
+        db = pymysql.connect(host='10.110.169.149', user='root',
+                         passwd='', db='benchtooldb', port=3306)
+
+        cursor = db.cursor()
+        if not valid:
+            success['message'] = """The originID """ + originID +""" was marked invalid successfully"""
+            INVALID_ORIGINID_QUERY = "UPDATE result r SET r.isvalid=0 where r.origin_originID = " + originID + ";"
+        else:
+            success['message'] = """The originID """ + originID +""" was marked valid successfully"""
+            INVALID_ORIGINID_QUERY = "UPDATE result r SET r.isvalid=1 where r.origin_originID = " + originID + ";"
+        cursor.execute(INVALID_ORIGINID_QUERY)
+        cursor.close()
+        db.commit()
+        db.close()
+
+    else:
+        keyerror['message'] = "BOOM! Wrong Password. This incident will be reported."
+
+
+    session['success'] = success
+    session['error'] = error
+    session['keyerror'] = keyerror
+
+    # code = 307 for keeping the original request type ('POST')
+    return redirect(url_for('showAllRunsSecret', testname=testname), code=307)
 
 # Page for marking Individual test 'result' as invalid 
 @app.route('/test-details/secret/<originID>')
 def showTestDetailsSecret(originID):
     return redirect('/test-details/' + originID)    
-
-@app.route('/mark-origin-id-invalid/<originID>')
-def markOriginIDInvalid(originID):
-    # INVALID_ORIGINID_QUERY = "UPDATE result r SET r.isvalid=0 where r.origin_originID = " + originID + ";"
-    pass
-
-@app.route('/mark-result-id-invalid/<resultID>')
-def markResultIDInvalid(resultID):
-    # INVALID_RESULTID_QUERY = "UPDATE result r SET r.isvalid=0 where r.resultID = " + resultID + ";"    
-    pass
 
 # View for handling Test details request
 @app.route('/test-details/<originID>')
