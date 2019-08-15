@@ -36,8 +36,21 @@
 			}
 		</style>
 
-		<h1 align="center"><a href="/">Performance Comparison Tool</a></h1>
+		<div class="header">
+			<h1 align="center"><a href="/">Performance Comparison Tool</a></h1>
+		</div>
 	{% endblock %}
+
+	{% if error %}
+		{% block error %}
+			<div class="alert alert-warning fade in alert-dismissible show" style="margin:0% 10%;">
+ 				<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    				<span aria-hidden="true" style="font-size:20px">&times;</span>
+  				</button>    
+  				<h3><strong>Error: </strong> {{ error.message }}</h3>
+			</div>
+		{% endblock %}
+	{% endif %}
 
 	<div id="content">
 		{% block content %}
