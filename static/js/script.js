@@ -246,6 +246,11 @@ function drawComparisonGraph(response, graphID){
 	// If it is a normalized graph, then change the title
 	if(graphID == 'best-sku-graph' && $('#normalized-radio-button')[0].checked)
 		title = "Best results normalized w.r.t. " + $('#normalized-dropdown option:selected').text()
+	else if(graphID == 'best-sku-graph'){
+		higherIsBetterText = higherIsBetter == '1' ? "<br>(Higher is Better)" : "<br>(Lower is Better)"
+
+		title = yParameter + ' vs ' + xParameter + higherIsBetterText
+	}
 	else
 		title = yParameter + ' vs ' + xParameter
 
