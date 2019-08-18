@@ -7,6 +7,9 @@ All tests page
 {% block content %}
 	
 	<div id="best-of-all-graph-div">
+		<div id="best-of-all-graph">
+		</div>
+
 		<h2>Select Reference</h2>
 		<select id="reference-for-normalized" name="reference-for-normalized">
 			<!-- ALL CPU MANUFACTURERES -->
@@ -19,9 +22,8 @@ All tests page
 			{% endfor %}
 		</select>
 
-		<button id="download-comparison-graph" class="blue" onclick="downloadAsPng('Best results Normalized w.r.t. ' + $('#reference-for-normalized option:selected').text(), 'best-of-all-graph')">Download as PNG</button>
-		<div id="best-of-all-graph">
-		</div>
+		<button id="download-comparison-graph" class="btn btn-primary font-weight-bold" onclick="downloadAsPng('Best results Normalized w.r.t. ' + $('#reference-for-normalized option:selected').text(), 'best-of-all-graph')">Download as PNG</button>
+
 	</div>
 
 	<div class='all-results-page'>
