@@ -12,6 +12,14 @@ All Runs of the test
 			{{ context.testname }}
 		</h2>
 	</div>
+
+	<div class="card text-white bg-info">
+		<div class="card-header" style="font-weight: bold; font-size: 20px;">Summary of the test</div>
+		<div class="card-body">
+			<h5 class="card-title">Summary</h5>
+			<p class="card-text">{{context.test_summary}}</p>
+		</div>
+	</div>
 	
 	<div id="outer-graph-div">
 		<div id="input-filter-div">
@@ -68,7 +76,7 @@ All Runs of the test
 				<!-- <option value="Flags">Flags</option> -->
 			</select>
 
-			<button id="download-comparison-graph" class="blue" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
+			<button id="download-comparison-graph" class="btn btn-primary font-weight-bold" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
 			
 		</div>
 
@@ -89,8 +97,8 @@ All Runs of the test
 			</select>
 			
 
-			<button id="download-best-sku-graph-csv" class="blue">Download as CSV</button>
-			<button id="download-best-sku-graph" class="blue" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
+			<button id="download-best-sku-graph-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
+			<button id="download-best-sku-graph" class="btn btn-primary font-weight-bold" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
 
 
 		</div>
@@ -146,7 +154,7 @@ All Runs of the test
 	    $('#allRunsTable thead tr').clone(true).appendTo( '#allRunsTable thead' );
 	    $('#allRunsTable thead tr:eq(1) th').each( function (i) {
 	    	if(i == 0)
-	    		$(this).html( '<button id="diff-button" class="blue" type="submit">Compare</button>' );
+	    		$(this).html( '<button id="diff-button" class="btn btn-primary font-weight-bold" type="submit">Compare</button>' );
 	    	else
 	        {
 	        	var title = $(this).text();

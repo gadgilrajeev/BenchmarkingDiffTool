@@ -353,6 +353,14 @@ def getAllRunsData(testname, secret=False):
         default_input_filters_list = results_metadata_parser.get(testname, 'default_input') \
                                                 .replace('\"', '').split(',')
 
+        # Read from test_summary.ini file
+        test_summary_file_path = "./config/test_summary.ini"
+        test_summary_parser = configparser.ConfigParser()
+        test_summary_parser.read(test_summary_file_path)
+
+        test_summary = test_summary_parser.get(testname, 'summary')
+        print(test_summary)
+
         context = {
             'testname': testname,
             'data': dataframe.to_dict(orient='list'),
@@ -361,6 +369,7 @@ def getAllRunsData(testname, secret=False):
             'qualifier_list': qualifier_list,
             'input_details': input_details_df.to_dict(orient='list'),
             'default_input_filters': default_input_filters_list,
+            'test_summary' : test_summary,
         }
 
         return context
