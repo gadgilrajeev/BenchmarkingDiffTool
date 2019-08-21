@@ -14,10 +14,34 @@ All Runs of the test
 	</div>
 
 	<div class="card text-white bg-info">
-		<div class="card-header" style="font-weight: bold; font-size: 20px;">Summary of the test</div>
+		<div class="card-header font-weight-bolder" style="font-size: 25px;">Summary of the test</div>
 		<div class="card-body">
-			<h5 class="card-title">Summary</h5>
-			<p class="card-text">{{context.test_summary}}</p>
+			<h5 class="font-weight-bold card-title">Summary</h5>
+			<p class="card-text">{{context.test_summary.summary}}</p>
+			<div class="collapse" id="fullSummaryCollapse">
+				{% if context.test_summary.source_code_link %}
+					{% set git_link = context.test_summary.source_code_link | get_git_link %}
+					<span class="d-flex">
+						<p class="mr-2"><strong>Source Code Link:</strong> {{context.test_summary.source_code_link}} </p>
+						<button class="btn btn-success font-weight-bold ml-2" onclick="window.open('{{git_link}}')">Go to link</button>
+					</span>
+				{% endif %}
+				{% if context.test_summary.type_of_workload %}
+					<p><strong>Type of Workload:</strong> {{context.test_summary.type_of_workload}}</p>
+				{% endif %}
+				{% if context.test_summary.default_input %}
+					<p><strong>Default Input:</strong> {{context.test_summary.default_input}}</p>
+				{% endif %}
+				{% if context.test_summary.latest_version %}
+					<p><strong>Latest Version:</strong> {{context.test_summary.latest_version}}</p>
+				{% endif %}
+
+			</div>
+		</div>
+		<div class="card-footer">
+			<button class="btn btn-dark font-weight-bold" type="button" data-toggle="collapse" data-target="#fullSummaryCollapse" aria-expanded="false" aria-controls="fullSummaryCollapse">
+				View full Summary
+			</button>
 		</div>
 	</div>
 	
