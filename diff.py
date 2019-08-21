@@ -16,6 +16,11 @@ app = Flask(__name__)
 app.secret_key = "05ec4a13767ac57407c4000e55bdc32c"
 pd.set_option('display.max_rows', 500)
 
+# gitString is "git clone https://github.com/some-github-repo.git"
+# We return only the link from here
+@app.template_filter('get_git_link')
+def get_git_link(gitString):
+    return gitString[gitString.find('https'):-1]
 
 # RETURNS the Table name for the given 'index' from the dictionary of lists
 # example : from 'origin_param_list' -> return 'origin'
@@ -358,8 +363,12 @@ def getAllRunsData(testname, secret=False):
         test_summary_parser = configparser.ConfigParser()
         test_summary_parser.read(test_summary_file_path)
 
-        test_summary = test_summary_parser.get(testname, 'summary')
-        print(test_summary)
+        test_summary = {}
+        test_summary['summary'] = test_summary_parser.get(testname, 'summary')
+        test_summary['source_code_link'] = test_summary_parser.get(testname, 'source_code_link')
+        test_summary['type_of_workload'] = test_summary_parser.get(testname, 'type_of_workload')
+        test_summary['default_input'] = test_summary_parser.get(testname, 'default_input')
+        test_summary['latest_version'] = test_summary_parser.get(testname, 'latest_version')
 
         context = {
             'testname': testname,
@@ -820,6 +829,7 @@ def get_data_for_graph():
     xParameter = data['xParameter']
     yParameter = data['yParameter']
 
+    print("------------------------------------------------\n\n xParameter", xParameter)
     testname = data['testname']
 
     # Get input_filter_condition by calling the function
@@ -1037,7 +1047,6 @@ def get_data_for_graph():
         print("\n\n\n\n\n\n\nTHERE SEEMES TO BE AN ERROR IN YOUR APPLICATOIN")
         print(error_message)
 
-
     response = {
         'x_list_list': x_list_list, 
         'y_list_list': y_list_list,
@@ -1166,6 +1175,7 @@ def best_sku_graph():
         'xParameter': xParameter,
         'yParameter': 'Best ' + qualifier,
         'originID_list': originID_list,
+        'higher_is_better':min_or_max,
     }
 
     return response
@@ -1279,7 +1289,7 @@ def best_of_all_graph():
 
     # print(test_name_list)
     # print(qualifier_list)
-    # print(higher_is_better_list)
+    #print(higher_is_better_list)
 
     # Create a reference_results_map having entries for "testname" -> best_result
     # This will be for the selected reference CPU manufacturer i.e. normalized_wrt
