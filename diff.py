@@ -1,4 +1,5 @@
 from pprint import pprint
+import logging
 import os, shutil
 import pandas as pd
 import numpy as np
@@ -8,6 +9,9 @@ from flask import Flask, render_template, request, redirect, send_file, url_for,
 from collections import OrderedDict
 import csv
 import json
+
+# Uncomment this line for toggling debugging messages on the console
+# logging.basicConfig(level=logging.DEBUG)
 
 # from datetime import datetime
 app = Flask(__name__)
@@ -72,16 +76,16 @@ def unique_list(input_list):
     # OrderedDict creates unique keys. It also preserves the order of insertion
     lst = list(OrderedDict.fromkeys(input_list))
 
-    print(lst)
+    logging.debug(lst)
 
     if all(str_is_int(x) for x in lst):
-        print("WAS INSTANCE OF INT MAN")
+        logging.debug("WAS INSTANCE OF INT MAN")
         lst = [int(x) for x in lst]
     elif all(str_is_float(x) for x in lst):
-        print("WAS INSTANCE OF FLOAT MAN")
+        logging.debug("WAS INSTANCE OF FLOAT MAN")
         lst = [float(x) for x in lst]
     else:
-        print("WAS INSTANCE OF NONE MAN")
+        logging.debug("WAS INSTANCE OF NONE MAN")
 
     # Return all values as STR
     return list(map(lambda x: str(x), sorted(lst)))
@@ -196,13 +200,8 @@ def get_input_filter_condition(test_name, input_filters_list):
                 else:
                     INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1) LIKE \'%" + input_filter  + "%\'"
     except Exception as error_message:
-        print("ERRORS::::::: ", error_message)
+        logging.debug("ERRORS::::::: ", error_message)
         pass
-
-    if test_name == "cp2k":
-        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
-        print(input_filters_list)
-        print(INPUT_FILTER_CONDITION)
 
     return INPUT_FILTER_CONDITION
 
@@ -219,8 +218,8 @@ def home_page():
     sku_parser.read(sku_file_path)
 
     reference_list = sku_parser.sections();
-    print("SECTIONS")
-    print(reference_list)
+    logging.debug("SECTIONS")
+    logging.debug(reference_list)
 
 
     filter_labels_dict = {}
@@ -267,9 +266,9 @@ def getAllRunsData(testname, secret=False):
     min_or_max_list = results_metadata_parser.get(testname, 'higher_is_better') \
                     .replace('\"', '').replace(' ', '').split(',')
 
-    print("########PRINTING QUALIFIER LIST AND MIN OR MAX LIST#########")
-    print(qualifier_list)
-    print(min_or_max_list)
+    logging.debug("########PRINTING QUALIFIER LIST AND MIN OR MAX LIST#########")
+    logging.debug(qualifier_list)
+    logging.debug(min_or_max_list)
 
     if secret == True:
         RESULTS_VALIDITY_CONDITION = " "
@@ -327,8 +326,8 @@ def getAllRunsData(testname, secret=False):
                                 ON o.originID = r.origin_originID INNER JOIN subtest s
                                 ON  r.subtest_subtestID = s.subtestID WHERE r.isvalid = 1 and t.testname = \'""" + testname + "\';"
         input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
-        print(input_parameters)
-        print(input_details_df)
+        logging.debug(input_parameters)
+        logging.debug(input_details_df)
 
         # Function which splits the description string into various parameters 
         # according to 'description' field of the '.ini' file
@@ -336,7 +335,7 @@ def getAllRunsData(testname, secret=False):
             try:
                 return description.split(',')[index]
             except Exception as error_message:
-                print(error_message)
+                logging.debug(error_message)
                 return np.nan
 
         # Split the 'description' column into multiple columns
@@ -394,8 +393,8 @@ def showAllRunsSecret(testname):
         success = {}
         error = {}
         keyerror = {}
-        print("#######POSTED###########")
-        print(request.args)
+        logging.debug("#######POSTED###########")
+        logging.debug(request.args)
         
         # Get doesn't throw error. 
         # If key is not present it sets to default ('None' most of the times)
@@ -403,16 +402,16 @@ def showAllRunsSecret(testname):
         error = session.get('error')
         keyerror = session.get('keyerror')
     
-        print('success', success)
-        print('error', error)
-        print('keyerror', keyerror)
+        logging.debug('success', success)
+        logging.debug('error', error)
+        logging.debug('keyerror', keyerror)
 
-        print("#######SESSION BEFORE ####")
-        print(session)
-        print("########SESSION AFTER $$$$")
+        logging.debug("#######SESSION BEFORE ####")
+        logging.debug(session)
+        logging.debug("########SESSION AFTER $$$$")
         # Clear the contents of the session (cookies)
         session.clear()
-        print(session)
+        logging.debug(session)
 
         context = context = getAllRunsData(testname, secret=True)
         
@@ -420,12 +419,12 @@ def showAllRunsSecret(testname):
 
 @app.route('/mark-origin-id-invalid', methods=['POST'])
 def markOriginIDInvalid():
-    print("\n\n\n#REQUEST#########")
-    print(request.form)
+    logging.debug("\n\n\n#REQUEST#########")
+    logging.debug(request.form)
 
     data = json.loads(request.form.get('data'))
-    print("JSON STATHAM")
-    print(data)
+    logging.debug("JSON STATHAM")
+    logging.debug(data)
 
     originID = data.get('originID')
     testname = data.get('testname')
@@ -437,7 +436,7 @@ def markOriginIDInvalid():
     keyerror = {}
 
     if secret_key == 'secret_123':
-        print("CAUTION!!! MArking result invalid")
+        logging.debug("CAUTION!!! MArking result invalid")
         db = pymysql.connect(host='10.110.169.149', user='root',
                          passwd='', db='benchtooldb', port=3306)
 
@@ -508,7 +507,7 @@ def getTestDetailsData(originID, secret=False):
         try:
             return description.split(',')[index]
         except Exception as error_message:
-            print(error_message)
+            logging.debug(error_message)
             return np.nan
 
     # For all the rows in the dataframe, set the description_list values
@@ -594,8 +593,8 @@ def showTestDetailsSecret(originID):
         success = {}
         error = {}
         keyerror = {}
-        print("#######POSTED###########")
-        print(request.args)
+        logging.debug("#######POSTED###########")
+        logging.debug(request.args)
         
         # Get doesn't throw error. 
         # If key is not present it sets to default ('None' most of the times)
@@ -603,16 +602,16 @@ def showTestDetailsSecret(originID):
         error = session.get('error')
         keyerror = session.get('keyerror')
     
-        print('success', success)
-        print('error', error)
-        print('keyerror', keyerror)
+        logging.debug('success', success)
+        logging.debug('error', error)
+        logging.debug('keyerror', keyerror)
 
-        print("#######SESSION BEFORE ####")
-        print(session)
-        print("########SESSION AFTER $$$$")
+        logging.debug("#######SESSION BEFORE ####")
+        logging.debug(session)
+        logging.debug("########SESSION AFTER $$$$")
         # Clear the contents of the session (cookies)
         session.clear()
-        print(session)
+        logging.debug(session)
 
         context = getTestDetailsData(originID, secret=True)
         
@@ -621,12 +620,12 @@ def showTestDetailsSecret(originID):
 
 @app.route('/mark-result-id-invalid', methods=['POST'])
 def markResultIDInvalid():
-    print("\n\n\n#REQUEST#########")
-    print(request.form)
+    logging.debug("\n\n\n#REQUEST#########")
+    logging.debug(request.form)
 
     data = json.loads(request.form.get('data'))
-    print("JSON STATHAM")
-    print(data)
+    logging.debug("JSON STATHAM")
+    logging.debug(data)
 
     originID = data.get('originID')
     resultID = data.get('resultID')
@@ -638,7 +637,7 @@ def markResultIDInvalid():
     keyerror = {}
 
     if secret_key == 'secret_123':
-        print("CAUTION!!! Marking resultID invalid")
+        logging.debug("CAUTION!!! Marking resultID invalid")
         db = pymysql.connect(host='10.110.169.149', user='root',
                          passwd='', db='benchtooldb', port=3306)
 
@@ -770,7 +769,7 @@ def diffTests():
         originID_compare_list = [value for key, value in request.args.items() if "diff-checkbox" in key]
 
         originID_compare_list.sort()
-        print(originID_compare_list)
+        logging.debug(originID_compare_list)
 
         # Get the Test name
         test_name = get_test_name(originID_compare_list[0])
@@ -843,7 +842,7 @@ def diffTests():
         # Assign first results_dataframe to intermediate_dataframe for merging
         intermediate_dataframe = first_results_dataframe
 
-        print('\n\nDONE\n\n')
+        logging.debug('\n\nDONE\n\n')
 
         # for each subsequent results file, merge with the already exsiting dataframe on "description" columns
         for jobname, runID in zip(jobname_list[1:], runID_list[1:]):
@@ -883,9 +882,9 @@ def diffTests():
 
             final_results_dataframe = final_results_dataframe.append(dataframe)
 
-        print("PRINTING THE FINAL DATAFRAME")
-        print(final_results_dataframe)
-        print("DONE")
+        logging.debug("PRINTING THE FINAL DATAFRAME")
+        logging.debug(final_results_dataframe)
+        logging.debug("DONE")
 
         # DROP THE NAN rows for comparing results in graphs
         comparable_results = final_results_dataframe.dropna()
@@ -897,9 +896,9 @@ def diffTests():
         # FILL NAN cells with ""
         final_results_dataframe = final_results_dataframe.fillna("")
 
-        print("PRINTING COMPARABLE RESULTS")
-        print(comparable_results)
-        print("DONE")
+        logging.debug("PRINTING COMPARABLE RESULTS")
+        logging.debug(comparable_results)
+        logging.debug("DONE")
 
         # Delete the results_param_list as it is no longer needed
         del parameter_lists['results_param_list']
@@ -1044,8 +1043,8 @@ def get_data_for_graph():
             except:
                 break
 
-        print("AFTER REMOVING wrong entries \n")
-        print("PRINTING X LIST \n", x_list)
+        logging.debug("AFTER REMOVING wrong entries \n")
+        logging.debug("PRINTING X LIST \n", x_list)
 
         y_list = []
         originID_list = []
@@ -1097,9 +1096,9 @@ def get_data_for_graph():
                 skuid_list.extend(y_df['skuidname'].to_list())
                 skuid_list[-1] = skuid_list[-1].strip()
 
-        print("PRINTING Y LIST ", y_list)
-        print("PRINTING ORIGIN LIST", originID_list)
-        print("PRINTING SKUID LIST", skuid_list)
+        logging.debug("PRINTING Y LIST ", y_list)
+        logging.debug("PRINTING ORIGIN LIST", originID_list)
+        logging.debug("PRINTING SKUID LIST", skuid_list)
 
         # Remove all the entries where skuid = ''
         while True:
@@ -1109,13 +1108,13 @@ def get_data_for_graph():
                 y_list.remove(y_list[index])
                 originID_list.remove(originID_list[index])
             except:
-                print("DONE REMOVING")
+                logging.debug("DONE REMOVING")
                 break
     
-        print("\n\n###############\n\nPrinting after removing wrong entries")
-        print("PRINTING Y LIST ", y_list)
-        print("PRINTING ORIGIN LIST", originID_list)
-        print("PRINTING SKUID LIST", skuid_list)
+        logging.debug("\n\n###############\n\nPrinting after removing wrong entries")
+        logging.debug("PRINTING Y LIST ", y_list)
+        logging.debug("PRINTING ORIGIN LIST", originID_list)
+        logging.debug("PRINTING SKUID LIST", skuid_list)
 
         #Remove everything that has an empty set returned
         for rm_elem in x_list_rm:
@@ -1129,16 +1128,16 @@ def get_data_for_graph():
             server_cpu_list.append(section)
 
 
-    print("PRINTING FINAL SERVER CPU LIST")
-    print(server_cpu_list)
+    logging.debug("PRINTING FINAL SERVER CPU LIST")
+    logging.debug(server_cpu_list)
     # Get colours for cpu manufacturer
     color_list = []
     visibile_list = []
     for section in server_cpu_list:
         color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
         visibile_list.extend(sku_parser.get(section, 'visible').replace('\"','').split(','))
-    print(color_list)
-    print(visibile_list)
+    logging.debug(color_list)
+    logging.debug(visibile_list)
 
     # Get the unit for the selected yParamter (qualifier)
     UNIT_QUERY = """SELECT disp.qualifier, disp.unit FROM origin o INNER JOIN testdescriptor t 
@@ -1149,8 +1148,8 @@ def get_data_for_graph():
     try:
         y_axis_unit = unit_df['unit'][0]
     except Exception as error_message:
-        print("\n\n\n\n\n\n\nTHERE SEEMES TO BE AN ERROR IN YOUR APPLICATOIN")
-        print(error_message)
+        logging.debug("\n\n\n\n\n\n\nTHERE SEEMES TO BE AN ERROR IN YOUR APPLICATOIN")
+        logging.debug(error_message)
 
     response = {
         'x_list_list': x_list_list, 
@@ -1250,9 +1249,9 @@ def best_sku_graph():
             cpu_data[section] = results_df['number'].to_list()[0]
             originID_list.append(results_df['originID'].to_list()[0])
 
-    pprint(cpu_data)
-    print("ORIGIN ID LIST IN BEST RESULTS GRAPH")
-    print(originID_list)
+    plogging.debug(cpu_data)
+    logging.debug("ORIGIN ID LIST IN BEST RESULTS GRAPH")
+    logging.debug(originID_list)
 
     # Remove the entries from dictionary whose values are empty
     
@@ -1262,7 +1261,7 @@ def best_sku_graph():
     color_list = []
     for section in cpu_data:
         color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
-    print(color_list)
+    logging.debug(color_list)
 
     # Get the unit for the selected yParamter (qualifier)
     UNIT_QUERY = """SELECT disp.qualifier, disp.unit FROM origin o INNER JOIN testdescriptor t 
@@ -1311,14 +1310,14 @@ def best_sku_graph_normalized():
 
     # If lower is better, then take the inverse of the normalized values
     index = x_list.index(normalized_wrt)
-    print("PRINTING X LIST", x_list)
-    print("FOUND AT INDEX" , index)
+    logging.debug("PRINTING X LIST", x_list)
+    logging.debug("FOUND AT INDEX" , index)
     if higher_is_better == "1":
-        print("HIGHER IS BETTER")
+        logging.debug("HIGHER IS BETTER")
         normalized_y_list = [value/y_list[index] for value in y_list]
     else:
         # Inverse
-        print("LOWER IS BETTER")
+        logging.debug("LOWER IS BETTER")
         normalized_y_list = [y_list[index]/value for value in y_list]
 
     # Colors for the graphs
@@ -1329,9 +1328,9 @@ def best_sku_graph_normalized():
     color_list = []
     for section in x_list:
         color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
-    print(color_list)
+    logging.debug(color_list)
 
-    print("Normalized Y list = ", normalized_y_list)
+    logging.debug("Normalized Y list = ", normalized_y_list)
 
     response = {
         'x_list': x_list, 
@@ -1361,7 +1360,7 @@ def best_of_all_graph():
 
     data = request.get_json()
     
-    print(data)
+    logging.debug(data)
 
     normalized_wrt = data['normalizedWRT']
 
@@ -1389,12 +1388,12 @@ def best_of_all_graph():
             higher_is_better_list.remove(higher_is_better_list[index])
             test_name_list.remove(test_name_list[index])
         except:
-            print("DONE REMOVING")
+            logging.debug("DONE REMOVING")
             break
 
-    # print(test_name_list)
-    # print(qualifier_list)
-    #print(higher_is_better_list)
+    # logging.debug(test_name_list)
+    # logging.debug(qualifier_list)
+    #logging.debug(higher_is_better_list)
 
     # Create a reference_results_map having entries for "testname" -> best_result
     # This will be for the selected reference CPU manufacturer i.e. normalized_wrt
@@ -1413,7 +1412,7 @@ def best_of_all_graph():
         # Build the query along with the input filters condition
         if higher_is_better == '0':
             # Fix this hack
-            # print("SELECTING MIN", higher_is_better)
+            # logging.debug("SELECTING MIN", higher_is_better)
             BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
                                     on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
@@ -1427,7 +1426,7 @@ def best_of_all_graph():
                                     " group by o.originID, r.number order by r.number limit 1;"
 
         else:
-            # print("SELECTING MAX", higher_is_better)
+            # logging.debug("SELECTING MAX", higher_is_better)
             BEST_RESULT_QUERY = """SELECT MAX(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
                                     on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
@@ -1442,16 +1441,17 @@ def best_of_all_graph():
 
 
         results_df = pd.read_sql(BEST_RESULT_QUERY, db)
-        # print("PRINTING RESULTS DF for", test_name)
-        # print(results_df)
+        # logging.debug("PRINTING RESULTS DF for", test_name)
+        # logging.debug(results_df)
 
         if not results_df.empty:
             reference_results_map[test_name] = results_df['number'][0]
 
-    print("\n\nPRINTING FINAL REFERENCE MAP")
+    # logging.debug("\n\nPRINTING FINAL REFERENCE MAP")
     for k,v in reference_results_map.items():
         if v:
-            print(k,':', v)
+            # logging.debug(k,':', v)
+            pass
 
 
     x_list_list = []
@@ -1463,7 +1463,7 @@ def best_of_all_graph():
     for section in sku_parser.sections():
         # Only for sections other than selected 'reference'
         if section != normalized_wrt:
-            # print("SECTION DID NOT MATCH.","Proceeding with queries", section, ":", normalized_wrt)
+            # logging.debug("SECTION DID NOT MATCH.","Proceeding with queries", section, ":", normalized_wrt)
             skuid_list = sku_parser.get(section, 'SKUID').replace('\"', '').split(',')
             x_list = []
             y_list = []
@@ -1478,7 +1478,7 @@ def best_of_all_graph():
                     INPUT_FILTER_CONDITION = get_input_filter_condition(test_name, input_filters_list)
 
 
-                    # print("RESULT", test_name, "exists in REFERENCE")
+                    # logging.debug("RESULT", test_name, "exists in REFERENCE")
                     if higher_is_better == '0':
                         # Fix this hack
                         BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
@@ -1508,8 +1508,8 @@ def best_of_all_graph():
             
 
                     results_df = pd.read_sql(BEST_RESULT_QUERY, db)
-                    # print("\n\n########################\n\nPRINTING RESULTS DF for", section)
-                    # print(results_df)
+                    # logging.debug("\n\n########################\n\nPRINTING RESULTS DF for", section)
+                    # logging.debug(results_df)
 
                     # A function which returns the normalized value y_list[-1] w.r.t. reference_results_map[test_name] 
                     def normalized_value():
@@ -1524,25 +1524,25 @@ def best_of_all_graph():
                             pass
 
                     if not results_df.empty:
-                        # print("ENTERING")
+                        # logging.debug("ENTERING")
                         x_list.append(test_name)
                         y_list.extend(results_df['number'])
-                        print("Y_LIST = ", y_list, test_name)
+                        logging.debug("Y_LIST = ", y_list, test_name)
 
                         # Normalize IT
                         y_list[-1] = normalized_value()
-                        print("AFTER NORMALIZING")
-                        print("Y_LIST = ", y_list, test_name)                        
+                        logging.debug("AFTER NORMALIZING")
+                        logging.debug("Y_LIST = ", y_list, test_name)                        
                         originID_list.extend(results_df['originID'])
                     else:
                         pass
-                        # print("NOT ENTERING")
+                        # logging.debug("NOT ENTERING")
 
                 else:
                     pass
-                    # print("######################RESULT", test_name, "DOES NOT EXIST in REFERENCE")
+                    # logging.debug("######################RESULT", test_name, "DOES NOT EXIST in REFERENCE")
                 
-            print("\n\n####################\nSection:",section,"\n\nAPPENDING Y_LIST : ", y_list)
+            logging.debug("\n\n####################\nSection:",section,"\n\nAPPENDING Y_LIST : ", y_list)
             x_list_list.append(x_list)
             y_list_list.append(y_list)
             originID_list_list.append(originID_list)
@@ -1550,7 +1550,7 @@ def best_of_all_graph():
             color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
 
         else:
-            print("SECTION MATCHED", section, ".\tSkipping")
+            logging.debug("SECTION MATCHED", section, ".\tSkipping")
 
 
     response = {
@@ -1563,6 +1563,7 @@ def best_of_all_graph():
         'server_cpu_list': server_cpu_list,
         'color_list': color_list,
         'reference_color' : reference_color,
+        'normalized_wrt' : normalized_wrt,
     }
 
 
@@ -1571,17 +1572,17 @@ def best_of_all_graph():
 # One function for downloading everything as CSV
 @app.route('/download_as_csv', methods=['POST'])
 def download_as_csv():
-    print("\n\n\n#REQUEST#########")
-    print(request)
-    print(request.form)
+    logging.debug("\n\n\n#REQUEST#########")
+    logging.debug(request)
+    logging.debug(request.form)
     json_data = json.loads(request.form.get('data'))
-    print("JSON STATHAM")
-    print(json_data)
+    logging.debug("JSON STATHAM")
+    logging.debug(json_data)
     data = json_data['data']
 
-    print(data)
-    print(type(data))
-    print("\n\n\n")
+    logging.debug(data)
+    logging.debug(type(data))
+    logging.debug("\n\n\n")
 
     csv_df = pd.DataFrame(columns=data.keys());
 
@@ -1594,17 +1595,17 @@ def download_as_csv():
     os.mkdir(base_path)         #So create it again
 
     # Save the current csv file there
-    print(csv_df)
-    print(os.getcwd())
+    logging.debug(csv_df)
+    logging.debug(os.getcwd())
 
     # "CLEAN" the filename.
     # Example -> if the file is 'Mop/s vs OSName', then replace '/' with '-per-'
     filename = base_path + json_data['filename'].replace('/', '_per_') + '.csv'
     
-    print("PRINTING FILENAME AFTER" + filename)
+    logging.debug("PRINTING FILENAME AFTER" + filename)
 
     csv_df.to_csv(filename, index=False, header=True)
-    print("\n\n\n")
+    logging.debug("\n\n\n")
 
     try:
         return send_file(filename,
