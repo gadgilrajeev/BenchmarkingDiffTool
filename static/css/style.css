@@ -14,41 +14,6 @@ td, th {
   padding: 8px;
 }
 
-td.originID:hover{
-  background-color: #c7ea46;
-}
-
-tr:nth-child(even) {
-  background-color: #dddddd;
-}
-
-tr:hover{
-  background-color: #98fb98;
-}
-
-/* Normal white Button as seen on Google.com*/
-button {
-    color: #444444;
-    background: #F3F3F3;
-    border: 1px #DADADA solid;
-    padding: 5px 10px;
-    border-radius: 2px;
-    font-weight: bold;
-    font-size: 9pt;
-    outline: none;
-}
-
-button:hover {
-    border: 1px #C6C6C6 solid;
-    box-shadow: 1px 1px 1px #EAEAEA;
-    color: #333333;
-    background: #F7F7F7;
-}
-
-button:active {
-    box-shadow: inset 1px 1px 1px #DFDFDF;   
-}
-
 /* Blue button as seen on translate.google.com*/
 button.blue {
     color: white;
@@ -65,51 +30,6 @@ button.blue:hover {
 
 button.blue:active {
     box-shadow: inset 0 2px 5px #2370FE;   
-}
-
-/* Orange button as seen on blogger.com*/
-button.orange {
-    color: white;
-    border: 1px solid #FB8F3D; 
-    background: -webkit-linear-gradient(top, #FDA251, #FB8F3D);
-    background: -moz-linear-gradient(top, #FDA251, #FB8F3D);
-    background: -ms-linear-gradient(top, #FDA251, #FB8F3D);
-}
-
-button.orange:hover {
-    border: 1px solid #EB5200;
-    background: -webkit-linear-gradient(top, #FD924C, #F9760B); 
-    background: -moz-linear-gradient(top, #FD924C, #F9760B); 
-    background: -ms-linear-gradient(top, #FD924C, #F9760B); 
-    box-shadow: 0 1px #EFEFEF;
-}
-
-button.orange:active {
-    box-shadow: inset 0 1px 1px rgba(0,0,0,0.3);
-}
-
-/* Red Google Button as seen on drive.google.com */
-button.red {
-    background: -webkit-linear-gradient(top, #DD4B39, #D14836); 
-    background: -moz-linear-gradient(top, #DD4B39, #D14836); 
-    background: -ms-linear-gradient(top, #DD4B39, #D14836); 
-    border: 1px solid #DD4B39;
-    color: white;
-    text-shadow: 0 1px 0 #C04131;
-}
-
-button.red:hover {
-     background: -webkit-linear-gradient(top, #DD4B39, #C53727);
-     background: -moz-linear-gradient(top, #DD4B39, #C53727);
-     background: -ms-linear-gradient(top, #DD4B39, #C53727);
-     border: 1px solid #AF301F;
-}
-
-button.red:active {
-     box-shadow: inset 0 1px 1px rgba(0,0,0,0.2);
-    background: -webkit-linear-gradient(top, #D74736, #AD2719);
-    background: -moz-linear-gradient(top, #D74736, #AD2719);
-    background: -ms-linear-gradient(top, #D74736, #AD2719);
 }
 
 /* FOR FORMS */
@@ -160,27 +80,6 @@ a:link, a:visited {
 a:hover, a:active {
   background-color: green;
   color: white;
-}
-
-#checkbox-common{
-  color: white;
-  background: #4C8FFB;
-  border: 1px #3079ED solid;
-  box-shadow: inset 0 1px 0 #80B0FB;
-  padding: 5px 10px;
-  border-radius: 2px;
-  font-weight: bold;
-  outline: none;
-}
-
-#checkbox-common:hover {
-    border: 1px #2F5BB7 solid;
-    box-shadow: 0 1px 1px #EAEAEA, inset 0 1px 0 #5A94F1;
-    background: #3F83F1;
-}
-
-#checkbox-common:active{
-  box-shadow: inset 0 2px 5px #2370FE;
 }
 
 tr{
@@ -413,47 +312,16 @@ tbody tr td{
   width: 80%;
 }
 
-#marketing-graph-div #download-best-sku-graph {
+#marketing-graph-div #download-best-sku-graph-csv {
   grid-column: 5/7;
   grid-row: 6;
   height: 60px;
 }
 
-#marketing-graph-div #download-best-sku-graph-csv{
+#marketing-graph-div #download-best-sku-graph {
   grid-column: 8/10;
   grid-row: 6;
   height: 60px;
-}
-
-#best-of-all-graph-div{
-  border-radius: 25px;
-  background-color: #eaeaea;
-  padding-top: 30px;
-  padding-bottom: 50px;
-  margin-top: 10px;
-  margin-bottom: 20px;
-}
-
-#best-of-all-graph-div > #download-comparison-graph{
-  margin-left: 20%;
-  margin-right: 20%;
-}
-
-#best-of-all-graph-div h2{
-  margin-left: 10%;
-}
-
-#reference-for-normalized{
-  margin-left: 10%;
-  width: 20%;
-}
-
-#best-of-all-graph {
-  margin-left: 5%;
-  margin-right: 5%;
-  margin-bottom: 2%;
-  width:75%;
-  height:350px;
 }
 
 .secret-grid {
