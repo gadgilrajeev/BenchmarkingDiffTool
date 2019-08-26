@@ -20,11 +20,7 @@ All Runs of the test
 			<p class="card-text">{{context.test_summary.summary}}</p>
 			<div class="collapse" id="fullSummaryCollapse">
 				{% if context.test_summary.source_code_link %}
-					{% set git_link = context.test_summary.source_code_link | get_git_link %}
-					<span class="d-flex">
-						<p class="mr-2"><strong>Source Code Link:</strong> {{context.test_summary.source_code_link}} </p>
-						<button class="btn btn-success font-weight-bold ml-2" onclick="window.open('{{git_link}}')">Go to link</button>
-					</span>
+					<p><strong>Source Code Link:</strong> {{context.test_summary.source_code_link}} </p>
 				{% endif %}
 				{% if context.test_summary.type_of_workload %}
 					<p><strong>Type of Workload:</strong> {{context.test_summary.type_of_workload}}</p>

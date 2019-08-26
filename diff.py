@@ -16,12 +16,6 @@ app = Flask(__name__)
 app.secret_key = "05ec4a13767ac57407c4000e55bdc32c"
 pd.set_option('display.max_rows', 500)
 
-# gitString is "git clone https://github.com/some-github-repo.git"
-# We return only the link from here
-@app.template_filter('get_git_link')
-def get_git_link(gitString):
-    return gitString[gitString.find('https'):-1]
-
 # RETURNS the Table name for the given 'index' from the dictionary of lists
 # example : from 'origin_param_list' -> return 'origin'
 @app.context_processor
@@ -941,7 +935,6 @@ def get_data_for_graph():
     xParameter = data['xParameter']
     yParameter = data['yParameter']
 
-    print("------------------------------------------------\n\n xParameter", xParameter)
     testname = data['testname']
 
     # Get input_filter_condition by calling the function
@@ -1287,7 +1280,7 @@ def best_sku_graph():
         'xParameter': xParameter,
         'yParameter': 'Best ' + qualifier,
         'originID_list': originID_list,
-        'higher_is_better':min_or_max,
+        'higher_is_better': min_or_max,
     }
 
     return response
