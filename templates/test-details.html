@@ -77,10 +77,6 @@ Test Details
 	
 	<script>
 		$( document ).ready(function() {
-			//Create a DataTable 
-			var table = $("#resultsTable").DataTable({
-				"lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-			});
 
 			// Setup - append a text input to each header cell
 	    	$('#resultsTable thead tr').clone(true).appendTo( '#resultsTable thead' );
@@ -100,6 +96,13 @@ Test Details
 		            }
 		        });
 	    	});
+
+	    	//Create a DataTable 
+			var table = $("#resultsTable").DataTable({
+				"lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+				orderCellsTop: true,
+	        	fixedHeader: true
+			});
 
 	    	table.columns.adjust().draw();
 		});
