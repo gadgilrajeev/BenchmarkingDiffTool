@@ -4,35 +4,32 @@
 Comparison of tests
 {% endblock title %}
 
-
 {% block content %}
 
-<label id="checkbox-common"><input id="checkbox-common2" onclick="hideCommon(this)" type="checkbox" name="common" value="hide_common"> Hide Common Properties (to be improved)</label>
-
-<h2 style="margin-left: 40%;">{{ context.testname | capitalize }}</h2>
-<style>
-	h2{
-		font-weight: bold;
-	}
+	<div style="display: grid; grid-template-columns: repeat(12, 1fr); padding:0; margin:0;">
+		<h2 class="btn btn-link" onclick="showAllRuns(this)" style="grid-column: 5/8; justify-self: stretch; align-self: center; font-size: 40px; font-weight: bold;">
+			{{ context.testname }}
+		</h2>
+	</div>
 </style>
 
-<div class='toast'>Copied to Clipboard!</div>
-
 <div class="all-tables">
-	<!-- <div id="comparison-graph" style="width:33.33%;height:350px;"></div> -->
+	<button class="btn btn-outline-primary font-weight-bold float-right mr-5" onclick="toggleCheckbox()"><input id="checkbox-common" type="checkbox" name="common" value="hide-common"> Hide Common Properties</button>
 
 	<!-- ###############RESULTS############### -->
     <div>
     	<h2>Results</h2>
-    	<table id="results-table" style = "clear:left;">
-    		<tr>
-    			{% for index_name in context.index_columns %}
-    			<th style="background-color: grey;"></th>
-    			{% endfor %}
-    			{% for originID in context.originID_list %}
-    				<th class="test-numbers-row" style="background-color: grey;" onclick="testDetails(this)">Test_{{ originID }}</th>
-    			{% endfor %}
-    		</tr>
+    	<table class="table table-hover" id="results-table" style = "clear:left;">
+    		<thead class="thead-dark">
+	    		<tr>
+	    			{% for index_name in context.index_columns %}
+	    			<th></th>
+	    			{% endfor %}
+	    			{% for originID in context.originID_list %}
+	    				<th class="test-numbers-row">Test_{{ originID }}</th>
+	    			{% endfor %}
+	    		</tr>
+	    	</thead>
 
     		<tr>
     			{% for column_name in context.results %}
@@ -60,13 +57,15 @@ Comparison of tests
 		<h2>{{ tablename }}</h2>
 		{% set tablename = tablename|lower %}
 
-		<table class="comparison-table">
-			<tr>
-				<th></th>
-				{% for t_no in context.originID_list %}
-					<th style="font-weight: bold">Test_{{ t_no }}</th>
-				{% endfor %}
-			</tr>
+		<table class="comparison-table table table-hover">
+			<thead class="thead-dark">
+				<tr>
+					<th></th>
+					{% for t_no in context.originID_list %}
+						<th style="font-weight: bold">Test_{{ t_no }}</th>
+					{% endfor %}
+				</tr>
+			</thead>
 
 			{% for param in context.parameter_lists[tablename~"_param_list"] %}
 			<tr>
@@ -85,14 +84,17 @@ Comparison of tests
 
 <script>
 	$( document ).ready(function() {
-		// $.noConflict();
-
-    	$("#checkbox-common2").prop("checked", false);
-		
-    	drawGraph({{ context.comparable_results | tojson }})
+    	$("#checkbox-common").prop("checked", false);
 	
 	});
-</script>
 
+	function toggleCheckbox(){
+		state = $('#checkbox-common').prop('checked');
+		$('#checkbox-common').prop('checked', !state);
+
+		//hide the common properties
+		hideCommon();
+	}
+</script>
 
 {% endblock content %}

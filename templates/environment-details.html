@@ -4,184 +4,202 @@
 Environment Details
 {% endblock title %}
 
+{% block navbar %}
+{% endblock %}
 
 {% block content %}
-	<h2 style="text-align: center;">Environment Details</h2>
+	<h2 class="text-center">Environment Details</h2>
 
-	<div class='environment-details'>
-		<h2>HW Details</h2>
-		<table>
-			<tr>
-				{% for col in context.hwdetails %}
-					<th>
-						{{ col }}
-					</th>
-				{% endfor %}
-			</tr>
-				
-			<tr>
-				{% for col in context.hwdetails %}
-					<td>
-						{{ context.hwdetails[col][0] }}
-					</td>
-				{% endfor %}
-			</tr>
-		</table>
-	</div>
-
-	<div class='environment-details'>
-		<h2>Toolchain Details</h2>
-		<table>
-			<tr>
-				{% for col in context.toolchain %}
-					<th>
-						{{ col }}
-					</th>
-				{% endfor %}
-			</tr>
-				
-			<tr>
-				{% for col in context.toolchain %}
-					<td>
-						{{ context.toolchain[col][0] }}
-					</td>
-				{% endfor %}
-			</tr>
-		</table>
-	</div>
-
-	<div class='environment-details'>
-		<h2>OS and Kernel Details</h2>
-		<table>
-			<tr>
-				{% for col in context.ostunings %}
-					<th>
-						{{ col }}
-					</th>
-				{% endfor %}
-			</tr>
-				
-			<tr>
-				{% for col in context.ostunings %}
-					<td>
-						{{ context.ostunings[col][0] }}
-					</td>
-				{% endfor %}
-			</tr>
-		</table>
-	</div>
-
-	<div class='environment-details'>
-		<h2>Node Details</h2>
-		<table>
-			<tr>
-				{% for col in context.node %}
-					<th>
-						{{ col }}
-					</th>
-				{% endfor %}
-			</tr>
-
-			<tr>
-				{% for col in context.node %}
-					<td>
-						{{ context.node[col][0] }}
-					</td>
-				{% endfor %}
-			</tr>
-		</table>
-	</div>
-
-	<div class='environment-details'>
-		<h2>Run Time BootEnv Details</h2>
-		<table>
-			<tr>
-				{% for col in context.bootenv %}
-					<th>
-						{{ col }}
-					</th>
-				{% endfor %}
-			</tr>
-
-			<tr>
-				{% for col in context.bootenv %}
-					<td>
-						{{ context.bootenv[col][0] }}
-					</td>
-				{% endfor %}
-			</tr>
-		</table>
-	</div>
-	
-	<div class='environment-details'>
-		<h2>RAM Details</h2>
-		<table>
-			<tr>
-				{% for col in context.ram %}
-					<th>
-						{{ col }}
-					</th>
-				{% endfor %}
-			</tr>
-
-			{% for i in range(context.ram | no_of_rows) %}
+	<div class="d-flex flex-column container">
+		<div class='environment-details table table-hover'>
+			<h2>HW Details</h2>
+			<table>
+				<thead class="thead-dark">
+					<tr>
+						{% for col in context.hwdetails %}
+							<th>
+								{{ col }}
+							</th>
+						{% endfor %}
+					</tr>
+				</thead>
+					
 				<tr>
-					{% for col in context.ram %}
-					<td>
-						{{ context.ram[col][i] }}
-					</td>
+					{% for col in context.hwdetails %}
+						<td>
+							{{ context.hwdetails[col][0] }}
+						</td>
 					{% endfor %}
 				</tr>
-			{% endfor %}
-		</table>
-	</div>
+			</table>
+		</div>
 
-	<div class='environment-details'>
-		<h2>Disk Details</h2>
-		<table>
-			<tr>
-				{% for col in context.disk %}
-					<th>
-						{{ col }}
-					</th>
-				{% endfor %}
-			</tr>
-
-			{% for i in range(context.disk | no_of_rows) %}
+		<div class='environment-details table table-hover'>
+			<h2>Toolchain Details</h2>
+			<table>
+				<thead class="thead-dark">
+					<tr>
+						{% for col in context.toolchain %}
+							<th>
+								{{ col }}
+							</th>
+						{% endfor %}
+					</tr>
+				</thead>
+					
 				<tr>
-					{% for col in context.disk %}
-					<td>
-						{{ context.disk[col][i] }}
-					</td>
+					{% for col in context.toolchain %}
+						<td>
+							{{ context.toolchain[col][0] }}
+						</td>
 					{% endfor %}
 				</tr>
-			{% endfor %}
-		</table>
-	</div>
+			</table>
+		</div>
 
-	<div class='environment-details'>
-		<h2>NIC Details</h2>
-		<table>
-			<tr>
-				{% for col in context.nic %}
-					<th>
-						{{ col }}
-					</th>
-				{% endfor %}
-			</tr>
-
-			{% for i in range(context.nic | no_of_rows) %}
+		<div class='environment-details table table-hover'>
+			<h2>OS and Kernel Details</h2>
+			<table>
+				<thead class="thead-dark">
+					<tr>
+						{% for col in context.ostunings %}
+							<th>
+								{{ col }}
+							</th>
+						{% endfor %}
+					</tr>
+				</thead>
+					
 				<tr>
-					{% for col in context.nic %}
-					<td>
-						{{ context.nic[col][i] }}
-					</td>
+					{% for col in context.ostunings %}
+						<td>
+							{{ context.ostunings[col][0] }}
+						</td>
 					{% endfor %}
 				</tr>
-			{% endfor %}
-		</table>
-	</div>
-	
+			</table>
+		</div>
 
+		<div class='environment-details table table-hover'>
+			<h2>Node Details</h2>
+			<table>
+				<thead class="thead-dark">
+					<tr>
+						{% for col in context.node %}
+							<th>
+								{{ col }}
+							</th>
+						{% endfor %}
+					</tr>
+				</thead>
+
+				<tr>
+					{% for col in context.node %}
+						<td>
+							{{ context.node[col][0] }}
+						</td>
+					{% endfor %}
+				</tr>
+			</table>
+		</div>
+
+		<div class='environment-details table table-hover'>
+			<h2>Run Time BootEnv Details</h2>
+			<table>
+				<thead class="thead-dark">
+					<tr>
+						{% for col in context.bootenv %}
+							<th>
+								{{ col }}
+							</th>
+						{% endfor %}
+					</tr>
+				</thead>
+
+				<tr>
+					{% for col in context.bootenv %}
+						<td>
+							{{ context.bootenv[col][0] }}
+						</td>
+					{% endfor %}
+				</tr>
+			</table>
+		</div>
+		
+		<div class='environment-details table table-hover'>
+			<h2>RAM Details</h2>
+			<table>
+				<thead class="thead-dark">
+					<tr>
+						{% for col in context.ram %}
+							<th>
+								{{ col }}
+							</th>
+						{% endfor %}
+					</tr>
+				</thead>
+
+				{% for i in range(context.ram | no_of_rows) %}
+					<tr>
+						{% for col in context.ram %}
+						<td>
+							{{ context.ram[col][i] }}
+						</td>
+						{% endfor %}
+					</tr>
+				{% endfor %}
+			</table>
+		</div>
+
+		<div class='environment-details table table-hover'>
+			<h2>Disk Details</h2>
+			<table>
+				<thead class="thead-dark">
+					<tr>
+						{% for col in context.disk %}
+							<th>
+								{{ col }}
+							</th>
+						{% endfor %}
+					</tr>
+				</thead>
+
+				{% for i in range(context.disk | no_of_rows) %}
+					<tr>
+						{% for col in context.disk %}
+						<td>
+							{{ context.disk[col][i] }}
+						</td>
+						{% endfor %}
+					</tr>
+				{% endfor %}
+			</table>
+		</div>
+
+		<div class='environment-details table table-hover'>
+			<h2>NIC Details</h2>
+			<table>
+				<thead class="thead-dark">
+					<tr>
+						{% for col in context.nic %}
+							<th>
+								{{ col }}
+							</th>
+						{% endfor %}
+					</tr>
+				</thead>
+
+				{% for i in range(context.nic | no_of_rows) %}
+					<tr>
+						{% for col in context.nic %}
+						<td>
+							{{ context.nic[col][i] }}
+						</td>
+						{% endfor %}
+					</tr>
+				{% endfor %}
+			</table>
+		</div>
+	</div>
 	
 {% endblock %}

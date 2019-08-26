@@ -21,12 +21,14 @@ Test Details
 		<h2 style="text-align: center; font-weight: bold;">
 			System Details
 		</h2>
-		<table id="systemDetailsTable">
-			<tr>
-				{% for column in context.system_details %}
-					<th>{{ column }}</th>
-				{% endfor %}
-			</tr>
+		<table class="table table-hover" id="systemDetailsTable">
+			<thead class="thead-dark">
+				<tr>
+					{% for column in context.system_details %}
+						<th>{{ column }}</th>
+					{% endfor %}
+				</tr>
+			</thead>
 
 			<tr>
 				{% for key in context.system_details %}
@@ -51,14 +53,16 @@ Test Details
 			Results
 		</h2>
 
-		<table id="resultsTable">
+		<table class="table table-hover" id="resultsTable">
 
-			<thead>
+			<thead class="thead-dark">
 				<tr>
 					{% for column in context.results %}
 						<th>{{ column }}</th>
 					{% endfor %}
 				</tr>
+			</thead>
+			<thead id="search-thead">
 			</thead>
 			<tbody>
 				{% for row in range(context.results| no_of_rows ) %}
@@ -79,9 +83,9 @@ Test Details
 		$( document ).ready(function() {
 
 			// Setup - append a text input to each header cell
-	    	$('#resultsTable thead tr').clone(true).appendTo( '#resultsTable thead' );
+	    	$('#resultsTable thead tr').clone(true).appendTo( '#resultsTable #search-thead' );
 			//Add the Filter bars for each column
-			$('#resultsTable thead tr:eq(1) th').each( function (i) {
+			$('#resultsTable #search-thead tr th').each( function (i) {
 	    	
 	        	var title = $(this).text();
 	        	$(this).html( '<input style="width: 150px;" type="text" placeholder="Search '+title+'" />' );
