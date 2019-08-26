@@ -262,6 +262,7 @@ def home_page():
     }
     return render_template('all-tests.html', context=context)
 
+# Get data for All runs of the test 'testname' from database
 def getAllRunsData(testname, secret=False):
     # Read metadata for results in wiki_description.ini file
     results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
@@ -308,7 +309,7 @@ def getAllRunsData(testname, secret=False):
     dataframe = pd.read_sql(ALL_RUNS_QUERY, db)
     rows, columns = dataframe.shape  # returns a tuple (rows,columns)
 
-    # For secret page, return only context. The secret function will redirect to secret page
+    # For secret page, return only table data. The secret function will redirect to secret page
     if secret == True:
         secret_context = {
             'testname': testname,
@@ -469,14 +470,8 @@ def markOriginIDInvalid():
     # code = 307 for keeping the original request type ('POST')
     return redirect(url_for('showAllRunsSecret', testname=testname), code=307)
 
-# Page for marking Individual test 'result' as invalid 
-@app.route('/test-details/secret/<originID>')
-def showTestDetailsSecret(originID):
-    return redirect('/test-details/' + originID)    
-
-# View for handling Test details request
-@app.route('/test-details/<originID>')
-def showTestDetails(originID):
+# Get details for test with originID = 'originID' from database
+def getTestDetailsData(originID, secret=False):
     db = pymysql.connect(host='10.110.169.149', user='root',
                          passwd='', db='benchtooldb', port=3306)
     result_type_map = {0: "single thread", 1: 'single core',
@@ -486,33 +481,10 @@ def showTestDetails(originID):
     # Just get the TEST name
     test_name = get_test_name(originID)
 
-    # Get some System details
-    SYSTEM_DETAILS_QUERY = """SELECT DISTINCT O.hostname, O.testdate, O.originID as 'Environment Details'
-                            FROM result R INNER JOIN origin O ON O.originID=R.origin_originID 
-                            WHERE O.originID=""" + originID + ";"
-    system_details_dataframe = pd.read_sql(SYSTEM_DETAILS_QUERY, db)
-
-    # # Update the Result type (E.g. 0->single thread)
-    # system_details_dataframe.update(pd.DataFrame(
-    #     {'resultype': [result_type_map[system_details_dataframe['resultype'][0]]]}))
-
-    # Get the rest of the system details from jenkins table
-    JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O INNER JOIN jenkins J 
-                        ON O.jenkins_jenkinsID=J.jenkinsID AND O.originID=""" + originID + ";"
-    jenkins_details = pd.read_sql(JENKINS_QUERY, db)
-
-    # list for creating a column in the system_details_dataframe
-    nas_link = []
-    nas_link.append("http://sm2650-2s-01/dbresults/" +
-                    jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]))
-    jenkins_link = []
-    jenkins_link.append("http://sm2650-2s-05:8080/view/Production_Pipeline/job/" +
-                        jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]))
-
-    # Put the Jenkins details in the System Details Dataframe
-    system_details_dataframe['NAS Link'] = nas_link
-    system_details_dataframe['Jenkins Link'] = jenkins_link
-    # SYSTEM details is now ready
+    if secret == True:
+        RESULTS_VALIDITY_CONDITION = " "
+    else:
+        RESULTS_VALIDITY_CONDITION = " AND R.isvalid = 1 "
 
     # Read the subtests description from the wiki_description
     config_file = "/mnt/nas/scripts/wiki_description.ini"
@@ -526,14 +498,15 @@ def showTestDetails(originID):
         description_string = 'Description'
 
     # RESULTS TABLE
-    RESULTS_QUERY = """SELECT S.description, R.number, disp.unit, disp.qualifier 
+    RESULTS_QUERY = """SELECT R.resultID, S.description, R.number, disp.unit, disp.qualifier, R.isvalid
                         FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID 
                         INNER JOIN display disp ON disp.displayID=R.display_displayID 
-                        INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + ";"
+                        INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + \
+                        RESULTS_VALIDITY_CONDITION + ";"
     results_dataframe = pd.read_sql(RESULTS_QUERY, db)
 
     for col in reversed(description_string.split(',')):
-        results_dataframe.insert(0, col, 'default value')
+        results_dataframe.insert(1, col, 'default value')
 
     # Function which splits the description string into various parameters 
     # according to 'description' field of the '.ini' file
@@ -554,16 +527,155 @@ def showTestDetails(originID):
 
     results_dataframe.dropna(inplace=True)
 
-    context = {
-        'testname': test_name,
-        'system_details': system_details_dataframe.to_dict(orient='list'),
-        'description_list': description_string.split(','),
-        'results': results_dataframe.to_dict(orient='list'),
-        'originID': originID,
-    }
+    # For secret page, return only table data. The secret function will redirect to secret page
+    if secret == True:
+        secret_context = {
+            'testname': test_name,
+            'description_list': description_string.split(','),
+            'results': results_dataframe.to_dict(orient='list'),
+            'originID': originID,
+        }
+
+        return secret_context
+    # Else render test-details.html
+    else:
+        del results_dataframe['resultID']
+        del results_dataframe['isvalid']
+
+        # Get some System details
+        SYSTEM_DETAILS_QUERY = """SELECT DISTINCT O.hostname, O.testdate, O.originID as 'Environment Details'
+                                FROM result R INNER JOIN origin O ON O.originID=R.origin_originID 
+                                WHERE O.originID=""" + originID + ";"
+        system_details_dataframe = pd.read_sql(SYSTEM_DETAILS_QUERY, db)
+
+        # # Update the Result type (E.g. 0->single thread)
+        # system_details_dataframe.update(pd.DataFrame(
+        #     {'resultype': [result_type_map[system_details_dataframe['resultype'][0]]]}))
+
+        # Get the rest of the system details from jenkins table
+        JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O INNER JOIN jenkins J 
+                            ON O.jenkins_jenkinsID=J.jenkinsID AND O.originID=""" + originID + ";"
+        jenkins_details = pd.read_sql(JENKINS_QUERY, db)
+
+        # list for creating a column in the system_details_dataframe
+        nas_link = []
+        nas_link.append("http://sm2650-2s-01/dbresults/" +
+                        jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]))
+        jenkins_link = []
+        jenkins_link.append("http://sm2650-2s-05:8080/view/Production_Pipeline/job/" +
+                            jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]))
+
+        # Put the Jenkins details in the System Details Dataframe
+        system_details_dataframe['NAS Link'] = nas_link
+        system_details_dataframe['Jenkins Link'] = jenkins_link
+        # SYSTEM details is now ready
+
+        context = {
+            'testname': test_name,
+            'system_details': system_details_dataframe.to_dict(orient='list'),
+            'description_list': description_string.split(','),
+            'results': results_dataframe.to_dict(orient='list'),
+            'originID': originID,
+        }
+
+        return context
+
+# View for handling Test details request
+@app.route('/test/<originID>', methods=['GET'])
+def showTestDetailsOld(originID):
+    return redirect('/test-details/' + originID)
+
+@app.route('/test-details/<originID>', methods=['GET'])
+def showTestDetails(originID):
+    context = getTestDetailsData(originID)
+
     return render_template('test-details.html', context=context)
 
+# Page for marking Individual test 'result' as invalid 
+@app.route('/test-details/secret/<originID>', methods=['GET', 'POST'])
+def showTestDetailsSecret(originID):
+    if request.method == 'GET':
+        return render_template('secret-test-details.html', originID={'ID':originID}, context={})
+    else:
+        success = {}
+        error = {}
+        keyerror = {}
+        print("#######POSTED###########")
+        print(request.args)
+        
+        # Get doesn't throw error. 
+        # If key is not present it sets to default ('None' most of the times)
+        success = session.get('success')
+        error = session.get('error')
+        keyerror = session.get('keyerror')
+    
+        print('success', success)
+        print('error', error)
+        print('keyerror', keyerror)
+
+        print("#######SESSION BEFORE ####")
+        print(session)
+        print("########SESSION AFTER $$$$")
+        # Clear the contents of the session (cookies)
+        session.clear()
+        print(session)
+
+        context = getTestDetailsData(originID, secret=True)
+        
+        return render_template('secret-test-details.html', success=success, error=error, keyerror=keyerror, context=context)
+
+
+@app.route('/mark-result-id-invalid', methods=['POST'])
+def markResultIDInvalid():
+    print("\n\n\n#REQUEST#########")
+    print(request.form)
+
+    data = json.loads(request.form.get('data'))
+    print("JSON STATHAM")
+    print(data)
+
+    originID = data.get('originID')
+    resultID = data.get('resultID')
+    valid = data.get('valid')
+    secret_key = data.get('secretKey')
+
+    success = {}
+    error = {}
+    keyerror = {}
+
+    if secret_key == 'secret_123':
+        print("CAUTION!!! Marking resultID invalid")
+        db = pymysql.connect(host='10.110.169.149', user='root',
+                         passwd='', db='benchtooldb', port=3306)
+
+        cursor = db.cursor()
+        if not valid:
+            success['message'] = """The resultID """ + resultID +""" was marked invalid successfully"""
+            CHANGE_RESULTID_VALIDITY_QUERY = "UPDATE result r SET r.isvalid=0 where r.resultID = " + resultID + ";"
+        else:
+            success['message'] = """The resultID """ + resultID +""" was marked valid successfully"""
+            CHANGE_RESULTID_VALIDITY_QUERY = "UPDATE result r SET r.isvalid=1 where r.resultID = " + resultID + ";"
+        cursor.execute(CHANGE_RESULTID_VALIDITY_QUERY)
+        cursor.close()
+        db.commit()
+        db.close()
+
+    else:
+        keyerror['message'] = "BOOM! Wrong Password. This incident will be reported."
+
+
+    session['success'] = success
+    session['error'] = error
+    session['keyerror'] = keyerror
+
+    # code = 307 for keeping the original request type ('POST')
+    return redirect(url_for('showTestDetailsSecret', originID=originID), code=307)
+
 # View for handling Environment details request
+@app.route('/details/<originID>')
+def showEnvDetailsOld(originID):
+    return redirect('/environment-details/' + originID)
+
 @app.route('/environment-details/<originID>')
 def showEnvDetails(originID):
     db = pymysql.connect(host='10.110.169.149', user='root',
@@ -653,7 +765,7 @@ def showEnvDetails(originID):
     }
     return render_template('environment-details.html', context=context)
 
-
+# Compare two or more tests
 @app.route('/diff', methods=['GET', 'POST'])
 def diffTests():
     if request.method == "GET":
@@ -1463,6 +1575,7 @@ def best_of_all_graph():
 
     return response
 
+# One function for downloading everything as CSV
 @app.route('/download_as_csv', methods=['POST'])
 def download_as_csv():
     print("\n\n\n#REQUEST#########")
