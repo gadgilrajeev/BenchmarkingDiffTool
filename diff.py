@@ -1249,7 +1249,7 @@ def best_sku_graph():
             cpu_data[section] = results_df['number'].to_list()[0]
             originID_list.append(results_df['originID'].to_list()[0])
 
-    plogging.debug(cpu_data)
+    logging.debug(cpu_data)
     logging.debug("ORIGIN ID LIST IN BEST RESULTS GRAPH")
     logging.debug(originID_list)
 
