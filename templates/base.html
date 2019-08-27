@@ -11,6 +11,7 @@
 	<script src="{{ url_for('static', filename='js/lib/jquery-3.4.1.js') }}"></script>
 	<script type="text/javascript" src="{{ url_for('static', filename='js/lib/datatables.min.js') }}"></script>
 	
+	<script src="{{ url_for('static', filename='js/lib/popper.min.js') }}" type="text/javascript"></script>
 	<script src="{{ url_for('static', filename='js/lib/bootstrap.js') }}"></script>
 	<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </head>
@@ -39,6 +40,9 @@
 		<div class="header">
 			<h1 align="center"><a href="/">Performance Comparison Tool</a></h1>
 		</div>
+	{% endblock %}
+
+	{% block navbar %}
 	{% endblock %}
 
 	{% if error %}
