@@ -5,10 +5,11 @@ import pandas as pd
 import numpy as np
 import pymysql
 import configparser
-from flask import Flask, render_template, request, redirect, send_file, url_for, session
+from flask import Flask, render_template, request, redirect, send_file, url_for, session, send_from_directory
 from collections import OrderedDict
 import csv
 import json
+# import counter_graphs
 
 # Uncomment this line for toggling debugging messages on the console
 # logging.basicConfig(level=logging.DEBUG)
@@ -204,6 +205,12 @@ def get_input_filter_condition(test_name, input_filters_list):
         pass
 
     return INPUT_FILTER_CONDITION
+
+# Request route for favicon
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # ALL TESTS PAGE
 @app.route('/')
