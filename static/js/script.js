@@ -1,4 +1,6 @@
-function hideCommon(checkbox) {
+function hideCommon() {
+	$checkboxCommon = $('#checkbox-common')
+
     allRows = document.getElementsByTagName("tr")
 
     for(i = 0; i < allRows.length; i++)
@@ -14,13 +16,13 @@ function hideCommon(checkbox) {
     	}
     	if(arr.length == 1)
     	{
-    		 checkbox.checked ? allRows[i].classList.add("common-attributes") : allRows[i].classList.remove("common-attributes")
+    		 $checkboxCommon.prop('checked') ? allRows[i].classList.add("common-attributes") : allRows[i].classList.remove("common-attributes")
     	}
     	delete arr
     }
 }
 
-function filterTestsByLabel(checkbox){
+function filterTestsByLabel(){
 	// Select all the rows from both tables
 	allRows = document.getElementsByClassName("all-tests-rows")
 
@@ -67,42 +69,52 @@ function filterTestsByLabel(checkbox){
 
 }
 
-function drawBestOfAllGraph(data = {}){
+function drawBestOfAllGraph(normalizedWRT){
 	console.log("DRAWING BEST GRAPH")
 
-	// Selected tests which are to be displayed on the graph
-	allRows = $("tr").filter(function() { return $(this).css("display") != "none" })
+	graphDiv = document.getElementById('best-of-all-graph')
+	if(graphDiv.data && graphDiv.data.normalizedWRT == normalizedWRT)
+	{
+		console.log("SAME REFERENCE MAN" + normalizedWRT)
 
-	selectedTestsList = []
-	for(i = 0; i < allRows.length; i++)
-		selectedTestsList.push(allRows[i].children[0].innerHTML)
-
-	// Normalized (Reference CPU Manufacturer)
-	normalizedWRT = $('#reference-for-normalized option:selected').text()
-
-	data = {
-		'normalizedWRT' : normalizedWRT,
-		'test_name_list' : selectedTestsList,
+		$('#reference-toast-body').html(normalizedWRT + " is already the selected reference")
+		$('#reference-toast').toast('show')
 	}
+	else {
+		// Selected tests which are to be displayed on the graph
+		allRows = $("tr").filter(function() { return $(this).css("display") != "none" })
 
-	// Show "Loading..." message before the graph loads 
-	$("#best-of-all-graph").html("Loading Graph...");
+		selectedTestsList = []
+		for(i = 0; i < allRows.length; i++)
+			selectedTestsList.push(allRows[i].children[0].innerHTML)
 
-	$.ajax({
-    	url: '/best_of_all_graph',
-    	// async: async,
-		method: "POST",
-		dataType: 'json',
-		contentType: "application/json",
-		data: JSON.stringify(data),
-	}).done(function(response){
-		console.log("DONEEEEEEE BEST OF ALL")
-		console.log(response)
+		// Normalized (Reference CPU Manufacturer)
+		// normalizedWRT = $('#reference-for-normalized option:selected').text()
 
-		// Remove the Loading... message
-		$("#best-of-all-graph").empty()
-		drawClusteredGraph(response, graphID = 'best-of-all-graph')
-	})
+		data = {
+			'normalizedWRT' : normalizedWRT,
+			'test_name_list' : selectedTestsList,
+		}
+
+		// Show "Loading..." message before the graph loads 
+		$("#best-of-all-graph").html("Loading Graph...");
+
+		$.ajax({
+	    	url: '/best_of_all_graph',
+	    	// async: async,
+			method: "POST",
+			dataType: 'json',
+			contentType: "application/json",
+			data: JSON.stringify(data),
+		}).done(function(response){
+			console.log("DONEEEEEEE BEST OF ALL")
+			console.log(response)
+
+			// Remove the Loading... message
+			$("#best-of-all-graph").empty()
+			drawClusteredGraph(response, graphID = 'best-of-all-graph')
+		})
+	}
 }
 
 function uncheckBoxes(classname){
@@ -243,6 +255,7 @@ function drawComparisonGraph(response, graphID){
 
 	graphDiv = document.getElementById(graphID);
 
+	console.log("higherIsBetter: " + higherIsBetter);
 	// If it is a normalized graph, then change the title
 	if(graphID == 'best-sku-graph' && $('#normalized-radio-button')[0].checked)
 		title = "Best results normalized w.r.t. " + $('#normalized-dropdown option:selected').text()
@@ -316,6 +329,7 @@ function drawClusteredGraph(response, graphID){
 	referenceColor = response.reference_color
 	visibleList = response.visible_list
 	yAxisUnit = response.y_axis_unit
+	normalizedWRT = response.normalized_wrt
 
 	console.log("DRAWING CLUSTERED GRAPH")
 	graphDiv = document.getElementById(graphID);
@@ -324,7 +338,7 @@ function drawClusteredGraph(response, graphID){
 		visibleList = Array.from(colorList, v=> true)
 
 	if(graphID == 'best-of-all-graph'){
-		title = "Best results normalized w.r.t. " + $('#reference-for-normalized option:selected').text()
+		title = "Best results normalized w.r.t. " + normalizedWRT
 		titlefont = {
     		"size": 30
   		}
@@ -367,6 +381,9 @@ function drawClusteredGraph(response, graphID){
 	console.log(traceList) 
 
 	data = traceList
+
+	// Manually set a normalizedWRT key to the data
+	data.normalizedWRT = normalizedWRT
 
 	if(graphID == 'best-of-all-graph')
 		Plotly.newPlot( graphDiv, data, layout);
