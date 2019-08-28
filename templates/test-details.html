@@ -78,8 +78,65 @@ Test Details
 			</table>
 			<div class="d-flex justify-content-between">
 				<button type="button" id="download-results-table-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
+				{% if context.result_type == 'perf' %}
+					<button type="button" id="generate-counter-graphs" class="btn btn-success font-weight-bold">Generate Counter Graphs</button>
+				{% endif %}		
 			</div>
 		</div>
+
+		<!-- Modal (POPUP) for Counter Graph -->
+		{% if context.result_type == 'perf' %}
+			<div class="modal fade" id="counter-graph-modal" tabindex="-1" role="dialog" aria-labelledby="counter-graph-modal-label" aria-hidden="true">
+				<div class="modal-dialog modal-xl" role="document">
+
+					<!-- Modal Content -->
+					<div class="modal-content">
+						<!-- Header -->
+						<div class="modal-header">
+							<h5 class="modal-title">All Counter Graphs</h5>
+					        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					          <span aria-hidden="true">&times;</span>
+					        </button>
+						</div>
+						<!-- Body -->
+						<!-- You can put as many graphs as you want inside this Body -->
+						<!-- Each card corresponds to a graph -->
+						<div class="modal-body">
+							<div class="d-flex flex-row-reverse">
+								<select id="num-cpus-select" class="form-control form-control-lg w-25 px-2">
+									{% for cpu_count in context.num_cpus_list %}
+										<option value="{{cpu_count}}">{{cpu_count}}</option>
+									{% endfor %}
+								</select>
+
+								<h4 class="align-self-center mx-2">Select Num_CPUs</h4>
+							</div>
+
+							<!-- 13 Counter graphs -->
+							{% for i in range(1,14) %}
+							<div id="counter-graph-card-{{i}}" class="card my-4 p-0">
+								<div class="card-header">
+									<h5 id="counter-graph-title-{{i}}">Loading Graph... This may take a while ...</h5>
+								</div>
+								<div class="card-body m-0 p-0" style="height: 500px;">
+									<div id="counter-graph-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
+								</div>
+								<div class="card-footer">
+									<button id="download-counter-graph-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng(getCounterGraphName('{{i}}'), 'counter-graph-{{i}}')">Download as PNG</button>
+								</div>
+							</div>
+
+							{% endfor %}
+
+						</div>
+						<!-- Footer -->
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+						</div>
+					</div>
+		    	</div>
+		    </div>
+		{% endif %}
 	</div>
 	
 	<script>
@@ -140,6 +197,85 @@ Test Details
 			downloadAsCsv(filename, data, $form)
 		})
 
+		// Open the modal (popup) having 13 counter graphs
+		$('#generate-counter-graphs').click(function(){
+			// Set select to first option
+			$firstOption = $('#num-cpus-select option').first().text()
+			$("#num-cpus-select").val($firstOption);
+
+			$("#counter-graph-modal").modal();
+			drawCounterGraphs()
+		})
+
+		// On Num_CPUs change event
+		$("#num-cpus-select").change(function(){
+			drawCounterGraphs()
+		})
+
+		function drawCounterGraphs(){
+			ajaxData = {
+				'jobname' : '{{context.jenkins_details.jobname}}',
+				'runID' : '{{context.jenkins_details.runID}}',
+				'numCPUs' : $('#num-cpus-select option:selected').text(),
+			}
+			$.ajax({
+		    	url: '/counter_graphs',
+				method: "POST",
+				dataType: 'json',
+				contentType: "application/json",
+				data: JSON.stringify(ajaxData),
+
+			}).done(function(response){
+				console.log("DONEEEEEEE")
+				console.log(response)
+				console.log(Object.keys(response))
+
+				$.each(Object.keys(response), function(index, graphName){
+					$('#counter-graph-title-'+(index+1)).html(graphName)
+					console.log(graphName)
+					console.log(response[graphName])
+
+					// Set title for that particular graph
+					response[graphName]['graphTitle'] = graphName
+					graphType = response[graphName]['graph_type']
+
+					if(graphType == 'histogram'){
+						drawHistogram(response[graphName], 'counter-graph-'+(index+1))
+					}
+					else if(graphType == 'stack')
+					{
+						drawStackGraph(response[graphName], 'counter-graph-'+(index+1))
+					}
+					else if(graphType == 'line')
+						drawLineGraph(response[graphName], 'counter-graph-'+(index+1))	
+				});
+
+			})
+		}
+
+		// Get name of the graph from the graph index
+		function getCounterGraphName(index){
+			console.log(index)
+			counterGraphNameMap = {
+				1: 'Counter Graph 1',
+				2: 'Counter Graph 2',
+				3: 'Counter Graph 3',
+				4: 'Counter Graph 4',
+				5: 'Counter Graph 5',
+				6: 'Counter Graph 6',
+				7: 'Counter Graph 7',
+				8: 'Counter Graph 8',
+				9: 'Counter Graph 9',
+				10: 'Counter Graph 10',
+				11: 'Counter Graph 11',
+				12: 'Counter Graph 12',
+				13: 'Counter Graph 13',
+			}
+
+			console.log(counterGraphNameMap)
+			console.log(counterGraphNameMap[index])
+			return counterGraphNameMap[index];
+		}
 	</script>	
 
 {% endblock %}
