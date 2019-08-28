@@ -525,3 +525,89 @@ function drawNormalizedGraph(graphID, testname) {
 
 	sendAjaxRequest(data, '/best_sku_graph_normalized')
 }
+
+function drawLineGraph(response, graphID) {
+	console.log("DRAWING LINE GRAPH")
+	console.log(response)
+	xListList = response.x_list_list 
+	yListList = response.y_list_list 
+	legendList = response.legend_list
+	xParameter = response.xParameter
+	yParameter = response.yParameter
+	graphTitle = response.graphTitle
+
+	// List  of traces to be drawn
+	traceList = []
+	xListList.forEach((value, index) => {
+		traceList.push({
+			type: 'scatter',
+			x: xListList[index],
+			y: yListList[index],
+			mode: 'lines',
+			name: legendList[index],
+			line: {
+				width: 3,
+			}				
+		})
+	}) 
+
+	layout = {
+		title: graphTitle,
+	};
+
+	Plotly.newPlot(graphID, traceList, layout);
+}
+
+function drawStackGraph(response, graphID) {
+	console.log("Drawing Stack Graph")
+	console.log(response)
+
+	xList = response.x_list
+	yListList = response.y_list_list
+	legendList = response.legend_list
+	xParameter = response.xParameter
+	yParameter = response.yParameter
+	graphTitle = response.graphTitle
+
+	// List  of traces to be drawn
+	traceList = []
+	yListList.forEach((value, index) => {
+		traceList.push({
+			x: xList,
+	  		y: yListList[index],
+  			name: legendList[index],
+  			type: 'bar'
+		})
+	}) 
+
+	// Bar-mode is stack
+	layout = {barmode: 'stack'};
+
+	Plotly.newPlot(graphID, traceList, layout);
+}
+
+function drawHistogram(response, graphID) {
+	console.log("DRAWING HISTOGRAM")
+	
+	xListList = response.x_list_list
+	legendList = response.legend_list
+	binSize = response.bin_size
+	xParameter = response.xParameter
+	yParameter = response.yParameter
+	graphTitle = response.graphTitle
+
+	// List  of traces to be drawn
+	traceList = []
+	xListList.forEach((value, index) => {
+		traceList.push({
+			x: xListList[index],
+    		type: 'histogram',
+    		xbins: { 
+			    size: binSize[index], 
+			}
+		})
+	}) 
+
+	Plotly.newPlot(graphID, traceList);
+
+}
