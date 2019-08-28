@@ -64,57 +64,56 @@ function filterTestsByLabel(){
 	}
 	console.log("FILTER LISTS IS: " + filterList)
 
+	// Get normalized WRT if graph exists, or choose the first one
+	// Graph does not exist initially when we load/refresh page
+	$dropdownMenu = $('#reference-for-normalized-dropdown')
+	$firstNormalized = $dropdownMenu.children()[1].innerHTML
+	
+	graphDiv = document.getElementById('best-of-all-graph')
+	normalizedWRT = graphDiv.data ? graphDiv.data.normalizedWRT : $firstNormalized
+	
 	//Draw new best_of_all_graph according to filters
-	drawBestOfAllGraph()
-
+	drawBestOfAllGraph(normalizedWRT)
 }
 
 function drawBestOfAllGraph(normalizedWRT){
 	console.log("DRAWING BEST GRAPH")
+	console.log(normalizedWRT)
 
-	graphDiv = document.getElementById('best-of-all-graph')
-	if(graphDiv.data && graphDiv.data.normalizedWRT == normalizedWRT)
-	{
-		console.log("SAME REFERENCE MAN" + normalizedWRT)
 
-		$('#reference-toast-body').html(normalizedWRT + " is already the selected reference")
-		$('#reference-toast').toast('show')
+	// Selected tests which are to be displayed on the graph
+	allRows = $("tr").filter(function() { return $(this).css("display") != "none" })
+
+	selectedTestsList = []
+	for(i = 0; i < allRows.length; i++)
+		selectedTestsList.push(allRows[i].children[0].innerHTML)
+
+	// Normalized (Reference CPU Manufacturer)
+	// normalizedWRT = $('#reference-for-normalized option:selected').text()
+
+	data = {
+		'normalizedWRT' : normalizedWRT,
+		'test_name_list' : selectedTestsList,
 	}
-	else {
-		// Selected tests which are to be displayed on the graph
-		allRows = $("tr").filter(function() { return $(this).css("display") != "none" })
 
-		selectedTestsList = []
-		for(i = 0; i < allRows.length; i++)
-			selectedTestsList.push(allRows[i].children[0].innerHTML)
+	// Show "Loading..." message before the graph loads 
+	$("#best-of-all-graph").html("Loading Graph...");
 
-		// Normalized (Reference CPU Manufacturer)
-		// normalizedWRT = $('#reference-for-normalized option:selected').text()
+	$.ajax({
+    	url: '/best_of_all_graph',
+    	// async: async,
+		method: "POST",
+		dataType: 'json',
+		contentType: "application/json",
+		data: JSON.stringify(data),
+	}).done(function(response){
+		console.log("DONEEEEEEE BEST OF ALL")
+		console.log(response)
 
-		data = {
-			'normalizedWRT' : normalizedWRT,
-			'test_name_list' : selectedTestsList,
-		}
-
-		// Show "Loading..." message before the graph loads 
-		$("#best-of-all-graph").html("Loading Graph...");
-
-		$.ajax({
-	    	url: '/best_of_all_graph',
-	    	// async: async,
-			method: "POST",
-			dataType: 'json',
-			contentType: "application/json",
-			data: JSON.stringify(data),
-		}).done(function(response){
-			console.log("DONEEEEEEE BEST OF ALL")
-			console.log(response)
-
-			// Remove the Loading... message
-			$("#best-of-all-graph").empty()
-			drawClusteredGraph(response, graphID = 'best-of-all-graph')
-		})
-	}
+		// Remove the Loading... message
+		$("#best-of-all-graph").empty()
+		drawClusteredGraph(response, graphID = 'best-of-all-graph')
+	})
 }
 
 function uncheckBoxes(classname){
@@ -318,7 +317,7 @@ function drawComparisonGraph(response, graphID){
 	})
 }
 
-function drawClusteredGraph(response, graphID){
+function drawClusteredGraph(response, graphID) {
 	xListList = response.x_list_list
 	yListList = response.y_list_list
 	colorList = response.color_list
@@ -473,7 +472,7 @@ function drawClusteredGraph(response, graphID){
 
 }
 
-function drawNormalizedGraph(graphID, testname){
+function drawNormalizedGraph(graphID, testname) {
 	console.log("DRAWING NORMALIZED GRAPH")
 
 	var gd = document.getElementById(graphID)
