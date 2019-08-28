@@ -16,10 +16,10 @@ All tests page
 			<div class="dropdown">
 				<button id="reference-for-normalized" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
 				Select Reference </button>
-				<div class="dropdown-menu">
+				<div id="reference-for-normalized-dropdown" class="dropdown-menu">
 					<h4 class="dropdown-header">CPU Names</h4>
 					{% for reference in context.reference_list %}
-						<button class="dropdown-item" onclick="drawBestOfAllGraph('{{ reference }}')">{{ reference }}</button>
+						<button class="dropdown-item" onclick="normalizedReferenceChanged('{{ reference }}')">{{ reference }}</button>
 					{% endfor %}
 				</div>
 			</div>
@@ -75,7 +75,7 @@ All tests page
 			</table>
 		</div>
 	</div>
-	
+
 <script>
 	
 	$(document).ready(function() {
@@ -88,6 +88,20 @@ All tests page
     	drawBestOfAllGraph('{{ context.reference_list[0] }}')
 
 	});
+
+	function normalizedReferenceChanged(normalizedWRT) {
+		graphDiv = document.getElementById('best-of-all-graph')
+	
+		if(graphDiv.data && graphDiv.data.normalizedWRT == normalizedWRT)
+		{
+			console.log("SAME REFERENCE MAN" + normalizedWRT)
+
+			$('#reference-toast-body').html(normalizedWRT + " is already the selected reference")
+			$('#reference-toast').toast('show')
+		}
+		else
+			drawBestOfAllGraph(normalizedWRT)
+	}
 
 </script>
 
