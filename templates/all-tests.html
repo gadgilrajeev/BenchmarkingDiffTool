@@ -36,45 +36,46 @@ All tests page
 
 	</div>
 
-<div class="container-fluid d-flex justify-content-around">
-	<div class='card w-25 bg-light border-info font-weight-bold'>
-		<div class="card-header bg-success text-white">
-			<h2>Filter tests</h2>
-		</div>
-		<form>
-			<div class="card-body">
-				{% for filter in context.filter_labels_list %}
-					<div class="custom-control custom-checkbox">
-					    <input type="checkbox" class="custom-control-input filter-checkboxes" id="{{ filter }}" onclick="filterTestsByLabel()" name="{{ filter }}" value="{{ filter }}">
-					    <label class="custom-control-label" for="{{ filter }}">{{ filter }}</label>
-	  				</div>
-				{% endfor %}
+	<div class="container-fluid d-flex justify-content-around">
+		<div class='card w-25 bg-light border-info font-weight-bold'>
+			<div class="card-header bg-success text-white">
+				<h2>Filter tests</h2>
 			</div>
-		</form>
+			<form>
+				<div class="card-body">
+					{% for filter in context.filter_labels_list %}
+						<div class="custom-control custom-checkbox">
+						    <input type="checkbox" class="custom-control-input filter-checkboxes" id="{{ filter }}" onclick="filterTestsByLabel()" name="{{ filter }}" value="{{ filter }}">
+						    <label class="custom-control-label" for="{{ filter }}">{{ filter }}</label>
+		  				</div>
+					{% endfor %}
+				</div>
+			</form>
+		</div>
+		<div class='w-25'>
+			<h2 class="mx-2 mb-2 pb-2">HPC BENCHMARKS</h2>
+			<table class="table table-dark table-hover" id="hpc-benchmarks-list">
+				{% for benchmark in context.hpc_benchmarks_list %}
+					<tr class="all-tests-rows">
+						<td class="all-tests-cells" onclick="showAllRuns(this)"> {{ benchmark }} </td>
+						<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
+					</tr>
+				{% endfor %}
+			</table>
+		</div>
+		<div class='w-25'>
+			<h2 class="mx-2 mb-2 pb-2">CLOUD BENCHMARKS</h2>
+			<table class="table table-dark table-hover" id="cloud-benchmarks-list">
+				{% for benchmark in context.cloud_benchmarks_list %}
+					<tr class="all-tests-rows">
+						<td class="all-tests-cells" onclick="showAllRuns(this)"> {{ benchmark }} </td>
+						<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
+					</tr>
+				{% endfor %}
+			</table>
+		</div>
 	</div>
-	<div class='w-25'>
-		<h2 class="mx-2 mb-2 pb-2">HPC BENCHMARKS</h2>
-		<table class="table table-dark table-hover" id="hpc-benchmarks-list">
-			{% for benchmark in context.hpc_benchmarks_list %}
-				<tr class="all-tests-rows">
-					<td class="all-tests-cells" onclick="showAllRuns(this)"> {{ benchmark }} </td>
-					<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
-				</tr>
-			{% endfor %}
-		</table>
-	</div>
-	<div class='w-25'>
-		<h2 class="mx-2 mb-2 pb-2">CLOUD BENCHMARKS</h2>
-		<table class="table table-dark table-hover" id="cloud-benchmarks-list">
-			{% for benchmark in context.cloud_benchmarks_list %}
-				<tr class="all-tests-rows">
-					<td class="all-tests-cells" onclick="showAllRuns(this)"> {{ benchmark }} </td>
-					<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
-				</tr>
-			{% endfor %}
-		</table>
-	</div>
-</div>
+	
 <script>
 	
 	$(document).ready(function() {
