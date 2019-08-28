@@ -9,7 +9,7 @@ from flask import Flask, render_template, request, redirect, send_file, url_for,
 from collections import OrderedDict
 import csv
 import json
-# import counter_graphs
+import counter_graphs_module
 
 # Uncomment this line for toggling debugging messages on the console
 # logging.basicConfig(level=logging.DEBUG)
@@ -55,10 +55,14 @@ def get_test_name(originID):
 
     return test_name
 
+#Template filter for 'unique_list'
+@app.template_filter('unique_list')
+def unique_list_filter(input_list):
+    return unique_list(input_list)
+
 # Takes input as a list containg duplicate elements. 
 # Returns a sorted list having unique elements
-@app.template_filter('unique_list')
-def unique_list(input_list):
+def unique_list(input_list, reverse=False):
     def str_is_int(s):
         try:
             int(s)
@@ -89,7 +93,10 @@ def unique_list(input_list):
         logging.debug("WAS INSTANCE OF NONE MAN")
 
     # Return all values as STR
-    return list(map(lambda x: str(x), sorted(lst)))
+    if reverse:
+        return list(reversed(list(map(lambda x: str(x), sorted(lst)))))
+    else:
+        return list(map(lambda x: str(x), sorted(lst)))
 
 @app.template_filter('no_of_rows')
 def no_of_rows(dictionary):
@@ -365,7 +372,7 @@ def getAllRunsData(testname, secret=False):
         test_summary_parser.read(test_summary_file_path)
 
         test_summary = {}
-        test_summary['summary'] = test_summary_parser.get(testname, 'summary')
+        test_summary['summary'] = test_summary_parser.get(testname, 'summary').replace('\"','')
         test_summary['source_code_link'] = test_summary_parser.get(testname, 'source_code_link')
         test_summary['type_of_workload'] = test_summary_parser.get(testname, 'type_of_workload')
         test_summary['default_input'] = test_summary_parser.get(testname, 'default_input')
@@ -384,7 +391,7 @@ def getAllRunsData(testname, secret=False):
 
         return context
 
-
+# Show all runs of a test 'testname'
 @app.route('/allruns/<testname>', methods=['GET'])
 def showAllRuns(testname):
     context = getAllRunsData(testname)
@@ -476,7 +483,11 @@ def getTestDetailsData(originID, secret=False):
                          passwd='', db='benchtooldb', port=3306)
     result_type_map = {0: "single thread", 1: 'single core',
                        2: 'single socket', 3: 'dual socket',
-                       4: 'Scaling'}
+                       4: 'client scaling', 5: '1/8th socket',
+                       6: '1/4th socket', 7: '1/2 socket',
+                       8: '2 cores', 9: 'perf',
+                       10: 'I/O utilization', 11: 'socmon',
+                       12: 'OMP_MPI scaling', 20: 'Projection'}
 
     # Just get the TEST name
     test_name = get_test_name(originID)
@@ -543,14 +554,40 @@ def getTestDetailsData(originID, secret=False):
         del results_dataframe['isvalid']
 
         # Get some System details
-        SYSTEM_DETAILS_QUERY = """SELECT DISTINCT O.hostname, O.testdate, O.originID as 'Environment Details'
-                                FROM result R INNER JOIN origin O ON O.originID=R.origin_originID 
+        SYSTEM_DETAILS_QUERY = """SELECT DISTINCT O.hostname, O.testdate, O.originID as 'Environment Details',  S.resultype 
+                                FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID 
+                                INNER JOIN origin O ON O.originID=R.origin_originID 
                                 WHERE O.originID=""" + originID + ";"
         system_details_dataframe = pd.read_sql(SYSTEM_DETAILS_QUERY, db)
 
-        # # Update the Result type (E.g. 0->single thread)
-        # system_details_dataframe.update(pd.DataFrame(
-        #     {'resultype': [result_type_map[system_details_dataframe['resultype'][0]]]}))
+        # Update the Result type (E.g. 0->single thread)
+        try:
+            system_details_dataframe.update(pd.DataFrame(
+                {'resultype': [result_type_map[system_details_dataframe['resultype'][0]]]}))
+
+            # Get result_type and remove it from system_details_dataframe (pop)
+            result_type = system_details_dataframe.pop('resultype')[0]
+        except:
+            result_type = None
+            logging.warning('Couldn\'t get Result Type')
+
+        logging.debug(result_type)
+
+        # Get Num_CPUs list if result_type is 'perf'
+        if result_type == "perf":
+            try:
+                # Calls unique_list function on list of unique 'Num_CPUs'
+                num_cpus_list = unique_list((results_dataframe['Num_CPUs']), reverse=True)
+                logging.debug("GOT NUM CPUS")
+                logging.debug(num_cpus_list)
+            except Exception as e:
+                num_cpus_list = None
+                logging.debug(e)
+                # logging.debug(results_dataframe)
+                logging.debug("DIDNT GET NUM CPUS")
+        else:
+            num_cpus_list = None
+
 
         # Get the rest of the system details from jenkins table
         JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O INNER JOIN jenkins J 
@@ -576,6 +613,14 @@ def getTestDetailsData(originID, secret=False):
             'description_list': description_string.split(','),
             'results': results_dataframe.to_dict(orient='list'),
             'originID': originID,
+            
+            # Used For 'perf' scaling result_type
+            'result_type': result_type,
+            'jenkins_details' : {
+                'jobname' : jenkins_details['jobname'][0],
+                'runID' : str(jenkins_details['runID'][0]),
+            },
+            'num_cpus_list' : num_cpus_list,
         }
 
         return context
@@ -624,7 +669,7 @@ def showTestDetailsSecret(originID):
         
         return render_template('secret-test-details.html', success=success, error=error, keyerror=keyerror, context=context)
 
-
+# Marks a single 'result' invalid
 @app.route('/mark-result-id-invalid', methods=['POST'])
 def markResultIDInvalid():
     logging.debug("\n\n\n#REQUEST#########")
@@ -1172,7 +1217,6 @@ def get_data_for_graph():
 
     return response
 
-
 # This function handles the AJAX request for Best SKU Graph data.
 # JS then draws the graph using this data
 @app.route('/best_sku_graph', methods=['POST'])
@@ -1575,6 +1619,24 @@ def best_of_all_graph():
 
 
     return response
+
+@app.route('/counter_graphs', methods=['POST'])
+def counter_graphs():
+    data = request.get_json()
+
+    logging.debug("DATA = ", data)\
+
+    # Generate nas_path from received data
+    nas_path = "/mnt/nas/dbresults/" + data['jobname'] + '/' + data['runID'] + '/results/' + data['numCPUs'];
+    logging.debug("NAS PATH",nas_path)
+
+    # Get counter_graphs_data from the nas_path
+    counter_graphs_data = counter_graphs_module.process_perf_stat_files(nas_path)
+
+    print("COUNTERS HISTOGRAM DATA")
+    print(counter_graphs_data['dmc_histogram_data'])
+
+    return counter_graphs_data
 
 # One function for downloading everything as CSV
 @app.route('/download_as_csv', methods=['POST'])
