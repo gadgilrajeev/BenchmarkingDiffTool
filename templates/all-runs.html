@@ -8,14 +8,14 @@ All Runs of the test
 {% block content %}
 
 	<div style="display: grid; grid-template-columns: repeat(12, 1fr); padding:0; margin:0;">
-		<h2 class="btn btn-link" style="grid-column: 5/8; justify-self: stretch; align-self: center; font-size: 40px; font-weight: bold;">
+		<h2 class="btn btn-link font-weight-bold" style="grid-column: 5/8; justify-self: stretch; align-self: center; font-size: 40px; font-weight: bold;">
 			{{ context.testname }}
 		</h2>
 	</div>
 
-	<div class="card text-white bg-info">
-		<div class="card-header font-weight-bolder" style="font-size: 25px;">Summary of the test</div>
-		<div class="card-body">
+	<div class="card border-info">
+		<div class="card-header bg-transparent border-info font-weight-bolder" style="font-size: 25px;">Summary of the test</div>
+		<div class="card-body text-secondary">
 			<h5 class="font-weight-bold card-title">Summary</h5>
 			<p class="card-text">{{context.test_summary.summary}}</p>
 			<div class="collapse" id="fullSummaryCollapse">
@@ -34,15 +34,15 @@ All Runs of the test
 
 			</div>
 		</div>
-		<div class="card-footer">
-			<button class="btn btn-dark font-weight-bold" type="button" data-toggle="collapse" data-target="#fullSummaryCollapse" aria-expanded="false" aria-controls="fullSummaryCollapse">
+		<div class="card-footer bg-transparent border-info d-flex flex-row-reverse">
+			<button class="btn btn-success font-weight-bold" type="button" data-toggle="collapse" data-target="#fullSummaryCollapse" aria-expanded="false" aria-controls="fullSummaryCollapse">
 				View full Summary
 			</button>
 		</div>
 	</div>
 	
-	<div id="outer-graph-div">
-		<div id="input-filter-div">
+	<div class="card bg-info" id="outer-graph-div">
+		<div class="card-header bg-transparent p-0" id="input-filter-div">
 			<h2>Filters</h2>
 				{% for column in context.input_details %}
 					{% set i = loop.index0 %}
@@ -50,7 +50,7 @@ All Runs of the test
 					<div>
 						<form>
 							<label class = "h4" for="input-parameter-{{column}}">{{column}}</label>
-							<select class="input-parameter-select" name="input-parameter-{{column}}" id="input-parameter-{{column}}">
+							<select class="input-parameter-select form-control form-control-lg" name="input-parameter-{{column}}" id="input-parameter-{{column}}">
 								<option value="None">None</option>
 								{% for option in options_list %}
 									{% if option == context.default_input_filters[i] %}
@@ -65,11 +65,11 @@ All Runs of the test
 				{% endfor %}
 		</div>
 
-		<div id="engineering-graph-div">
-			<div id="engineering-team-title"><h2>For Engineering Team</h2></div>
+		<div class="card bg-light border-info" id="engineering-graph-div">
+			<div class="card-header" id="engineering-team-title"><h2>For Engineering Team</h2></div>
 			<div id="clustered-graph"></div>
 
-			<select id="yParameter" name="yParameter">
+			<select id="yParameter" class="form-control form-control-lg" name="yParameter">
 				<!-- TAKING PARAMETERS FROM INI FILE -->
 				{% for qualifier in context.qualifier_list %}
 					{% if loop.index0 == 0 %}
@@ -80,7 +80,7 @@ All Runs of the test
 				{% endfor %}
 			</select>
 			<p>vs</p>
-			<select id="xParameter" name="xParameter">
+			<select id="xParameter" class="form-control form-control-lg" name="xParameter">
 				<option value="Kernel Version" selected="selected">Kernel Version</option>
 				<option value="OS Version">OS Version</option>
 				<option value="OS Name">OS Name</option>
@@ -100,19 +100,19 @@ All Runs of the test
 			
 		</div>
 
-		<div id="marketing-graph-div">
-			<div id="marketing-team-title"><h2>For Marketing and Communication Team</h2></div>
+		<div class="card bg-light border-info" id="marketing-graph-div">
+			<div class="card-header" id="marketing-team-title"><h2>For Marketing and Communication Team</h2></div>
 			<div id="best-sku-graph"></div>
 
-			<div id="absolute-radio-div">
-				<label for="absolute-radio-button">Absolute</label>
-				<input type="radio" name="typeOfGraph" id="absolute-radio-button" checked="checked" value="Absolute">
+			<div id="absolute-radio-div" class="custom-control custom-radio">
+				<input type="radio" name="typeOfGraph" id="absolute-radio-button" class="custom-control-input" checked="checked" value="Absolute">
+				<label for="absolute-radio-button" class="custom-control-label">Absolute</label>
 			</div>
-			<div id="normalized-radio-div">
-				<label for="normalized-radio-button">Normalized</label>
-				<input type="radio" name="typeOfGraph" id="normalized-radio-button" value="Normalized">
+			<div id="normalized-radio-div" class="custom-control custom-radio">
+				<input type="radio" name="typeOfGraph" id="normalized-radio-button" class="custom-control-input" value="Normalized">
+				<label for="normalized-radio-button" class="custom-control-label">Normalized</label>
 			</div>
-			<select id="normalized-dropdown" name="normalized-dropdown">
+			<select id="normalized-dropdown" class="form-control form-control-lg" name="normalized-dropdown">
 
 			</select>
 			
