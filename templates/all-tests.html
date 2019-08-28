@@ -36,9 +36,10 @@ All tests page
 
 	</div>
 
-	<div class='all-results-page card bg-light border-info font-weight-bold'>
-		<div class="card-header">
-			<h2 >Filter tests</h2>
+<div class="container-fluid d-flex justify-content-around">
+	<div class='card w-25 bg-light border-info font-weight-bold'>
+		<div class="card-header bg-success text-white">
+			<h2>Filter tests</h2>
 		</div>
 		<form>
 			<div class="card-body">
@@ -51,7 +52,7 @@ All tests page
 			</div>
 		</form>
 	</div>
-	<div class='all-results-page'>
+	<div class='w-25'>
 		<h2 class="mx-2 mb-2 pb-2">HPC BENCHMARKS</h2>
 		<table class="table table-dark table-hover" id="hpc-benchmarks-list">
 			{% for benchmark in context.hpc_benchmarks_list %}
@@ -62,7 +63,7 @@ All tests page
 			{% endfor %}
 		</table>
 	</div>
-	<div class='all-results-page'>
+	<div class='w-25'>
 		<h2 class="mx-2 mb-2 pb-2">CLOUD BENCHMARKS</h2>
 		<table class="table table-dark table-hover" id="cloud-benchmarks-list">
 			{% for benchmark in context.cloud_benchmarks_list %}
@@ -73,7 +74,7 @@ All tests page
 			{% endfor %}
 		</table>
 	</div>
-
+</div>
 <script>
 	
 	$(document).ready(function() {
