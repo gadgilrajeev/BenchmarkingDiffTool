@@ -12,7 +12,7 @@ import json
 import counter_graphs_module
 
 # Uncomment this line for toggling debugging messages on the console
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 # from datetime import datetime
 app = Flask(__name__)
@@ -81,7 +81,7 @@ def unique_list(input_list, reverse=False):
     # OrderedDict creates unique keys. It also preserves the order of insertion
     lst = list(OrderedDict.fromkeys(input_list))
 
-    logging.debug(lst)
+    logging.debug(" = {}".format(lst))
 
     if all(str_is_int(x) for x in lst):
         logging.debug("WAS INSTANCE OF INT MAN")
@@ -208,7 +208,7 @@ def get_input_filter_condition(test_name, input_filters_list):
                 else:
                     INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1) LIKE \'%" + input_filter  + "%\'"
     except Exception as error_message:
-        logging.debug("ERRORS::::::: ", error_message)
+        logging.debug("ERRORS::::::: {}".format(error_message))
         pass
 
     return INPUT_FILTER_CONDITION
@@ -233,7 +233,7 @@ def home_page():
 
     reference_list = sku_parser.sections();
     logging.debug("SECTIONS")
-    logging.debug(reference_list)
+    logging.debug("{}".format(reference_list))
 
 
     filter_labels_dict = {}
@@ -281,8 +281,8 @@ def getAllRunsData(testname, secret=False):
                     .replace('\"', '').replace(' ', '').split(',')
 
     logging.debug("########PRINTING QUALIFIER LIST AND MIN OR MAX LIST#########")
-    logging.debug(qualifier_list)
-    logging.debug(min_or_max_list)
+    logging.debug("{}".format(qualifier_list))
+    logging.debug("{}".format(min_or_max_list))
 
     if secret == True:
         RESULTS_VALIDITY_CONDITION = " "
@@ -340,8 +340,8 @@ def getAllRunsData(testname, secret=False):
                                 ON o.originID = r.origin_originID INNER JOIN subtest s
                                 ON  r.subtest_subtestID = s.subtestID WHERE r.isvalid = 1 and t.testname = \'""" + testname + "\';"
         input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
-        logging.debug(input_parameters)
-        logging.debug(input_details_df)
+        logging.debug("{}".format(input_parameters))
+        logging.debug("{}".format(input_details_df))
 
         # Function which splits the description string into various parameters 
         # according to 'description' field of the '.ini' file
@@ -349,7 +349,7 @@ def getAllRunsData(testname, secret=False):
             try:
                 return description.split(',')[index]
             except Exception as error_message:
-                logging.debug(error_message)
+                logging.debug("{}".format(error_message))
                 return np.nan
 
         # Split the 'description' column into multiple columns
@@ -408,7 +408,7 @@ def showAllRunsSecret(testname):
         error = {}
         keyerror = {}
         logging.debug("#######POSTED###########")
-        logging.debug(request.args)
+        logging.debug("{}".format(request.args))
         
         # Get doesn't throw error. 
         # If key is not present it sets to default ('None' most of the times)
@@ -416,16 +416,16 @@ def showAllRunsSecret(testname):
         error = session.get('error')
         keyerror = session.get('keyerror')
     
-        logging.debug('success', success)
-        logging.debug('error', error)
-        logging.debug('keyerror', keyerror)
+        logging.debug('success = {}'.format(success))
+        logging.debug('error = {}'.format(error))
+        logging.debug('keyerror = {}'.format(keyerror))
 
         logging.debug("#######SESSION BEFORE ####")
-        logging.debug(session)
+        logging.debug(' = {}'.format(session))
         logging.debug("########SESSION AFTER $$$$")
         # Clear the contents of the session (cookies)
         session.clear()
-        logging.debug(session)
+        logging.debug(' = {}'.format(session))
 
         context = context = getAllRunsData(testname, secret=True)
         
@@ -434,11 +434,11 @@ def showAllRunsSecret(testname):
 @app.route('/mark-origin-id-invalid', methods=['POST'])
 def markOriginIDInvalid():
     logging.debug("\n\n\n#REQUEST#########")
-    logging.debug(request.form)
+    logging.debug(" = {}".format(request.form))
 
     data = json.loads(request.form.get('data'))
     logging.debug("JSON STATHAM")
-    logging.debug(data)
+    logging.debug(" = {}".format(data))
 
     originID = data.get('originID')
     testname = data.get('testname')
@@ -525,7 +525,7 @@ def getTestDetailsData(originID, secret=False):
         try:
             return description.split(',')[index]
         except Exception as error_message:
-            logging.debug(error_message)
+            logging.debug(" = {}".format(error_message))
             return np.nan
 
     # For all the rows in the dataframe, set the description_list values
@@ -571,7 +571,7 @@ def getTestDetailsData(originID, secret=False):
             result_type = None
             logging.warning('Couldn\'t get Result Type')
 
-        logging.debug(result_type)
+        logging.debug(" = {}".format(result_type))
 
         # Get Num_CPUs list if result_type is 'perf'
         if result_type == "perf":
@@ -579,10 +579,10 @@ def getTestDetailsData(originID, secret=False):
                 # Calls unique_list function on list of unique 'Num_CPUs'
                 num_cpus_list = unique_list((results_dataframe['Num_CPUs']), reverse=True)
                 logging.debug("GOT NUM CPUS")
-                logging.debug(num_cpus_list)
+                logging.debug(" = {}".format(num_cpus_list))
             except Exception as e:
                 num_cpus_list = None
-                logging.debug(e)
+                logging.debug(" = {}".format(e))
                 # logging.debug(results_dataframe)
                 logging.debug("DIDNT GET NUM CPUS")
         else:
@@ -646,7 +646,7 @@ def showTestDetailsSecret(originID):
         error = {}
         keyerror = {}
         logging.debug("#######POSTED###########")
-        logging.debug(request.args)
+        logging.debug(' = {}'.format(request.args))
         
         # Get doesn't throw error. 
         # If key is not present it sets to default ('None' most of the times)
@@ -654,16 +654,16 @@ def showTestDetailsSecret(originID):
         error = session.get('error')
         keyerror = session.get('keyerror')
     
-        logging.debug('success', success)
-        logging.debug('error', error)
-        logging.debug('keyerror', keyerror)
+        logging.debug('success = {}'.format(success))
+        logging.debug('error = {}'.format(error))
+        logging.debug('keyerror = {}'.format(keyerror))
 
         logging.debug("#######SESSION BEFORE ####")
-        logging.debug(session)
+        logging.debug(' = {}'.format(session))
         logging.debug("########SESSION AFTER $$$$")
         # Clear the contents of the session (cookies)
         session.clear()
-        logging.debug(session)
+        logging.debug(' = {}'.format(session))
 
         context = getTestDetailsData(originID, secret=True)
         
@@ -673,11 +673,11 @@ def showTestDetailsSecret(originID):
 @app.route('/mark-result-id-invalid', methods=['POST'])
 def markResultIDInvalid():
     logging.debug("\n\n\n#REQUEST#########")
-    logging.debug(request.form)
+    logging.debug(' = {}'.format(request.form))
 
     data = json.loads(request.form.get('data'))
     logging.debug("JSON STATHAM")
-    logging.debug(data)
+    logging.debug('Data = {}'.format(data))
 
     originID = data.get('originID')
     resultID = data.get('resultID')
@@ -821,7 +821,7 @@ def diffTests():
         originID_compare_list = [value for key, value in request.args.items() if "diff-checkbox" in key]
 
         originID_compare_list.sort()
-        logging.debug(originID_compare_list)
+        logging.debug(' = {}'.format(originID_compare_list))
 
         # Get the Test name
         test_name = get_test_name(originID_compare_list[0])
@@ -946,7 +946,7 @@ def diffTests():
             final_results_dataframe = final_results_dataframe.append(dataframe)
 
         logging.debug("PRINTING THE FINAL DATAFRAME")
-        logging.debug(final_results_dataframe)
+        logging.debug(' = {}'.format(final_results_dataframe))
         logging.debug("DONE")
 
         # DROP THE NAN rows for comparing results in graphs
@@ -960,7 +960,7 @@ def diffTests():
         final_results_dataframe = final_results_dataframe.fillna("")
 
         logging.debug("PRINTING COMPARABLE RESULTS")
-        logging.debug(comparable_results)
+        logging.debug(' = {}'.format(comparable_results))
         logging.debug("DONE")
 
         # Delete the results_param_list as it is no longer needed
@@ -1106,8 +1106,8 @@ def get_data_for_graph():
             except:
                 break
 
-        logging.debug("AFTER REMOVING wrong entries \n")
-        logging.debug("PRINTING X LIST \n", x_list)
+        logging.debug("\nAFTER REMOVING wrong entries \n")
+        logging.debug("\nPRINTING X LIST  = {}".format(x_list))
 
         y_list = []
         originID_list = []
@@ -1159,9 +1159,9 @@ def get_data_for_graph():
                 skuid_list.extend(y_df['skuidname'].to_list())
                 skuid_list[-1] = skuid_list[-1].strip()
 
-        logging.debug("PRINTING Y LIST ", y_list)
-        logging.debug("PRINTING ORIGIN LIST", originID_list)
-        logging.debug("PRINTING SKUID LIST", skuid_list)
+        logging.debug("PRINTING Y LIST = {}".format(y_list))
+        logging.debug("PRINTING ORIGIN LIST= {}".format(originID_list))
+        logging.debug("PRINTING SKUID LIST = {}".format(skuid_list))
 
         # Remove all the entries where skuid = ''
         while True:
@@ -1175,9 +1175,9 @@ def get_data_for_graph():
                 break
     
         logging.debug("\n\n###############\n\nPrinting after removing wrong entries")
-        logging.debug("PRINTING Y LIST ", y_list)
-        logging.debug("PRINTING ORIGIN LIST", originID_list)
-        logging.debug("PRINTING SKUID LIST", skuid_list)
+        logging.debug("PRINTING Y LIST = {}".format(y_list))
+        logging.debug("PRINTING ORIGIN LIST = {}".format(originID_list))
+        logging.debug("PRINTING SKUID LIST = {}".format(skuid_list))
 
         #Remove everything that has an empty set returned
         for rm_elem in x_list_rm:
@@ -1192,15 +1192,15 @@ def get_data_for_graph():
 
 
     logging.debug("PRINTING FINAL SERVER CPU LIST")
-    logging.debug(server_cpu_list)
+    logging.debug("= {}".format(server_cpu_list))
     # Get colours for cpu manufacturer
     color_list = []
     visibile_list = []
     for section in server_cpu_list:
         color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
         visibile_list.extend(sku_parser.get(section, 'visible').replace('\"','').split(','))
-    logging.debug(color_list)
-    logging.debug(visibile_list)
+    logging.debug("= {}".format(color_list))
+    logging.debug("= {}".format(visibile_list))
 
     # Get the unit for the selected yParamter (qualifier)
     UNIT_QUERY = """SELECT disp.qualifier, disp.unit FROM origin o INNER JOIN testdescriptor t 
@@ -1212,7 +1212,7 @@ def get_data_for_graph():
         y_axis_unit = unit_df['unit'][0]
     except Exception as error_message:
         logging.debug("\n\n\n\n\n\n\nTHERE SEEMES TO BE AN ERROR IN YOUR APPLICATOIN")
-        logging.debug(error_message)
+        logging.debug("= {}".format(error_message))
 
     response = {
         'x_list_list': x_list_list, 
@@ -1311,9 +1311,9 @@ def best_sku_graph():
             cpu_data[section] = results_df['number'].to_list()[0]
             originID_list.append(results_df['originID'].to_list()[0])
 
-    logging.debug(cpu_data)
+    logging.debug("= {}".format(cpu_data))
     logging.debug("ORIGIN ID LIST IN BEST RESULTS GRAPH")
-    logging.debug(originID_list)
+    logging.debug("= {}".format(originID_list))
 
     # Remove the entries from dictionary whose values are empty
     
@@ -1323,7 +1323,7 @@ def best_sku_graph():
     color_list = []
     for section in cpu_data:
         color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
-    logging.debug(color_list)
+    logging.debug("= {}".format(color_list))
 
     # Get the unit for the selected yParamter (qualifier)
     UNIT_QUERY = """SELECT disp.qualifier, disp.unit FROM origin o INNER JOIN testdescriptor t 
@@ -1372,8 +1372,8 @@ def best_sku_graph_normalized():
 
     # If lower is better, then take the inverse of the normalized values
     index = x_list.index(normalized_wrt)
-    logging.debug("PRINTING X LIST", x_list)
-    logging.debug("FOUND AT INDEX" , index)
+    logging.debug("PRINTING X LIST= {}".format(x_list))
+    logging.debug("FOUND AT INDEX = {}".format(index))
     if higher_is_better == "1":
         logging.debug("HIGHER IS BETTER")
         normalized_y_list = [value/y_list[index] for value in y_list]
@@ -1390,9 +1390,9 @@ def best_sku_graph_normalized():
     color_list = []
     for section in x_list:
         color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
-    logging.debug(color_list)
+    logging.debug(" = {}".format(color_list))
 
-    logging.debug("Normalized Y list = ", normalized_y_list)
+    logging.debug("Normalized Y list = {}".format(normalized_y_list))
 
     response = {
         'x_list': x_list, 
@@ -1422,24 +1422,24 @@ def best_of_all_graph():
 
     data = request.get_json()
     
-    logging.debug(data)
+    logging.debug(" = {}".format(data))
 
     # Apply DATE - FILTERS
     from_date = data['from_date_filter']
     to_date = data['to_date_filter']
-    print(from_date)
-    print(to_date)
+    print(" = {}".format(from_date))
+    print(" = {}".format(to_date))
 
     if from_date:
         FROM_DATE_FILTER = " and o.testdate > \'" + from_date + " 00:00:00\' "
     else:
-        logging.debug("empty")
+        print("empty")
         FROM_DATE_FILTER = " "
 
     if to_date:
         TO_DATE_FILTER = " and o.testdate < \'" + to_date + " 23:59:59\' "
     else:
-        logging.debug("empty")
+        print("empty")
         TO_DATE_FILTER = " "
 
 
@@ -1472,9 +1472,9 @@ def best_of_all_graph():
             logging.debug("DONE REMOVING")
             break
 
-    # logging.debug(test_name_list)
-    # logging.debug(qualifier_list)
-    #logging.debug(higher_is_better_list)
+    # logging.debug(" = {}".format(test_name_list))
+    # logging.debug(" = {}".format(qualifier_list))
+    #logging.debug(" = {}".format(higher_is_better_list))
 
     # Create a reference_results_map having entries for "testname" -> best_result
     # This will be for the selected reference CPU manufacturer i.e. normalized_wrt
@@ -1493,7 +1493,7 @@ def best_of_all_graph():
         # Build the query along with the input filters condition
         if higher_is_better == '0':
             # Fix this hack
-            # logging.debug("SELECTING MIN", higher_is_better)
+            # logging.debug("SELECTING MIN = {}".format(higher_is_better))
             BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
                                     on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
@@ -1509,7 +1509,7 @@ def best_of_all_graph():
                                     " group by o.originID, r.number order by r.number limit 1;"
 
         else:
-            # logging.debug("SELECTING MAX", higher_is_better)
+            # logging.debug("SELECTING MAX = {}".format(higher_is_better))
             BEST_RESULT_QUERY = """SELECT MAX(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
                                     on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
                                     on n.nodeID = hw.node_nodeID inner join testdescriptor t
@@ -1526,8 +1526,8 @@ def best_of_all_graph():
 
 
         results_df = pd.read_sql(BEST_RESULT_QUERY, db)
-        # logging.debug("PRINTING RESULTS DF for", test_name)
-        # logging.debug(results_df)
+        # logging.debug("PRINTING RESULTS DF for= {}".format(test_name))
+        # logging.debug("= {}".format(results_df))
 
         if not results_df.empty:
             reference_results_map[test_name] = results_df['number'][0]
@@ -1535,7 +1535,7 @@ def best_of_all_graph():
     # logging.debug("\n\nPRINTING FINAL REFERENCE MAP")
     for k,v in reference_results_map.items():
         if v:
-            # logging.debug(k,':', v)
+            # logging.debug("{} : {}".format(k,v))
             pass
 
 
@@ -1548,7 +1548,7 @@ def best_of_all_graph():
     for section in sku_parser.sections():
         # Only for sections other than selected 'reference'
         if section != normalized_wrt:
-            # logging.debug("SECTION DID NOT MATCH.","Proceeding with queries", section, ":", normalized_wrt)
+            # logging.debug("SECTION DID NOT MATCH. Proceeding with queries {} : {}  ".format(section, normalized_wrt))
             skuid_list = sku_parser.get(section, 'SKUID').replace('\"', '').split(',')
             x_list = []
             y_list = []
@@ -1563,7 +1563,7 @@ def best_of_all_graph():
                     INPUT_FILTER_CONDITION = get_input_filter_condition(test_name, input_filters_list)
 
 
-                    # logging.debug("RESULT", test_name, "exists in REFERENCE")
+                    # logging.debug("RESULT {} exists in REFERENCE".format(test_name))
                     if higher_is_better == '0':
                         # Fix this hack
                         BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
@@ -1597,8 +1597,8 @@ def best_of_all_graph():
             
 
                     results_df = pd.read_sql(BEST_RESULT_QUERY, db)
-                    # logging.debug("\n\n########################\n\nPRINTING RESULTS DF for", section)
-                    # logging.debug(results_df)
+                    # logging.debug("\n\n########################\n\nPRINTING RESULTS DF for ={}".format(section))
+                    # logging.debug(" ={}".format(results_df))
 
                     # A function which returns the normalized value y_list[-1] w.r.t. reference_results_map[test_name] 
                     def normalized_value():
@@ -1616,12 +1616,12 @@ def best_of_all_graph():
                         # logging.debug("ENTERING")
                         x_list.append(test_name)
                         y_list.extend(results_df['number'])
-                        logging.debug("Y_LIST = ", y_list, test_name)
+                        logging.debug("Y_LIST ={}".format(y_list, test_name))
 
                         # Normalize IT
                         y_list[-1] = normalized_value()
                         logging.debug("AFTER NORMALIZING")
-                        logging.debug("Y_LIST = ", y_list, test_name)                        
+                        logging.debug("Y_LIST ={} {}".format(y_list, test_name))
                         originID_list.extend(results_df['originID'])
                     else:
                         pass
@@ -1629,9 +1629,9 @@ def best_of_all_graph():
 
                 else:
                     pass
-                    # logging.debug("######################RESULT", test_name, "DOES NOT EXIST in REFERENCE")
+                    # logging.debug("######################RESULT {} DOES NOT EXIST in REFERENCE".format(test_name))
                 
-            logging.debug("\n\n####################\nSection:",section,"\n\nAPPENDING Y_LIST : ", y_list)
+            logging.debug("\n\n####################\nSection: {} \n\nAPPENDING Y_LIST : {}".format(section, y_list))
             x_list_list.append(x_list)
             y_list_list.append(y_list)
             originID_list_list.append(originID_list)
@@ -1639,7 +1639,7 @@ def best_of_all_graph():
             color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
 
         else:
-            logging.debug("SECTION MATCHED", section, ".\tSkipping")
+            logging.debug("SECTION MATCHED {} .\tSkipping".format(section))
 
 
     response = {
@@ -1662,11 +1662,11 @@ def best_of_all_graph():
 def counter_graphs():
     data = request.get_json()
 
-    logging.debug("DATA = ", data)\
+    logging.debug("DATA = {}".format(data))
 
     # Generate nas_path from received data
     nas_path = "/mnt/nas/dbresults/" + data['jobname'] + '/' + data['runID'] + '/results/' + data['numCPUs'];
-    logging.debug("NAS PATH",nas_path)
+    logging.debug("NAS PATH = {}".format(nas_path))
 
     # Get counter_graphs_data from the nas_path
     counter_graphs_data = counter_graphs_module.process_perf_stat_files(nas_path)
@@ -1680,15 +1680,15 @@ def counter_graphs():
 @app.route('/download_as_csv', methods=['POST'])
 def download_as_csv():
     logging.debug("\n\n\n#REQUEST#########")
-    logging.debug(request)
-    logging.debug(request.form)
+    logging.debug("= {}".format(request))
+    logging.debug("= {}".format(request.form))
     json_data = json.loads(request.form.get('data'))
     logging.debug("JSON STATHAM")
-    logging.debug(json_data)
+    logging.debug(" = {}".format(json_data))
     data = json_data['data']
 
-    logging.debug(data)
-    logging.debug(type(data))
+    logging.debug(" = {}".format(data))
+    logging.debug(" = {}".format(type(data)))
     logging.debug("\n\n\n")
 
     csv_df = pd.DataFrame(columns=data.keys());
@@ -1702,14 +1702,14 @@ def download_as_csv():
     os.mkdir(base_path)         #So create it again
 
     # Save the current csv file there
-    logging.debug(csv_df)
-    logging.debug(os.getcwd())
+    logging.debug("= {}".format(csv_df))
+    logging.debug(" = {}".format(os.getcwd()))
 
     # "CLEAN" the filename.
     # Example -> if the file is 'Mop/s vs OSName', then replace '/' with '-per-'
     filename = base_path + json_data['filename'].replace('/', '_per_') + '.csv'
     
-    logging.debug("PRINTING FILENAME AFTER" + filename)
+    logging.debug("PRINTING FILENAME AFTER = {}".format(filename))
 
     csv_df.to_csv(filename, index=False, header=True)
     logging.debug("\n\n\n")
