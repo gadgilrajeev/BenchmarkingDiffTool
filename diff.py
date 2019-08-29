@@ -11,6 +11,13 @@ import csv
 import json
 import counter_graphs_module
 
+# DB_HOST_IP = '10.110.169.149'
+DB_HOST_IP = 'localhost'
+DB_USER = 'root'
+DB_PASSWD = ''
+DB_NAME = 'benchtooldb'
+DB_PORT = 3306
+
 # Uncomment this line for toggling debugging messages on the console
 logging.basicConfig(level=logging.DEBUG)
 
@@ -43,8 +50,8 @@ def table_name():
 
 # Takes the originID, returns the testname
 def get_test_name(originID):
-    db = pymysql.connect(host='10.110.169.149', user='root',
-                         passwd='', db='benchtooldb', port=3306)
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     TEST_NAME_QUERY = """SELECT t.testname FROM testdescriptor as t 
                         INNER JOIN origin o on o.testdescriptor_testdescriptorID=t.testdescriptorID 
@@ -143,8 +150,8 @@ def read_all_parameter_lists(parameter_lists, test_name):
 
 
 def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
-    db = pymysql.connect(host='10.110.169.149', user='root',
-                         passwd='', db='benchtooldb', port=3306)
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O
                         INNER JOIN jenkins J ON O.jenkins_jenkinsID=J.jenkinsID 
@@ -310,8 +317,8 @@ def getAllRunsData(testname, secret=False):
                         RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid
                         ORDER BY o.originID DESC"""
     
-    db = pymysql.connect(host='10.110.169.149', user='root',
-                         passwd='', db='benchtooldb', port=3306)
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     dataframe = pd.read_sql(ALL_RUNS_QUERY, db)
     rows, columns = dataframe.shape  # returns a tuple (rows,columns)
@@ -451,8 +458,8 @@ def markOriginIDInvalid():
 
     if secret_key == 'secret_123':
         logging.debug("CAUTION!!! MArking result invalid")
-        db = pymysql.connect(host='10.110.169.149', user='root',
-                         passwd='', db='benchtooldb', port=3306)
+        db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
         cursor = db.cursor()
         if not valid:
@@ -479,8 +486,8 @@ def markOriginIDInvalid():
 
 # Get details for test with originID = 'originID' from database
 def getTestDetailsData(originID, secret=False):
-    db = pymysql.connect(host='10.110.169.149', user='root',
-                         passwd='', db='benchtooldb', port=3306)
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
     result_type_map = {0: "single thread", 1: 'single core',
                        2: 'single socket', 3: 'dual socket',
                        4: 'client scaling', 5: '1/8th socket',
@@ -690,8 +697,8 @@ def markResultIDInvalid():
 
     if secret_key == 'secret_123':
         logging.debug("CAUTION!!! Marking resultID invalid")
-        db = pymysql.connect(host='10.110.169.149', user='root',
-                         passwd='', db='benchtooldb', port=3306)
+        db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
         cursor = db.cursor()
         if not valid:
@@ -723,8 +730,8 @@ def showEnvDetailsOld(originID):
 
 @app.route('/environment-details/<originID>')
 def showEnvDetails(originID):
-    db = pymysql.connect(host='10.110.169.149', user='root',
-                         passwd='', db='benchtooldb', port=3306)
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
     HWDETAILS_QUERY = """SELECT H.fwversion, H.bmcversion, H.biosversion FROM hwdetails H INNER JOIN origin O 
                          ON O.hwdetails_hwdetailsID = H.hwdetailsID AND O.originID = """ + originID + ";"
     hwdetails_dataframe = pd.read_sql(HWDETAILS_QUERY, db)
@@ -814,8 +821,8 @@ def showEnvDetails(originID):
 @app.route('/diff', methods=['GET', 'POST'])
 def diffTests():
     if request.method == "GET":
-        db = pymysql.connect(host='10.110.169.149', user='root',
-                             passwd='', db='benchtooldb', port=3306)
+        db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                             passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
         # take checked rows from table
         originID_compare_list = [value for key, value in request.args.items() if "diff-checkbox" in key]
@@ -990,8 +997,8 @@ def diffTests():
 # JS then draws the graph using this data
 @app.route('/get_data_for_graph', methods=['POST'])
 def get_data_for_graph():
-    db = pymysql.connect(host='10.110.169.149', user='root',
-                         passwd='', db='benchtooldb', port=3306)
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     data = request.get_json()
     xParameter = data['xParameter']
@@ -1232,8 +1239,8 @@ def get_data_for_graph():
 # JS then draws the graph using this data
 @app.route('/best_sku_graph', methods=['POST'])
 def best_sku_graph():
-    db = pymysql.connect(host='10.110.169.149', user='root',
-                         passwd='', db='benchtooldb', port=3306)
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     data = request.get_json()
     xParameter = data['xParameter']
@@ -1409,8 +1416,8 @@ def best_sku_graph_normalized():
 
 @app.route('/best_of_all_graph', methods=['POST'])
 def best_of_all_graph():
-    db = pymysql.connect(host='10.110.169.149', user='root',
-                     passwd='', db='benchtooldb', port=3306)
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                     passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     wiki_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
