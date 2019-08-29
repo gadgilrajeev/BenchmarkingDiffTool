@@ -80,6 +80,9 @@ function drawBestOfAllGraph(normalizedWRT){
 	console.log("DRAWING BEST GRAPH")
 	console.log(normalizedWRT)
 
+	// Get date filters
+	$fromDate = $('#from-date').val()
+	$toDate = $('#to-date').val()
 
 	// Selected tests which are to be displayed on the graph
 	allRows = $("tr").filter(function() { return $(this).css("display") != "none" })
@@ -94,6 +97,8 @@ function drawBestOfAllGraph(normalizedWRT){
 	data = {
 		'normalizedWRT' : normalizedWRT,
 		'test_name_list' : selectedTestsList,
+		'from_date_filter' : $fromDate,
+		'to_date_filter' : $toDate,
 	}
 
 	// Show "Loading..." message before the graph loads 
