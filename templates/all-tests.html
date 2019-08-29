@@ -4,6 +4,13 @@
 All tests page
 {% endblock title %}
 
+{% block navbar %}
+	<nav class="navbar navbar-dark bg-dark">
+	  <!-- Navbar content -->
+	</nav>
+{% endblock %}
+
+
 {% block content %}
 	
 	<div class="card bg-light border-info rounded mb-5" id="best-of-all-graph-div">
@@ -13,7 +20,7 @@ All tests page
 
 		<div class="card-footer mt-3 mb-0 p-0 bg-transparent d-flex">
 			
-			<div class="dropdown">
+			<div class="dropdown mr-5">
 				<button id="reference-for-normalized" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
 				Select Reference </button>
 				<div id="reference-for-normalized-dropdown" class="dropdown-menu">
@@ -23,21 +30,26 @@ All tests page
 					{% endfor %}
 				</div>
 			</div>
-			<div id="reference-toast" class="toast" role="alert" aria-live="polite" aria-atomic="true" data-delay="4000">
-				<div class="toast-header bg-danger"><h3 class="text-white">Information:</h3></div>
-				<div class="toast-body"><h5 id="reference-toast-body"></h5></div>
-			</div>
 
+			<!-- Download as CSV button -->
 			<button id="download-comparison-graph" class="btn btn-outline-primary font-weight-bold float-right h-50 align-self-center ml-5 mr-3">Download as CSV</button>
 
-			<button id="download-comparison-graph" class="btn btn-primary font-weight-bold float-right h-50 align-self-center ml-5" onclick="downloadAsPng('Best results Normalized w.r.t. ' + $('#reference-for-normalized option:selected').text(), 'best-of-all-graph')">Download as PNG</button>
+			<!-- Download as PNG button -->
+			<button id="download-best-of-all-graph" class="btn btn-primary font-weight-bold float-right h-50 align-self-center ml-5" onclick="downloadAsPng('Best results Normalized w.r.t. ' + $('#reference-for-normalized option:selected').text(), 'best-of-all-graph')">Download as PNG</button>
+
+			<!-- Toast (Popup info message) -->
+			<div id="reference-toast" class="toast ml-5" role="alert" aria-live="polite" aria-atomic="true" data-autohide="false">
+				<div id="reference-toast-info" class="toast-header"><h3 class="text-white">Information:</h3></div>
+				<div class="toast-body"><h5 id="reference-toast-body"></h5></div>
+			</div>
 
 		</div>
 
 	</div>
 
-	<div class="container-fluid d-flex justify-content-around">
-		<div class='card w-25 bg-light border-info font-weight-bold'>
+	<!-- Filter and tables -->
+	<div id="filters-and-tables" class="container-fluid d-flex justify-content-around">
+		<div id="all-filters-div" class='card w-25 bg-light border-info font-weight-bold'>
 			<div class="card-header bg-success text-white">
 				<h2>Filter tests</h2>
 			</div>
@@ -49,10 +61,31 @@ All tests page
 						    <label class="custom-control-label" for="{{ filter }}">{{ filter }}</label>
 		  				</div>
 					{% endfor %}
+					<div class="mb-5" ></div>
+					<div id="date-filters-div" class="d-flex flex-column mt-5 bg-secondary">
+						<h5 class="text-center text-white mr-5">Filter graph by date</h5>
+						<div class="d-flex justify-content-around">
+							<label>From</label>
+							<input type="date" id="from-date" name="from-date" min="2000-01-01" required>
+       					</div>
+
+       					<div class="d-flex justify-content-around">
+							<label>To</label>
+							<input type="date" id="to-date" name="to-date" min="2000-01-01" required>
+						</div>
+       					<button id="apply-date-filter-button" type="button" class="btn btn-success m-2 font-weight-bold">Apply date filter</button>
+       					<button id="remove-date-filter-button" type="button" class="btn btn-danger m-2 font-weight-bold">Remove date filter</button>
+
+						<div id="filter-toast" class="toast mt-3 p-1" role="alert" aria-live="polite" aria-atomic="true" data-autohide="false">
+							<div id="filter-toast-info" class="toast-header"><h4 class="text-white">Information:</h4></div>
+							<div class="toast-body"><h5 id="filter-toast-body"></h5></div>
+						</div>
+
+       				</div>
 				</div>
 			</form>
 		</div>
-		<div class='w-25'>
+		<div id="hpc-table-div" class='w-25'>
 			<h2 class="mx-2 mb-2 pb-2">HPC BENCHMARKS</h2>
 			<table class="table table-dark table-hover" id="hpc-benchmarks-list">
 				{% for benchmark in context.hpc_benchmarks_list %}
@@ -63,7 +96,7 @@ All tests page
 				{% endfor %}
 			</table>
 		</div>
-		<div class='w-25'>
+		<div id="cloud-table-div" class='w-25'>
 			<h2 class="mx-2 mb-2 pb-2">CLOUD BENCHMARKS</h2>
 			<table class="table table-dark table-hover" id="cloud-benchmarks-list">
 				{% for benchmark in context.cloud_benchmarks_list %}
@@ -87,7 +120,120 @@ All tests page
 		//Draw the initial best-of-all-graph
     	drawBestOfAllGraph('{{ context.reference_list[0] }}')
 
+    	$('#from-date').val("")
+    	$('#to-date').val("")
+
+    	// Show and hide immediately because it is taking up space
+    	$('#filter-toast').toast('show')
+		setTimeout(function(){	
+			$('#filter-toast').toast('hide')
+		},1000)
+
+    	// Show and hide immediately because it is taking up space
+    	$('#reference-toast').toast('show')
+		setTimeout(function(){	
+			$('#reference-toast').toast('hide')
+		},500)
+
 	});
+
+	// Set to-date min as 'from-date' value
+	$('#from-date').change(function(){
+		$toDate = $('#to-date')
+		$toDate.attr('min', $('#from-date').val())
+
+		console.log("Set to date min as")
+		console.log($toDate.attr('min'))
+	})
+
+	// Set from-date max as 'to-date' value
+	$('#to-date').change(function(){
+		$fromDate = $('#from-date')
+		$fromDate.attr('max', $('#to-date').val())
+
+		console.log("Set from date max as")
+		console.log($fromDate.attr('max'))
+	})
+
+	$('#apply-date-filter-button').click(function(){
+
+		$fromDate = $('#from-date').val()
+		$toDate = $('#to-date').val()
+
+		if($fromDate == "" && $toDate == "")
+		{
+			//show error message
+			showFilterToast('bg-danger', "Fill atleast one date filter")
+		}
+		else
+		{
+	    	//show success message
+	    	showFilterToast('bg-success', "Applying filters. Redrawing graph")
+
+			// Get normalized WRT if graph exists, or choose the first one
+			// Graph does not exist initially when we load/refresh page
+			$dropdownMenu = $('#reference-for-normalized-dropdown')
+			$firstNormalized = $dropdownMenu.children()[1].innerHTML
+			
+			graphDiv = document.getElementById('best-of-all-graph')
+			normalizedWRT = graphDiv.data ? graphDiv.data.normalizedWRT : $firstNormalized
+			
+			//Draw new best_of_all_graph according to filters
+			drawBestOfAllGraph(normalizedWRT)
+		}
+	})
+
+	$('#remove-date-filter-button').click(function(){
+		$fromDate = $('#from-date').val()
+		$toDate = $('#to-date').val()
+
+		if($fromDate == "" && $toDate == "")
+		{
+			//show error message
+			showFilterToast('bg-danger', "No Filters are currently applied")
+		}
+		else{
+	    	$('#from-date').val("")
+	    	$('#to-date').val("")
+
+	    	//show success message
+	    	showFilterToast('bg-success', "Removed filters. Redrawing graph")
+
+			// Get normalized WRT if graph exists, or choose the first one
+			// Graph does not exist initially when we load/refresh page
+			$dropdownMenu = $('#reference-for-normalized-dropdown')
+			$firstNormalized = $dropdownMenu.children()[1].innerHTML
+			
+			graphDiv = document.getElementById('best-of-all-graph')
+			normalizedWRT = graphDiv.data ? graphDiv.data.normalizedWRT : $firstNormalized
+			
+			//Draw new best_of_all_graph according to filters
+			drawBestOfAllGraph(normalizedWRT)
+    	}
+	})
+
+	// Show the toast (popup message), with bgClass background 
+	function showFilterToast(bgClass, message, duration=3000) {
+
+		$('#filter-toast-info').addClass(bgClass)	//set info background
+		$('#filter-toast-body').html(message)	//fill info
+		$('#filter-toast').toast('show')
+		setTimeout(function(){
+			$('#filter-toast').toast('hide')
+			$('#filter-toast-info').removeClass(bgClass)	//remove info background
+		},duration)
+	}
+
+	function showReferenceToast(bgClass, message, duration=3000) {
+
+		$('#reference-toast-info').addClass(bgClass)	//set info background
+		$('#reference-toast-body').html(message)	//fill info
+		$('#reference-toast').toast('show')
+		setTimeout(function(){
+			$('#reference-toast').toast('hide')
+			$('#reference-toast-info').removeClass(bgClass)	//remove info background
+		},duration)
+	}
 
 	function normalizedReferenceChanged(normalizedWRT) {
 		graphDiv = document.getElementById('best-of-all-graph')
@@ -96,11 +242,15 @@ All tests page
 		{
 			console.log("SAME REFERENCE MAN" + normalizedWRT)
 
-			$('#reference-toast-body').html(normalizedWRT + " is already the selected reference")
-			$('#reference-toast').toast('show')
+			//show the error message
+			showReferenceToast('bg-danger', normalizedWRT + " is already the selected reference")
 		}
 		else
+		{
+			//show the success message
+			showReferenceToast('bg-success', normalizedWRT + " is now the reference. Redrawing Graph.", 4000)	
 			drawBestOfAllGraph(normalizedWRT)
+		}
 	}
 
 </script>
