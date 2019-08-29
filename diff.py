@@ -921,10 +921,21 @@ def diffTests():
         # Change the result_type according to result_type_map
         # Mapping for Result type field
         result_type_map = {0: "single thread", 1: 'single core',
-                           2: 'single socket', 3: 'dual socket',
-                           4: 'Scaling'}
+                       2: 'single socket', 3: 'dual socket',
+                       4: 'client scaling', 5: '1/8th socket',
+                       6: '1/4th socket', 7: '1/2 socket',
+                       8: '2 cores', 9: 'perf',
+                       10: 'I/O utilization', 11: 'socmon',
+                       12: 'OMP_MPI scaling', 20: 'Projection'}
 
-        intermediate_dataframe['resultype'] = intermediate_dataframe['resultype'].apply(lambda x: result_type_map[x])
+        def apply_result_type(x):
+            try:
+                return result_type_map[x]
+            except:
+                logging.warning("Couldn't parse result type")
+                return None
+
+        intermediate_dataframe['resultype'] = intermediate_dataframe['resultype'].apply(lambda x: apply_result_type(x))
 
         final_results_dataframe = pd.DataFrame(columns=intermediate_dataframe.columns)
         # SUBSET OF ROWS WHICH HAVE "qualifier" IN QUALIFIER LIST
@@ -1413,6 +1424,25 @@ def best_of_all_graph():
     
     logging.debug(data)
 
+    # Apply DATE - FILTERS
+    from_date = data['from_date_filter']
+    to_date = data['to_date_filter']
+    print(from_date)
+    print(to_date)
+
+    if from_date:
+        FROM_DATE_FILTER = " and o.testdate > \'" + from_date + " 00:00:00\' "
+    else:
+        logging.debug("empty")
+        FROM_DATE_FILTER = " "
+
+    if to_date:
+        TO_DATE_FILTER = " and o.testdate < \'" + to_date + " 23:59:59\' "
+    else:
+        logging.debug("empty")
+        TO_DATE_FILTER = " "
+
+
     normalized_wrt = data['normalizedWRT']
 
     # If No filters are applied, select all tests
@@ -1474,6 +1504,8 @@ def best_of_all_graph():
                                     AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                     "%\' AND n.skuidname in """ + str(reference_skuid_list).replace('[', '(').replace(']', ')') + \
                                     INPUT_FILTER_CONDITION + \
+                                    FROM_DATE_FILTER + \
+                                    TO_DATE_FILTER + \
                                     " group by o.originID, r.number order by r.number limit 1;"
 
         else:
@@ -1488,6 +1520,8 @@ def best_of_all_graph():
                                     AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                     "%\' AND n.skuidname in """ + str(reference_skuid_list).replace('[', '(').replace(']', ')') + \
                                     INPUT_FILTER_CONDITION + \
+                                    FROM_DATE_FILTER + \
+                                    TO_DATE_FILTER + \
                                     " group by o.originID, r.number order by r.number DESC limit 1;"
 
 
@@ -1542,6 +1576,8 @@ def best_of_all_graph():
                                                 AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                                 "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
                                                 INPUT_FILTER_CONDITION + \
+                                                FROM_DATE_FILTER + \
+                                                TO_DATE_FILTER + \
                                                 " group by o.originID, r.number order by r.number limit 1;"
 
                     else:
@@ -1555,6 +1591,8 @@ def best_of_all_graph():
                                                 AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
                                                 "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
                                                 INPUT_FILTER_CONDITION + \
+                                                FROM_DATE_FILTER + \
+                                                TO_DATE_FILTER + \
                                                 " group by o.originID, r.number order by r.number DESC limit 1;"
             
 
