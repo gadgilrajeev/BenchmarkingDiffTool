@@ -420,77 +420,112 @@ def get_histogram_data(data, bases):
     return (x_list_list, legend_list, bin_size)
 
 # Returns data of 'x_list_list' and 'y_list_list' for all the graphs
-def get_all_counter_graphs_data(data):
+def get_all_counter_graphs_data(data, numCPUs):
 
     counter_graph_data = {
-        'ipc_data' : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'x_parameter': 'Timestamp', 'y_parameter': 'Ratio'},
-        'dmc_bandwidth_data' : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'x_parameter': 'Timestamp', 'y_parameter': 'MB/s'},
-        'dmc_histogram_data' : {'x_list_list':[], 'legend_list':[], 'bin_size': [],'graph_type': 'histogram', 'x_parameter': 'MB/s', 'y_parameter': 'Percentage'},
-        'l3c_bandwidth_data' : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'x_parameter': 'Timestamp', 'y_parameter': 'MB/s'},
-        'cache_miss_data' : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'x_parameter': 'Timestamp', 'y_parameter': 'Ratio'},
-        'map_stall_cmp_data' : {'x_list' : [], 'y_list_list':[], 'legend_list':[], 'graph_type': 'stack', 'x_parameter': 'Timestamp', 'y_parameter': 'pki'},
-        'feu_stall_cmp_data' : {'x_list' : [], 'y_list_list':[], 'legend_list':[], 'graph_type': 'stack', 'x_parameter': 'Timestamp', 'y_parameter': 'pki'},
-        'itype_stacked_graph' : {'x_list' : [], 'y_list_list':[], 'legend_list':[], 'graph_type': 'stack', 'x_parameter': 'Timestamp', 'y_parameter': 'pki'},
+        'ipc_data_' + numCPUs  : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'xParameter': 'Timestamp', 'yParameter': 'Ratio'},
+        'dmc_bandwidth_data_' + numCPUs : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'xParameter': 'Timestamp', 'yParameter': 'MB/s'},
+        'dmc_histogram_data_' + numCPUs : {'x_list_list':[], 'legend_list':[], 'bin_size': [],'graph_type': 'histogram', 'xParameter': 'MB/s', 'yParameter': 'Percentage'},
+        'l3c_bandwidth_data_' + numCPUs : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'xParameter': 'Timestamp', 'yParameter': 'MB/s'},
+        'cache_miss_rates_' + numCPUs : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'xParameter': 'Timestamp', 'yParameter': 'Ratio'},
+        'map_stall_cmp_data_' + numCPUs : {'x_list' : [], 'y_list_list':[], 'legend_list':[], 'graph_type': 'stack', 'xParameter': 'Timestamp', 'yParameter': 'pki'},
+        'feu_stall_cmp_data_' + numCPUs : {'x_list' : [], 'y_list_list':[], 'legend_list':[], 'graph_type': 'stack', 'xParameter': 'Timestamp', 'yParameter': 'pki'},
+        'itype_stacked_graph_' + numCPUs : {'x_list' : [], 'y_list_list':[], 'legend_list':[], 'graph_type': 'stack', 'xParameter': 'Timestamp', 'yParameter': 'pki'},
+        'private_mpki_' + numCPUs : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'xParameter': 'Timestamp', 'yParameter': 'pki'},
+        'L2_Latency_' + numCPUs : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'xParameter': 'Timestamp', 'yParameter': 'Ratio'},
+        'stall_cmp_' + numCPUs : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'xParameter': 'Timestamp', 'yParameter': 'pki'},
+        'Branch mispredict ratio_' + numCPUs : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'xParameter': 'Timestamp', 'yParameter': 'Ratio'},
+        'Branch mpki_' + numCPUs : {'x_list_list':[], 'y_list_list':[], 'legend_list':[], 'graph_type': 'line', 'xParameter': 'Timestamp', 'yParameter': 'pki'},
     }
 
     # For readability 
 
-    # IPC - Line Graph
-    counter_graph_data['ipc_data']['x_list_list'], \
-    counter_graph_data['ipc_data']['y_list_list'], \
-    counter_graph_data['ipc_data']['legend_list'] = \
+    # IPC - Line Graph (Ratio)
+    counter_graph_data['ipc_data_' + numCPUs]['x_list_list'], \
+    counter_graph_data['ipc_data_' + numCPUs]['y_list_list'], \
+    counter_graph_data['ipc_data_' + numCPUs]['legend_list'] = \
     get_line_graph_data_ratio(data['count'], data['ts'], ['instructions','INST_SPEC'], ['cycles','cycles'])
 
     # DMC Bandwidth - Line Graph
-    counter_graph_data['dmc_bandwidth_data']['x_list_list'], \
-    counter_graph_data['dmc_bandwidth_data']['y_list_list'], \
-    counter_graph_data['dmc_bandwidth_data']['legend_list'] = \
+    counter_graph_data['dmc_bandwidth_data_' + numCPUs]['x_list_list'], \
+    counter_graph_data['dmc_bandwidth_data_' + numCPUs]['y_list_list'], \
+    counter_graph_data['dmc_bandwidth_data_' + numCPUs]['legend_list'] = \
     get_line_graph_data(data['bw'], data['ts'], ['DMC BW MB/s'])
     
     # DMC Histogram - Histogram
-    counter_graph_data['dmc_histogram_data']['x_list_list'], \
-    counter_graph_data['dmc_histogram_data']['legend_list'], \
-    counter_graph_data['dmc_histogram_data']['bin_size'] =\
+    counter_graph_data['dmc_histogram_data_' + numCPUs]['x_list_list'], \
+    counter_graph_data['dmc_histogram_data_' + numCPUs]['legend_list'], \
+    counter_graph_data['dmc_histogram_data_' + numCPUs]['bin_size'] =\
     get_histogram_data(data['bw'], ['DMC BW MB/s'])
 
     # L3C BW - Line Graph
-    counter_graph_data['l3c_bandwidth_data']['x_list_list'], \
-    counter_graph_data['l3c_bandwidth_data']['y_list_list'], \
-    counter_graph_data['l3c_bandwidth_data']['legend_list'] = \
+    counter_graph_data['l3c_bandwidth_data_' + numCPUs]['x_list_list'], \
+    counter_graph_data['l3c_bandwidth_data_' + numCPUs]['y_list_list'], \
+    counter_graph_data['l3c_bandwidth_data_' + numCPUs]['legend_list'] = \
     get_line_graph_data(data['bw'], data['ts'], ['L3 BW MB/s'])
 
     # Cache Miss - Line Graph
-    counter_graph_data['cache_miss_data']['x_list_list'], \
-    counter_graph_data['cache_miss_data']['y_list_list'], \
-    counter_graph_data['cache_miss_data']['legend_list'] = \
+    counter_graph_data['cache_miss_rates_' + numCPUs]['x_list_list'], \
+    counter_graph_data['cache_miss_rates_' + numCPUs]['y_list_list'], \
+    counter_graph_data['cache_miss_rates_' + numCPUs]['legend_list'] = \
     get_line_graph_data_ratio(data['count'], data['ts'], \
                         ['L1D_CACHE_REFILL','L2D_CACHE_REFILL','L3_0 Read Miss', 'L3_1 Read Miss'], \
                         ['L1_DCACHE_APPROX','L2D_CACHE_ACCESS','L3_0 Read Request', 'L3_1 Read Request'])
 
+    # Private MPKI - Line Graph
+    counter_graph_data['private_mpki_' + numCPUs]['x_list_list'], \
+    counter_graph_data['private_mpki_' + numCPUs]['y_list_list'], \
+    counter_graph_data['private_mpki_' + numCPUs]['legend_list'] = \
+    get_line_graph_data(data['count'], data['ts'], ['L1D_CACHE_REFILL', 'L2D_CACHE_REFILL'])
+
+    # L2 Latency - Line Graph (Ratio)
+    counter_graph_data['L2_Latency_' + numCPUs]['x_list_list'], \
+    counter_graph_data['L2_Latency_' + numCPUs]['y_list_list'], \
+    counter_graph_data['L2_Latency_' + numCPUs]['legend_list'] = \
+    get_line_graph_data_ratio(data['count'], data['ts'], ['L2 MSQ Valid Cycles'], ['L2 MSQ Alloc'])
+
+    # Stall FE - Stall BE - Line Graph
+    counter_graph_data['stall_cmp_' + numCPUs]['x_list_list'], \
+    counter_graph_data['stall_cmp_' + numCPUs]['y_list_list'], \
+    counter_graph_data['stall_cmp_' + numCPUs]['legend_list'] = \
+    get_line_graph_data(data['pki'], data['ts'], ['STALL_FE', 'STALL_BE'])
+
+    # Branch misprediction ratio - Line graph
+    counter_graph_data['Branch mispredict ratio_' + numCPUs]['x_list_list'], \
+    counter_graph_data['Branch mispredict ratio_' + numCPUs]['y_list_list'], \
+    counter_graph_data['Branch mispredict ratio_' + numCPUs]['legend_list'] = \
+    get_line_graph_data_ratio(data['count'], data['ts'], ['BR_MIS_PRED_RETIRED'], ['BR_RETIRED'])
+
+    # Branch Misprediction PKI - Line Graph
+    counter_graph_data['Branch mpki_' + numCPUs]['x_list_list'], \
+    counter_graph_data['Branch mpki_' + numCPUs]['y_list_list'], \
+    counter_graph_data['Branch mpki_' + numCPUs]['legend_list'] = \
+    get_line_graph_data(data['pki'], data['ts'], ['BR_MIS_PRED_RETIRED'])
+
     # MAP Stall CMP - Stack Graph
-    counter_graph_data['map_stall_cmp_data']['x_list'], \
-    counter_graph_data['map_stall_cmp_data']['y_list_list'], \
-    counter_graph_data['map_stall_cmp_data']['legend_list'] = \
+    counter_graph_data['map_stall_cmp_data_' + numCPUs]['x_list'], \
+    counter_graph_data['map_stall_cmp_data_' + numCPUs]['y_list_list'], \
+    counter_graph_data['map_stall_cmp_data_' + numCPUs]['legend_list'] = \
     get_stack_graph_data(data['pki'], data['ts'], \
         ['MAP_ROB_RECYCLE', 'MAP_ISSQ_RECYCLE', 'MAP_LRQ_RECYCLE', 'MAP_SRQ_RECYCLE', 'MAP_GPR_RECYCLE', 'MAP_FPR_RECYCLE', 'MAP_BUB_RECYCLE'])
 
     # Feu Stall CMP - Stack Graph
-    counter_graph_data['feu_stall_cmp_data']['x_list'], \
-    counter_graph_data['feu_stall_cmp_data']['y_list_list'], \
-    counter_graph_data['feu_stall_cmp_data']['legend_list'] = \
+    counter_graph_data['feu_stall_cmp_data_' + numCPUs]['x_list'], \
+    counter_graph_data['feu_stall_cmp_data_' + numCPUs]['y_list_list'], \
+    counter_graph_data['feu_stall_cmp_data_' + numCPUs]['legend_list'] = \
     get_stack_graph_data(data['pki'], data['ts'], \
         ['ALN_resteer', 'TAGE_resteer', 'DCD_resteer'])
 
     # IType - Stacked Graph
-    counter_graph_data['itype_stacked_graph']['x_list'], \
-    counter_graph_data['itype_stacked_graph']['y_list_list'], \
-    counter_graph_data['itype_stacked_graph']['legend_list'] = \
+    counter_graph_data['itype_stacked_graph_' + numCPUs]['x_list'], \
+    counter_graph_data['itype_stacked_graph_' + numCPUs]['y_list_list'], \
+    counter_graph_data['itype_stacked_graph_' + numCPUs]['legend_list'] = \
     get_stack_graph_data(data['pki'], data['ts'], \
         ['Loads', 'Stores', 'BR_RETIRED', 'ASE_SPEC', 'VFP_SPEC'])
 
     return counter_graph_data
 
-def process_perf_stat_files(nas_path):
+def process_perf_stat_files(nas_path, numCPUs):
     global options
     options = handle_params()
     options.path = [nas_path]
@@ -541,4 +576,4 @@ def process_perf_stat_files(nas_path):
     
     
     # Return data for all counter graphs
-    return get_all_counter_graphs_data(event_data)
+    return get_all_counter_graphs_data(event_data, numCPUs)
