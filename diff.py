@@ -552,7 +552,7 @@ def getTestDetailsData(originID, secret=False):
     results_dataframe = pd.read_sql(RESULTS_QUERY, db)
 
     print("GOT RESULTS DATAFRAME")
-    print("{}".format(results_dataframe))
+    # print("{}".format(results_dataframe))
 
     for col in reversed(description_string.split(',')):
         results_dataframe.insert(1, col, 'default value')
@@ -633,6 +633,7 @@ def getTestDetailsData(originID, secret=False):
         else:
             num_cpus_list = None
 
+        print("Result Type = {}".format(result_type))
 
         # Get the rest of the system details from jenkins table
         JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O INNER JOIN jenkins J 
@@ -1755,15 +1756,19 @@ def counter_graphs():
 
     logging.debug("DATA = {}".format(data))
 
+    jobname = data['jobname']
+    runID = data['runID']
+    numCPUs = data['numCPUs']
+
     # Generate nas_path from received data
-    nas_path = "/mnt/nas/dbresults/" + data['jobname'] + '/' + data['runID'] + '/results/' + data['numCPUs'];
+    nas_path = "/mnt/nas/dbresults/" + jobname + '/' + runID + '/results/' + numCPUs;
     logging.debug("NAS PATH = {}".format(nas_path))
 
     # Get counter_graphs_data from the nas_path
-    counter_graphs_data = counter_graphs_module.process_perf_stat_files(nas_path)
+    counter_graphs_data = counter_graphs_module.process_perf_stat_files(nas_path, numCPUs)
 
     logging.debug("COUNTERS HISTOGRAM DATA")
-    logging.debug(counter_graphs_data['dmc_histogram_data'])
+    logging.debug(counter_graphs_data['dmc_histogram_data_' + numCPUs])
 
     logging.debug("IT took {} seconds for counter graph".format(time.time() - start_time))
 
