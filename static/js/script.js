@@ -591,7 +591,16 @@ function drawStackGraph(response, graphID) {
 	}) 
 
 	// Bar-mode is stack
-	layout = {barmode: 'stack'};
+	layout = {
+		xaxis: {
+			title : xParameter,
+		},
+		yaxis: {
+			title: yParameter,
+		},		
+		barmode: 'stack',
+		title : graphTitle,
+	};
 
 	Plotly.newPlot(graphID, traceList, layout);
 }
@@ -625,7 +634,7 @@ function drawHistogram(response, graphID) {
 		yaxis: {
 			title: yParameter,
 		},
-		title: 'Histogram',
+		title: graphTitle,
 	};
 
 
