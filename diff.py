@@ -1769,6 +1769,101 @@ def counter_graphs():
 
     return counter_graphs_data
 
+@app.route('/cpu_utilization_graphs', methods=['POST'])
+def cpu_utilization_graphs():
+    print("Got request for heatmap")
+    start_time = time.time()
+
+    data = request.get_json()
+    print("DATA = {}".format(data))
+
+    # Generate nas_path from received data
+    nas_path = "/mnt/nas/dbresults/" + data['jobname'] + '/' + data['runID'] + '/results/CPU_heatmap.csv'
+    logging.debug("NAS PATH = {}".format(nas_path))
+
+    cpu_utilization_df = pd.read_csv(nas_path, usecols=['timestamp','CPU', '%idle'])
+
+    cpu_utilization_df['%busy'] = cpu_utilization_df['%idle'].apply(lambda x: 100 - x)
+    cpu_utilization_df.pop('%idle')
+
+    try:
+        # Get data for bar graph from average_cpu_ut_df
+        bar_graph_data = {
+            'graph_type' : 'bar',
+            'x_list' : [],
+            'y_list' : [],
+            'xParameter' : 'Cores',
+            'yParameter' : 'AVG. % Utilization'
+        }
+
+        cpu_utilization_df = cpu_utilization_df.set_index('timestamp')
+        # For bar graph having average entries of all Cores and average of 'all'
+        average_cpu_ut_df = cpu_utilization_df.loc['Average:']
+        # Drop all those columns
+        cpu_utilization_df = cpu_utilization_df.drop('Average:')
+
+        bar_graph_data['x_list'] = average_cpu_ut_df['CPU'].tolist()
+        bar_graph_data['y_list'] = average_cpu_ut_df['%busy'].tolist()
+        # Bar graph is done
+    except:
+        pass
+    finally:
+        # Reset index
+        cpu_utilization_df = cpu_utilization_df.reset_index()
+
+    # Set 'CPU' as index
+    cpu_utilization_df = cpu_utilization_df.set_index('CPU')
+    # AVG. Data of all cores at all timestamps
+    all_cores_df = cpu_utilization_df.loc['all']
+    # Drop all those columns
+    cpu_utilization_df = cpu_utilization_df.drop('all')
+    # Reset index
+    cpu_utilization_df = cpu_utilization_df.reset_index()
+
+    # Get data for heatmap
+    heatmap_data = {
+        'graph_type' : 'heatmap',
+        'x_list' : [],
+        'y_list' : [],
+        'z_list_list' : [],
+        'xParameter' : 'Timestamp',
+        'yParameter' : 'Cores'
+    }
+
+    heatmap_data['x_list'] = cpu_utilization_df['timestamp'].unique().tolist()
+    heatmap_data['y_list'] = cpu_utilization_df['CPU'].unique().tolist()
+
+    heatmap_data['z_list_list'] = [cpu_utilization_df['%busy'].tolist()[x:x+len(heatmap_data['y_list'])]\
+                                for x in range(0,len(cpu_utilization_df['%busy']), len(heatmap_data['y_list']))]
+
+    # Take transpose of the list_list
+    heatmap_data['z_list_list'] = np.array(heatmap_data['z_list_list']).T.tolist()
+    # Heatmap is done
+
+    # Get data for line graph from all_cores_df
+    line_graph_data = {
+        'graph_type' : 'line',
+        'x_list_list' : [],
+        'y_list_list' : [],     #list_list because the JS function is written for multiple lines
+        'xParameter' : 'Timestamp',
+        'yParameter' : '% Utilization'
+    }
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%busy'].tolist())
+    # Line graph data is done
+    
+
+    cpu_ut_graphs_data = {
+        '1) heatmap_data' : heatmap_data,
+        '2) line_graph_data' : line_graph_data,
+        '3) bar_graph_data' : bar_graph_data,
+    }
+
+    logging.debug("Time taken {}".format(time.time() - start_time))
+
+    return cpu_ut_graphs_data
+
+
 # One function for downloading everything as CSV
 @app.route('/download_as_csv', methods=['POST'])
 def download_as_csv():
