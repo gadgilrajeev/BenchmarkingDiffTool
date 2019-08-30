@@ -474,7 +474,6 @@ function drawClusteredGraph(response, graphID) {
 	//Add Event on click of bar
 	//Send user to "test-details" page of the respective "originID"
 	graphDiv.on('plotly_click', openTestDetailsPage)
-
 }
 
 function drawNormalizedGraph(graphID, testname) {
@@ -536,7 +535,7 @@ function drawLineGraph(response, graphID) {
 	console.log(response)
 	xListList = response.x_list_list 
 	yListList = response.y_list_list 
-	legendList = response.legend_list
+	legendList = response.legend_list ? response.legend_list : []
 	xParameter = response.xParameter
 	yParameter = response.yParameter
 	graphTitle = response.graphTitle
@@ -557,6 +556,12 @@ function drawLineGraph(response, graphID) {
 	}) 
 
 	layout = {
+		xaxis: {
+			title : xParameter,
+		},
+		yaxis: {
+			title: yParameter,
+		},
 		title: graphTitle,
 	};
 
@@ -613,6 +618,78 @@ function drawHistogram(response, graphID) {
 		})
 	}) 
 
-	Plotly.newPlot(graphID, traceList);
+	layout = {
+		xaxis: {
+			title : xParameter,
+		},
+		yaxis: {
+			title: yParameter,
+		},
+		title: 'Histogram',
+	};
 
+
+	Plotly.newPlot(graphID, traceList, layout);
+
+}
+
+function drawBarGraph(response, graphID) {
+	console.log("DRAWING BarGraph")	
+
+	xList = response.x_list	
+	yList = response.y_list
+	xParameter = response.xParameter
+	yParameter = response.yParameter
+
+
+	var data = [{
+		x: xList,
+	    y: yList,
+	    type: 'bar'
+	}];
+
+	layout = {
+		xaxis: {
+			title : xParameter,
+		},
+		yaxis: {
+			title: yParameter,
+		},
+		title: yParameter + ' vs ' + xParameter,
+	};
+
+
+	Plotly.newPlot(graphID, data, layout);
+}
+
+function drawHeatmap(response, graphID) {
+	console.log("DRAWING HISTOGRAM")
+
+	xList = response.x_list	
+	yList = response.y_list
+	zListList = response.z_list_list
+	xParameter = response.xParameter
+	yParameter = response.yParameter
+
+	var data = [{
+		x : response.x_list,
+		y : response.y_list,
+		z: response.z_list_list,
+	    type: 'heatmap',
+	    zmin : 0,
+	    zmax : 100,
+	}];
+
+	layout = {
+		xaxis: {
+			title : xParameter,
+		},
+		yaxis: {
+			title: yParameter,
+		},
+		title: 'Heatmap',
+	};
+
+
+	Plotly.newPlot(graphID, data, layout);
 }
