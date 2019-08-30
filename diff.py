@@ -1,4 +1,5 @@
 from pprint import pprint
+import time     
 import logging
 import os, shutil
 import pandas as pd
@@ -11,15 +12,16 @@ import csv
 import json
 import counter_graphs_module
 
+DB_HOST_IP = '1.21.1.52'
 # DB_HOST_IP = '10.110.169.149'
-DB_HOST_IP = 'localhost'
+# DB_HOST_IP = 'localhost'
 DB_USER = 'root'
 DB_PASSWD = ''
 DB_NAME = 'benchtooldb'
 DB_PORT = 3306
 
 # Uncomment this line for toggling debugging messages on the console
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 # from datetime import datetime
 app = Flask(__name__)
@@ -59,6 +61,12 @@ def get_test_name(originID):
 
     test_name_dataframe = pd.read_sql(TEST_NAME_QUERY, db)
     test_name = test_name_dataframe['testname'][0]
+
+    # close the database connection
+    try:
+        db.close()
+    except:
+        pass
 
     return test_name
 
@@ -193,6 +201,13 @@ def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
                 compare_lists[table_name + "_list"].append(param_values_dictionary)
             else:
                 compare_lists[table_name + "_details_list"].append(param_values_dictionary)
+ 
+     # close the database connection
+    try:
+        db.close()
+    except:
+        pass
+
     return compare_lists
 
 # Returns INPUT_FILTER_CONDITION from 'test_name' and 'input_filters_list'
@@ -332,6 +347,11 @@ def getAllRunsData(testname, secret=False):
             'no_of_columns': columns,
         }
 
+        # close the database connection
+        try:
+            db.close()
+        except:
+            pass
         return secret_context
     # Else render all-runs.html
     else:
@@ -395,6 +415,12 @@ def getAllRunsData(testname, secret=False):
             'default_input_filters': default_input_filters_list,
             'test_summary' : test_summary,
         }
+
+        # close the database connection
+        try:
+            db.close()
+        except:
+            pass
 
         return context
 
@@ -515,6 +541,8 @@ def getTestDetailsData(originID, secret=False):
     else:
         description_string = 'Description'
 
+    print("BEFORE GETTING DATAFRAME")
+
     # RESULTS TABLE
     RESULTS_QUERY = """SELECT R.resultID, S.description, R.number, disp.unit, disp.qualifier, R.isvalid
                         FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID 
@@ -522,6 +550,9 @@ def getTestDetailsData(originID, secret=False):
                         INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + \
                         RESULTS_VALIDITY_CONDITION + ";"
     results_dataframe = pd.read_sql(RESULTS_QUERY, db)
+
+    print("GOT RESULTS DATAFRAME")
+    print("{}".format(results_dataframe))
 
     for col in reversed(description_string.split(',')):
         results_dataframe.insert(1, col, 'default value')
@@ -532,7 +563,7 @@ def getTestDetailsData(originID, secret=False):
         try:
             return description.split(',')[index]
         except Exception as error_message:
-            logging.debug(" = {}".format(error_message))
+            logging.debug("Error = {}".format(error_message))
             return np.nan
 
     # For all the rows in the dataframe, set the description_list values
@@ -554,9 +585,16 @@ def getTestDetailsData(originID, secret=False):
             'originID': originID,
         }
 
+        # close the database connection
+        try:
+            db.close()
+        except:
+            pass
+
         return secret_context
     # Else render test-details.html
     else:
+        print("SECRET WAS FALSE")
         del results_dataframe['resultID']
         del results_dataframe['isvalid']
 
@@ -630,6 +668,13 @@ def getTestDetailsData(originID, secret=False):
             'num_cpus_list' : num_cpus_list,
         }
 
+        # close the database connection
+        try:
+            print("CLOSING CONNECTION FOR OriginID = {}".format(originID))
+            db.close()
+        except:
+            pass
+
         return context
 
 # View for handling Test details request
@@ -639,6 +684,7 @@ def showTestDetailsOld(originID):
 
 @app.route('/test-details/<originID>', methods=['GET'])
 def showTestDetails(originID):
+    print("INSIDE TEST DETAILS FUNCTION = {}".format(originID))
     context = getTestDetailsData(originID)
 
     return render_template('test-details.html', context=context)
@@ -815,6 +861,13 @@ def showEnvDetails(originID):
         'disk':      disk_dataframe.to_dict(orient='list'),
         'nic':       nic_dataframe.to_dict(orient='list'),
     }
+
+    # close the database connection
+    try:
+        db.close()
+    except:
+        pass
+
     return render_template('environment-details.html', context=context)
 
 # Compare two or more tests
@@ -989,6 +1042,12 @@ def diffTests():
             'comparable_results': comparable_results.to_dict(orient='list'),
             'results': final_results_dataframe.to_dict(orient='list'),
         }
+        # close the database connection
+        try:
+            db.close()
+        except:
+            pass
+
         return render_template('compare.html', context=context)
     else:
         return redirect('/')
@@ -997,6 +1056,7 @@ def diffTests():
 # JS then draws the graph using this data
 @app.route('/get_data_for_graph', methods=['POST'])
 def get_data_for_graph():
+    print("GOT THE REQUEST FOR GET DATA FOR GRAPH")
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
@@ -1233,6 +1293,13 @@ def get_data_for_graph():
         'visible_list':visibile_list,
     }
 
+    # close the database connection
+    try:
+        print("CLOSING CONNECTION FOR get_data_for_graph {}".format(testname))
+        db.close()
+    except:
+        pass
+
     return response
 
 # This function handles the AJAX request for Best SKU Graph data.
@@ -1351,6 +1418,12 @@ def best_sku_graph():
         'higher_is_better': min_or_max,
     }
 
+    # close the database connection
+    try:
+        db.close()
+    except:
+        pass
+
     return response
 
 # Returns the NORMALIZED version of the graph with respect to a xParameter
@@ -1418,6 +1491,9 @@ def best_sku_graph_normalized():
 def best_of_all_graph():
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                      passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+
+    # Just for testing the speed
+    start_time = time.time()
 
     wiki_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
@@ -1662,11 +1738,19 @@ def best_of_all_graph():
         'normalized_wrt' : normalized_wrt,
     }
 
+    # close the database connection
+    try:
+        db.close()
+    except:
+        pass
+
+    print("Best of All Graph took {} seconds".format(time.time() - start_time))    
 
     return response
 
 @app.route('/counter_graphs', methods=['POST'])
 def counter_graphs():
+    start_time = time.time()
     data = request.get_json()
 
     logging.debug("DATA = {}".format(data))
@@ -1678,8 +1762,10 @@ def counter_graphs():
     # Get counter_graphs_data from the nas_path
     counter_graphs_data = counter_graphs_module.process_perf_stat_files(nas_path)
 
-    print("COUNTERS HISTOGRAM DATA")
-    print(counter_graphs_data['dmc_histogram_data'])
+    logging.debug("COUNTERS HISTOGRAM DATA")
+    logging.debug(counter_graphs_data['dmc_histogram_data'])
+
+    logging.debug("IT took {} seconds for counter graph".format(time.time() - start_time))
 
     return counter_graphs_data
 
