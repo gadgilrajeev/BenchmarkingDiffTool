@@ -301,6 +301,11 @@ Test Details
 
 
 		function drawCounterGraphs(){
+			// Destroy all the counter graphs initially
+			for(i = 1; i <=13; i++){
+				Plotly.purge('counter-graph-'+i)
+			}
+
 			ajaxData = {
 				'jobname' : '{{context.jenkins_details.jobname}}',
 				'runID' : '{{context.jenkins_details.runID}}',
@@ -319,6 +324,8 @@ Test Details
 				console.log(Object.keys(response))
 
 				$.each(Object.keys(response), function(index, graphName){
+					// Keep graph_name according to the value of num cpus
+
 					$('#counter-graph-title-'+(index+1)).html(graphName)
 					console.log(graphName)
 					console.log(response[graphName])
@@ -343,26 +350,9 @@ Test Details
 
 		// Get name of the graph from the graph index
 		function getCounterGraphName(index){
-			console.log(index)
-			counterGraphNameMap = {
-				1: 'Counter Graph 1',
-				2: 'Counter Graph 2',
-				3: 'Counter Graph 3',
-				4: 'Counter Graph 4',
-				5: 'Counter Graph 5',
-				6: 'Counter Graph 6',
-				7: 'Counter Graph 7',
-				8: 'Counter Graph 8',
-				9: 'Counter Graph 9',
-				10: 'Counter Graph 10',
-				11: 'Counter Graph 11',
-				12: 'Counter Graph 12',
-				13: 'Counter Graph 13',
-			}
+			$graphName = $('#counter-graph-'+index)[0].layout.title.text
 
-			console.log(counterGraphNameMap)
-			console.log(counterGraphNameMap[index])
-			return counterGraphNameMap[index];
+			return $graphName;
 		}
 	</script>	
 
