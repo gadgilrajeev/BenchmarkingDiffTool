@@ -89,7 +89,7 @@ function drawBestOfAllGraph(normalizedWRT){
 
 	selectedTestsList = []
 	for(i = 0; i < allRows.length; i++)
-		selectedTestsList.push(allRows[i].children[0].innerHTML)
+		selectedTestsList.push(allRows[i].children[0].children[0].innerHTML)
 
 	// Normalized (Reference CPU Manufacturer)
 	// normalizedWRT = $('#reference-for-normalized option:selected').text()
