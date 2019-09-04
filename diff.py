@@ -241,6 +241,12 @@ def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
+# Error 404 custom page not found
+@app.errorhandler(404)
+def page_not_found(e):
+    # note that we set the 404 status explicitly
+    return render_template('404.html'), 404
+
 # ALL TESTS PAGE
 @app.route('/')
 def home_page():
@@ -427,9 +433,13 @@ def getAllRunsData(testname, secret=False):
 # Show all runs of a test 'testname'
 @app.route('/allruns/<testname>', methods=['GET'])
 def showAllRuns(testname):
-    context = getAllRunsData(testname)
-
-    return render_template('all-runs.html', context=context)
+    try:
+        context = getAllRunsData(testname)
+        error = None
+    except Exception as error_message:
+        context = None
+        error = error_message
+    return render_template('all-runs.html', error=error, context=context)
 
 # Page for marking a test 'originID' invalid
 @app.route('/allruns/secret/<testname>', methods=['GET', 'POST'])
@@ -845,7 +855,11 @@ def showEnvDetails(originID):
                         .apply(lambda x: x.sum()/1024).reset_index()
 
     #Add ' GB' to the size
-    ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: str(x) + " GB")
+    try:
+        ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: str(x) + " GB")
+    except:
+        logging.warning("Couldn't add 'GB' to RAM SIZE")
+        pass
     # Read disk dataframe
     disk_dataframe = pd.read_csv(results_file_path + '/disk.csv', header=None,
                                  names=parameter_lists['disk_details_param_list'])
