@@ -917,6 +917,9 @@ def diffTests():
         db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                              passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
+        print(request)
+        print("REQUEST ARGS = {}".format(request.args))
+
         # take checked rows from table
         originID_compare_list = [value for key, value in request.args.items() if "diff-checkbox" in key]
 
@@ -1088,7 +1091,10 @@ def diffTests():
         except:
             pass
 
-        return render_template('compare.html', context=context)
+        # For 'Go To Benchmark' Dropdown
+        all_tests_data = get_all_tests_data()
+
+        return render_template('compare.html', context=context, all_tests_data=all_tests_data)
     else:
         return redirect('/')
 
