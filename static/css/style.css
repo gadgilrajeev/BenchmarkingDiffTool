@@ -298,6 +298,12 @@ tbody tr td{
   height: 60px;
 }
 
+#marketing-graph-div #compare-best-sku-graph {
+  grid-column: 5/7;
+  grid-row: 7;
+  height: 60px; 
+}
+
 .secret-grid {
   border-radius: 15px;
   display: grid; 
