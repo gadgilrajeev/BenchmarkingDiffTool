@@ -647,12 +647,12 @@ def getTestDetailsData(originID, secret=False):
                 logging.debug("GOT NUM CPUS")
                 logging.debug(" = {}".format(num_cpus_list))
             except Exception as e:
-                num_cpus_list = None
+                num_cpus_list = []
                 logging.debug(" = {}".format(e))
                 # logging.debug(results_dataframe)
                 logging.debug("DIDNT GET NUM CPUS")
         else:
-            num_cpus_list = None
+            num_cpus_list = []
 
         print("Result Type = {}".format(result_type))
 
@@ -707,12 +707,19 @@ def showTestDetailsOld(originID):
 @app.route('/test-details/<originID>', methods=['GET'])
 def showTestDetails(originID):
     print("INSIDE TEST DETAILS FUNCTION = {}".format(originID))
-    context = getTestDetailsData(originID)
+    try:
+        context = getTestDetailsData(originID)
+        error = None
+    except Exception as error_message:
+        context = None
+        error = error_message
 
     # For 'Go To Benchmark' Dropdown
     all_tests_data = get_all_tests_data()
 
-    return render_template('test-details.html', context=context, all_tests_data=all_tests_data)
+    logging.debug("PRINTING CONTEXT = {}".format(context))
+
+    return render_template('test-details.html', error=error, context=context, all_tests_data=all_tests_data)
 
 # Page for marking Individual test 'result' as invalid 
 @app.route('/test-details/secret/<originID>', methods=['GET', 'POST'])
