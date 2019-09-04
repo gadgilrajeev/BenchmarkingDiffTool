@@ -4,6 +4,21 @@
 All tests page
 {% endblock title %}
 
+{% block header %}
+	<div class="bg-info jumbotron jumbotron-fluid py-3">
+		<div class="bg-dark p-1 m-0"></div>
+		<div class="container-fluid d-flex py-0">
+			<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="250" height="100" class="img-fluid" alt="">
+			<div>
+			    <h1 class="display-3 font-weight-bold">FACTs FRONTEND</h1>
+			    <p class="lead font-weight-normal text-dark">Framework for Analysis and Comparison of Tests</p>
+			</div>
+		</div>
+		<div class="bg-dark p-1 m-0"></div>
+	</div>
+{% endblock %}
+
+
 {% block navbar %}
 	<nav class="navbar sticky-top navbar-expand-sm bg-dark navbar-dark lead">
 		<a class="navbar-brand bg-light text-dark py-1 px-2" href="#">
@@ -100,22 +115,22 @@ All tests page
 			</form>
 		</div>
 		<div id="hpc-table-div" class='w-25'>
-			<h2 class="mx-2 mb-2 pb-2">HPC BENCHMARKS</h2>
+			<h2 class="mx-2 mb-2 pb-2 font-weight-bold text-center">HPC BENCHMARKS</h2>
 			<table class="table table-dark table-hover" id="hpc-benchmarks-list">
 				{% for benchmark in context.hpc_benchmarks_list %}
 					<tr class="all-tests-rows">
-						<td class="all-tests-cells" onclick="showAllRuns(this)"> {{ benchmark }} </td>
+						<td class="all-tests-cells"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white font-weight-bold text-center w-100 my-0">{{benchmark}}</a></td>
 						<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
 					</tr>
 				{% endfor %}
 			</table>
 		</div>
 		<div id="cloud-table-div" class='w-25'>
-			<h2 class="mx-2 mb-2 pb-2">CLOUD BENCHMARKS</h2>
+			<h2 class="mx-2 mb-2 pb-2 font-weight-bold text-center">CLOUD BENCHMARKS</h2>
 			<table class="table table-dark table-hover" id="cloud-benchmarks-list">
 				{% for benchmark in context.cloud_benchmarks_list %}
 					<tr class="all-tests-rows">
-						<td class="all-tests-cells" onclick="showAllRuns(this)"> {{ benchmark }} </td>
+						<td class="all-tests-cells"><a href="/allruns/{{benchmark}}" class="btn btn-dark font-weight-bold text-white text-center w-100 my-0">{{benchmark}}</a></td>
 						<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
 					</tr>
 				{% endfor %}
