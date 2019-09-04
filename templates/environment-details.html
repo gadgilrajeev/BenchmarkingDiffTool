@@ -63,12 +63,15 @@ Environment Details
 {% endblock %}
 
 {% block content %}
-	<h2 class="text-center">Environment Details</h2>
+	<h1 class="text-center font-weight-bold py-3 my-3 display-4">
+		Environment Details - <a class="btn-link font-weight-bold" href="/test-details/{{context.originID}}">{{context.originID}}</a>
+	</h1>
 
-	<div class="d-flex flex-column container">
-		<div id="hw-details-div" class='environment-details table table-hover'>
-			<h2>HW Details</h2>
-			<table>
+	<div class="d-flex flex-column container bg-light mt-5">
+
+		<div id="hw-details-div" class='environment-details'>
+			<h2 class="text-left font-weight-bold pb-2">HW Details</h2>
+			<table class="table table-hover">
 				<thead class="thead-dark">
 					<tr>
 						{% for col in context.hwdetails %}
@@ -89,9 +92,9 @@ Environment Details
 			</table>
 		</div>
 
-		<div id="toolchain-details-div" class='environment-details table table-hover'>
-			<h2>Toolchain Details</h2>
-			<table>
+		<div id="toolchain-details-div" class='environment-details'>
+			<h2 class="text-left font-weight-bold pb-2">Toolchain Details</h2>
+			<table class="table table-hover">
 				<thead class="thead-dark">
 					<tr>
 						{% for col in context.toolchain %}
@@ -112,9 +115,9 @@ Environment Details
 			</table>
 		</div>
 
-		<div id="os-details-div" class='environment-details table table-hover'>
-			<h2>OS and Kernel Details</h2>
-			<table>
+		<div id="os-details-div" class='environment-details'>
+			<h2 class="text-left font-weight-bold pb-2">OS and Kernel Details</h2>
+			<table class="table table-hover">
 				<thead class="thead-dark">
 					<tr>
 						{% for col in context.ostunings %}
@@ -135,9 +138,9 @@ Environment Details
 			</table>
 		</div>
 
-		<div id="node-details-div" class='environment-details table table-hover'>
-			<h2>Node Details</h2>
-			<table>
+		<div id="node-details-div" class='environment-details'>
+			<h2 class="text-left font-weight-bold pb-2">Node Details</h2>
+			<table class="table table-hover">
 				<thead class="thead-dark">
 					<tr>
 						{% for col in context.node %}
@@ -158,9 +161,9 @@ Environment Details
 			</table>
 		</div>
 
-		<div id="bootenv-details-div" class='environment-details table table-hover'>
-			<h2>Run Time BootEnv Details</h2>
-			<table>
+		<div id="bootenv-details-div" class='environment-details'>
+			<h2 class="text-left font-weight-bold pb-2">Run Time BootEnv Details</h2>
+			<table class="table table-hover">
 				<thead class="thead-dark">
 					<tr>
 						{% for col in context.bootenv %}
@@ -181,9 +184,9 @@ Environment Details
 			</table>
 		</div>
 		
-		<div id="ram-details-div" class='environment-details table table-hover'>
-			<h2>RAM Details</h2>
-			<table>
+		<div id="ram-details-div" class='environment-details'>
+			<h2 class="text-left font-weight-bold pb-2">RAM Details</h2>
+			<table class="table table-hover">
 				<thead class="thead-dark">
 					<tr>
 						{% for col in context.ram %}
@@ -206,9 +209,9 @@ Environment Details
 			</table>
 		</div>
 
-		<div id="disk-details-div" class='environment-details table table-hover'>
-			<h2>Disk Details</h2>
-			<table>
+		<div id="disk-details-div" class='environment-details'>
+			<h2 class="text-left font-weight-bold pb-2">Disk Details</h2>
+			<table class="table table-hover">
 				<thead class="thead-dark">
 					<tr>
 						{% for col in context.disk %}
@@ -231,9 +234,9 @@ Environment Details
 			</table>
 		</div>
 
-		<div id="nic-details-div" class='environment-details table table-hover'>
-			<h2>NIC Details</h2>
-			<table>
+		<div id="nic-details-div" class='environment-details'>
+			<h2 class="text-left font-weight-bold pb-2">NIC Details</h2>
+			<table class="table table-hover">
 				<thead class="thead-dark">
 					<tr>
 						{% for col in context.nic %}

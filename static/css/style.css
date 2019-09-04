@@ -204,7 +204,7 @@ tbody tr td{
 }
 
 #engineering-graph-div #engineering-team-title {
-  grid-column: span 6;
+  grid-column: span 10;
   grid-row: 1/2;
   font-weight: bold;
 }
