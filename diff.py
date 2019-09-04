@@ -888,6 +888,7 @@ def showEnvDetails(originID):
                                 names=parameter_lists['nic_details_param_list'])
 
     context = {
+        'originID' : originID,
         'hwdetails': hwdetails_dataframe.to_dict(orient='list'),
         'toolchain': toolchain_dataframe.to_dict(orient='list'),
         'ostunings': ostunings_dataframe.to_dict(orient='list'),
