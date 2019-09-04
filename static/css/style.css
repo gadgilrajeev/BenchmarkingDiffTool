@@ -156,10 +156,6 @@ tbody tr td{
     text-align: center; 
 }
 
-.comparison-table{
-  margin: 20px;
-}
-
 #outer-graph-div{
   display: grid;
   grid-template-columns: repeat(12, 1fr);

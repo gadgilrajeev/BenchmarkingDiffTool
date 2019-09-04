@@ -4,21 +4,71 @@
 Comparison of tests
 {% endblock title %}
 
+{% block navbar %}
+	<nav class="navbar sticky-top navbar-expand-sm bg-dark navbar-dark lead">
+		<a class="navbar-brand bg-light text-dark py-1 px-2 font-weight-normal" href="#">
+			<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="30" height="30" class="d-inline-block align-top" alt="">
+		</a>
+		<!-- Links -->
+		<ul class="navbar-nav font-weight-normal">
+			<li class="nav-item">
+				<a class="nav-link active" href="/">Home</a>
+    		</li>
+
+    		<!-- Link to results table -->
+    		<li class="nav-item">
+    			<a class="nav-link" href="#results-div">Results</a>
+    		</li>
+
+    		<!-- Link to all-other comparison-tables -->
+			{% for i in range(context.parameter_lists | length) %}
+			{% set tablename = table_name(context.parameter_lists.keys(), i) %}
+	    		<li class="nav-item">
+	    			<a class="nav-link" href="#comparison-table-div-{{i}}">{{ tablename }}</a>
+	    		</li>    		
+	    	{% endfor %}
+    	</ul>
+
+    	<!-- Go to Benchmark Dropdown -->
+    	<ul class="navbar-nav font-weight-normal ml-auto">
+			<div class="dropdown p-0 m-0">
+				<button id="reference-for-normalized" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
+				Go to Benchmark </button>
+				<div id="reference-for-normalized-dropdown" class="dropdown-menu dropdown-menu-right" style="height: auto; max-height: 500px;overflow-x: hidden;">
+					<h3 class="dropdown-header font-weight-bold mt-1 mb-2">HPC BENCHMARKS</h3>
+					{% for benchmark in all_tests_data.hpc_benchmarks_list %}
+						<button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
+					{% endfor %}
+					<h3 class="dropdown-header font-weight-bold mt-5 mb-2">CLOUD BENCHMARKS</h3>
+					{% for benchmark in all_tests_data.cloud_benchmarks_list %}
+						<button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
+					{% endfor %}
+				</div>
+			</div>
+    	</ul>
+
+	</nav>
+{% endblock navbar %}
+
 {% block content %}
 
-	<div style="display: grid; grid-template-columns: repeat(12, 1fr); padding:0; margin:0;">
-		<h2 class="btn btn-link" onclick="showAllRuns(this)" style="grid-column: 5/8; justify-self: stretch; align-self: center; font-size: 40px; font-weight: bold;">
-			{{ context.testname }}
-		</h2>
+	<div class="container-fluid text-center page-header">
+		<h1 class="font-weight-bold display-4"><a class="btn-link font-weight-bold" href="/allruns/{{context.testname}}">{{ context.testname }}</a>-
+		{% for originID in context.originID_list %}
+			<a class="btn-link font-weight-bold" href="/test-details/{{originID}}">{{originID}}</a>
+			{% if not loop.last %}
+			 vs 
+			{% endif %}
+		{% endfor %}
+		</h1>
 	</div>
-</style>
 
-<div class="all-tables">
-	<button class="btn btn-outline-primary font-weight-bold float-right mr-5" onclick="toggleCheckbox()"><input id="checkbox-common" type="checkbox" name="common" value="hide-common"> Hide Common Properties</button>
+	<button class="btn btn-outline-primary font-weight-bold float-right mt-5 mr-5" onclick="toggleCheckbox()"><input id="checkbox-common" type="checkbox" name="common" value="hide-common"> Hide Common Properties</button>
 
+<div class="all-tables d-flex flex-column container bg-light mt-5">
 	<!-- ###############RESULTS############### -->
-    <div>
-    	<h2>Results</h2>
+    <div id="results-div">
+		<h2 class="bg-success text-center text-white font-weight-bold py-3 mb-5">Comparison of Results</h2>
     	<table class="table table-hover" id="results-table" style = "clear:left;">
     		<thead class="thead-dark">
 	    		<tr>
@@ -52,31 +102,37 @@ Comparison of tests
 
 	<!-- A Loop for displaying ALL Comparison Tables -->
 	<div>
+		<h2 class="bg-success text-center text-white font-weight-bold py-3">
+			Comparison of System Details
+		</h2>
+
 		{% for i in range(context.parameter_lists | length) %}
 		{% set tablename = table_name(context.parameter_lists.keys(), i) %}
-		<h2>{{ tablename }}</h2>
-		{% set tablename = tablename|lower %}
+		<div id="comparison-table-div-{{i}}">	
+			<h2 class="text-center text-white bg-info font-weight-bold pb-2 mb-1">{{ tablename }}</h2>
+			{% set tablename = tablename|lower %}
 
-		<table class="comparison-table table table-hover">
-			<thead class="thead-dark">
+			<table class="table table-hover">
+				<thead class="thead-dark">
+					<tr>
+						<th></th>
+						{% for t_no in context.originID_list %}
+							<th style="font-weight: bold">Test_{{ t_no }}</th>
+						{% endfor %}
+					</tr>
+				</thead>
+
+				{% for param in context.parameter_lists[tablename~"_param_list"] %}
 				<tr>
-					<th></th>
-					{% for t_no in context.originID_list %}
-						<th style="font-weight: bold">Test_{{ t_no }}</th>
-					{% endfor %}
+					<td class="param" style="font-weight: bold;"> {{ param }}</td>
+
+					{% for dict in context.compare_lists[tablename~"_list"] %}
+		                <td>{{ dict[ param ] }}</td>    
+		            {% endfor %}
 				</tr>
-			</thead>
-
-			{% for param in context.parameter_lists[tablename~"_param_list"] %}
-			<tr>
-				<td class="param" style="font-weight: bold;"> {{ param }}</td>
-
-				{% for dict in context.compare_lists[tablename~"_list"] %}
-	                <td>{{ dict[ param ] }}</td>    
-	            {% endfor %}
-			</tr>
-			{% endfor %}
-		</table>
+				{% endfor %}
+			</table>
+		</div>
 		{% endfor %}
 	</div>
 
@@ -86,6 +142,8 @@ Comparison of tests
 	$( document ).ready(function() {
     	$("#checkbox-common").prop("checked", false);
 	
+		//hide/show the navbar on scroll down/up
+		registerNavbarHideFn()
 	});
 
 	function toggleCheckbox(){
