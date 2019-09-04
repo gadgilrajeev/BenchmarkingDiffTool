@@ -53,10 +53,8 @@ Test Details
 	</form>
 
 	<div class="container-fluid d-flex flex-column">
-		<div style="display: grid; grid-template-columns: repeat(12, 1fr); padding:0; margin:0;">
-			<h2 class="btn btn-link" onclick="showAllRuns(this)" style="grid-column: 5/8; justify-self: stretch; align-self: center; font-size: 40px; font-weight: bold;">
-				{{ context.testname }}
-			</h2>
+		<div class="container-fluid text-center page-header">
+			<h1 class="btn-link font-weight-bold display-4"><a href="/allruns/{{context.testname}}">{{ context.testname }}</a></h1>
 		</div>
 
 		<div id="system-details-div" class='bg-light mb-5 mx-5 px-5'>
@@ -226,6 +224,8 @@ Test Details
 	
 	<script>
 		$( document ).ready(function() {
+			//hide/show the navbar on scroll down/up
+			registerNavbarHideFn()
 
 			// Setup - append a text input to each header cell
 	    	$('#resultsTable thead tr').clone(true).appendTo( '#resultsTable #search-thead' );

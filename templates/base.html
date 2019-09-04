@@ -17,9 +17,6 @@
 </head>
 <body>
 	{% block header %}
-		<div class="header">
-			<h1 align="center"><a href="/">Performance Comparison Tool</a></h1>
-		</div>
 	{% endblock %}
 
 	{% block navbar %}
@@ -46,7 +43,7 @@
 <script>
 	
 	//for hiding navbar on scroll
-	$(function () {
+	registerNavbarHideFn = function hideNavBar() {
 	  var lastScrollTop = 0;
 	  var $navbar = $('.navbar');
 
@@ -66,7 +63,7 @@
 	    }
 	    lastScrollTop = st;
 	  });
-	});
+	};
 
 </script>
 

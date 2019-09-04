@@ -48,10 +48,8 @@ All Runs of {{ context.testname }}
 
 {% block content %}
 
-	<div style="display: grid; grid-template-columns: repeat(12, 1fr); padding:0; margin:0;">
-		<h2 class="btn btn-link font-weight-bold" style="grid-column: 5/8; justify-self: stretch; align-self: center; font-size: 40px; font-weight: bold;">
-			{{ context.testname }}
-		</h2>
+	<div class="container-fluid text-center page-header">
+		<h1 class="btn-link font-weight-bold display-4">{{ context.testname }}</h1>
 	</div>
 
 	<div id="test-summary-div" class="card border-info">
@@ -213,6 +211,9 @@ All Runs of {{ context.testname }}
 	$normalizedList.hide();
 
 	$(document).ready(function() {
+		//hide/show the navbar on scroll down/up
+		registerNavbarHideFn()
+
 	    // Setup - append a text input to each header cell
 	    $('#allRunsTable thead tr').clone(true).appendTo( '#allRunsTable #search-thead' );
 	    $('#allRunsTable #search-thead tr th').each( function (i) {
