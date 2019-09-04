@@ -17,26 +17,6 @@
 </head>
 <body>
 	{% block header %}
-		<style>
-			/*FOR HYPERLINKS*/
-			a:link, a:visited {
-			  background-color: white;
-			  color: black;
-			  border: 2px solid green;
-			  padding: 10px 20px;
-			  text-align: center;
-			  text-decoration: none;
-			  display: inline-block;
-			  font-weight: bold;
-			}
-
-			a:hover, a:active {
-			  background-color: green;
-			  color: white;
-			  font-weight: bold;
-			}
-		</style>
-
 		<div class="header">
 			<h1 align="center"><a href="/">Performance Comparison Tool</a></h1>
 		</div>
@@ -57,8 +37,38 @@
 	{% endif %}
 
 	<div id="content">
-		{% block content %}
-		{% endblock %}
+		{% if context != None %}
+			{% block content %}
+			{% endblock %}
+		{% endif %}
 	</div>
+
+<script>
+	
+	//for hiding navbar on scroll
+	$(function () {
+	  var lastScrollTop = 0;
+	  var $navbar = $('.navbar');
+
+	  $(window).scroll(function(event){
+	    var st = $(this).scrollTop();
+
+	    if (st > lastScrollTop) { // scroll down	      
+	      // use this to use CSS3 animation
+	      $navbar.addClass("fade-out");
+	      $navbar.removeClass("fade-in");
+	      
+	    } else { // scroll up
+	      // use this to use CSS3 animation
+	      $navbar.addClass("fade-in");
+	      $navbar.removeClass("fade-out");
+	      
+	    }
+	    lastScrollTop = st;
+	  });
+	});
+
+</script>
+
 </body>
 </html>
