@@ -247,9 +247,8 @@ def page_not_found(e):
     # note that we set the 404 status explicitly
     return render_template('404.html'), 404
 
-# ALL TESTS PAGE
-@app.route('/')
-def home_page():
+# Get all-tests data
+def get_all_tests_data():
     parser = configparser.ConfigParser()
     wiki_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
     parser.read(wiki_metadata_file_path)
@@ -295,6 +294,14 @@ def home_page():
         'filter_labels_dict': filter_labels_dict,
         'reference_list': reference_list,
     }
+
+    return context
+
+# ALL TESTS PAGE
+@app.route('/')
+def home_page():
+    context = get_all_tests_data()
+
     return render_template('all-tests.html', context=context)
 
 # Get data for All runs of the test 'testname' from database
@@ -439,7 +446,11 @@ def showAllRuns(testname):
     except Exception as error_message:
         context = None
         error = error_message
-    return render_template('all-runs.html', error=error, context=context)
+
+    # For 'Go To Benchmark' Dropdown
+    all_tests_data = get_all_tests_data()
+
+    return render_template('all-runs.html', error=error, context=context, all_tests_data=all_tests_data)
 
 # Page for marking a test 'originID' invalid
 @app.route('/allruns/secret/<testname>', methods=['GET', 'POST'])
@@ -698,7 +709,10 @@ def showTestDetails(originID):
     print("INSIDE TEST DETAILS FUNCTION = {}".format(originID))
     context = getTestDetailsData(originID)
 
-    return render_template('test-details.html', context=context)
+    # For 'Go To Benchmark' Dropdown
+    all_tests_data = get_all_tests_data()
+
+    return render_template('test-details.html', context=context, all_tests_data=all_tests_data)
 
 # Page for marking Individual test 'result' as invalid 
 @app.route('/test-details/secret/<originID>', methods=['GET', 'POST'])
@@ -883,7 +897,10 @@ def showEnvDetails(originID):
     except:
         pass
 
-    return render_template('environment-details.html', context=context)
+    # For 'Go To Benchmark' Dropdown
+    all_tests_data = get_all_tests_data()
+
+    return render_template('environment-details.html', context=context, all_tests_data=all_tests_data)
 
 # Compare two or more tests
 @app.route('/diff', methods=['GET', 'POST'])
