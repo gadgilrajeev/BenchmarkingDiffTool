@@ -4,6 +4,28 @@
 Test Details
 {% endblock title %}
 
+{% block navbar %}
+	<nav class="navbar sticky-top navbar-expand-sm bg-dark navbar-dark lead">
+		<a class="navbar-brand bg-light text-dark py-1 px-2 font-weight-normal" href="#">
+			<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="30" height="30" class="d-inline-block align-top" alt=""> FACTs Frontend
+		</a>
+		<!-- Links -->
+		<ul class="navbar-nav font-weight-normal">
+			<li class="nav-item">
+				<a class="nav-link active" href="/">Home</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#system-details-div">System Details</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#results-table-div">All-Results Table</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#generate-other-graphs">Other Graphs</a>
+    		</li>
+    	</ul>
+	</nav>
+{% endblock %}
 
 {% block content %}
 
@@ -18,7 +40,7 @@ Test Details
 			</h2>
 		</div>
 
-		<div class='bg-light mb-5 mx-5 px-5'>
+		<div id="system-details-div" class='bg-light mb-5 mx-5 px-5'>
 			<h2 class="text-center font-weight-bold pb-3">
 				System Details
 			</h2>
@@ -35,21 +57,21 @@ Test Details
 					{% for key in context.system_details %}
 						{% if loop.index0 < 3 %}
 							{% if loop.index0 == 2 %}
-								<td> <a href="/environment-details/{{ context.system_details[key][0] }}">Details</a></td>
+								<td> <a class="btn btn-lg btn-success font-weight-bold" href="/environment-details/{{ context.system_details[key][0] }}">Details</a></td>
 							{% else %}
 								<td> {{ context.system_details[key][0] }}</td>
 							{% endif %}
 						{% elif loop.index0 == 3 %}
-						<td> <a href="{{ context.system_details[key][0] }}" target="_blank">NAS Link</a>  </td>
+						<td> <a class="btn btn-lg btn-success font-weight-bold" href="{{ context.system_details[key][0] }}" target="_blank">NAS Link</a>  </td>
 						{% else %}
-						<td> <a href="{{ context.system_details[key][0] }}" target="_blank">Jenkins Link</a>  </td>
+						<td> <a class="btn btn-lg btn-success font-weight-bold" href="{{ context.system_details[key][0] }}" target="_blank">Jenkins Link</a>  </td>
 						{% endif %}
 					{% endfor %}
 				</tr>
 			</table>
 		</div>
 
-		<div class='bg-light overflow-auto mt-5'>
+		<div id="results-table-div" class='bg-light overflow-auto mt-5'>
 			<h1 class="text-center font-weight-bold">
 				Results
 			</h1>
@@ -76,7 +98,7 @@ Test Details
 					{% endfor %}
 				</tbody>
 			</table>
-			<div class="d-flex justify-content-between">
+			<div id="generate-other-graphs" class="d-flex justify-content-between">
 				<button type="button" id="download-results-table-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
 				<button type="button" id="generate-cpu-graphs" class="btn btn-danger font-weight-bold" >Generate CPU Utilization Graphs (Don't click)</button>
 				{% if context.result_type == 'perf' %}

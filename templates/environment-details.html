@@ -5,13 +5,49 @@ Environment Details
 {% endblock title %}
 
 {% block navbar %}
+	<nav class="navbar sticky-top navbar-expand-sm bg-dark navbar-dark lead">
+		<a class="navbar-brand bg-light text-dark py-1 px-2 font-weight-normal" href="#">
+			<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="30" height="30" class="d-inline-block align-top" alt=""> FACTs Frontend
+		</a>
+		<!-- Links -->
+		<ul class="navbar-nav font-weight-normal">
+			<li class="nav-item">
+				<a class="nav-link active" href="/">Home</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#hw-details-div">HW-Details</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#toolchain-details-div">ToolChain</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#os-details-div">OS & Kernel</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#node-details-div">Node</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#bootenv-details-div">BootEnv</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#ram-details-div">RAM</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#disk-details-div">Disk</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#nic-details-div">NIC</a>
+    		</li>
+    		
+    	</ul>
+	</nav>
 {% endblock %}
 
 {% block content %}
 	<h2 class="text-center">Environment Details</h2>
 
 	<div class="d-flex flex-column container">
-		<div class='environment-details table table-hover'>
+		<div id="hw-details-div" class='environment-details table table-hover'>
 			<h2>HW Details</h2>
 			<table>
 				<thead class="thead-dark">
@@ -34,7 +70,7 @@ Environment Details
 			</table>
 		</div>
 
-		<div class='environment-details table table-hover'>
+		<div id="toolchain-details-div" class='environment-details table table-hover'>
 			<h2>Toolchain Details</h2>
 			<table>
 				<thead class="thead-dark">
@@ -57,7 +93,7 @@ Environment Details
 			</table>
 		</div>
 
-		<div class='environment-details table table-hover'>
+		<div id="os-details-div" class='environment-details table table-hover'>
 			<h2>OS and Kernel Details</h2>
 			<table>
 				<thead class="thead-dark">
@@ -80,7 +116,7 @@ Environment Details
 			</table>
 		</div>
 
-		<div class='environment-details table table-hover'>
+		<div id="node-details-div" class='environment-details table table-hover'>
 			<h2>Node Details</h2>
 			<table>
 				<thead class="thead-dark">
@@ -103,7 +139,7 @@ Environment Details
 			</table>
 		</div>
 
-		<div class='environment-details table table-hover'>
+		<div id="bootenv-details-div" class='environment-details table table-hover'>
 			<h2>Run Time BootEnv Details</h2>
 			<table>
 				<thead class="thead-dark">
@@ -126,7 +162,7 @@ Environment Details
 			</table>
 		</div>
 		
-		<div class='environment-details table table-hover'>
+		<div id="ram-details-div" class='environment-details table table-hover'>
 			<h2>RAM Details</h2>
 			<table>
 				<thead class="thead-dark">
@@ -151,7 +187,7 @@ Environment Details
 			</table>
 		</div>
 
-		<div class='environment-details table table-hover'>
+		<div id="disk-details-div" class='environment-details table table-hover'>
 			<h2>Disk Details</h2>
 			<table>
 				<thead class="thead-dark">
@@ -176,7 +212,7 @@ Environment Details
 			</table>
 		</div>
 
-		<div class='environment-details table table-hover'>
+		<div id="nic-details-div" class='environment-details table table-hover'>
 			<h2>NIC Details</h2>
 			<table>
 				<thead class="thead-dark">

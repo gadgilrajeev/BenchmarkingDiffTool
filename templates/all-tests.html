@@ -5,8 +5,22 @@ All tests page
 {% endblock title %}
 
 {% block navbar %}
-	<nav class="navbar navbar-dark bg-dark">
-	  <!-- Navbar content -->
+	<nav class="navbar sticky-top navbar-expand-sm bg-dark navbar-dark lead">
+		<a class="navbar-brand bg-light text-dark py-1 px-2" href="#">
+			<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="30" height="30" class="d-inline-block align-top" alt="">
+		</a>
+		<!-- Links -->
+		<ul class="navbar-nav font-weight-normal">
+			<li class="nav-item active">
+				<a class="nav-link" href="#">Home</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#best-of-all-graph-div">Best Results Graph</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#filters-and-tables">All Benchmarks Tables</a>
+    		</li>
+    	</ul>
 	</nav>
 {% endblock %}
 

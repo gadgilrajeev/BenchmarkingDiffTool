@@ -1,9 +1,31 @@
 {% extends 'base.html' %}
 
 {% block title %}
-All Runs of the test
+All Runs of {{ context.testname }}
 {% endblock title %}
 
+{% block navbar %}
+	<nav class="navbar sticky-top navbar-expand-sm bg-dark navbar-dark lead">
+		<a class="navbar-brand bg-light text-dark py-1 px-2 font-weight-normal" href="#">
+			<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="30" height="30" class="d-inline-block align-top" alt=""> FACTs Frontend
+		</a>
+		<!-- Links -->
+		<ul class="navbar-nav font-weight-normal">
+			<li class="nav-item">
+				<a class="nav-link active" href="/">Home</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#test-summary-div">Test Summary</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#outer-graph-div">Graphs</a>
+    		</li>
+    		<li class="nav-item">
+    			<a class="nav-link" href="#allRunsTable">All-Runs Table</a>
+    		</li>
+    	</ul>
+	</nav>
+{% endblock %}
 
 {% block content %}
 
@@ -13,11 +35,11 @@ All Runs of the test
 		</h2>
 	</div>
 
-	<div class="card border-info">
+	<div id="test-summary-div" class="card border-info">
 		<div class="card-header bg-transparent border-info font-weight-bolder" style="font-size: 25px;">Summary of the test</div>
 		<div class="card-body text-secondary">
 			<h5 class="font-weight-bold card-title">Summary</h5>
-			<p class="card-text">{{context.test_summary.summary}}</p>
+			<p class="card-text lead">{{context.test_summary.summary}}</p>
 			<div class="collapse" id="fullSummaryCollapse">
 				{% if context.test_summary.source_code_link %}
 					<p><strong>Source Code Link:</strong> {{context.test_summary.source_code_link}} </p>
@@ -69,7 +91,7 @@ All Runs of the test
 			<div class="card-header" id="engineering-team-title"><h2>For Engineering Team</h2></div>
 			<div id="clustered-graph"></div>
 
-			<select id="yParameter" class="form-control form-control-lg" name="yParameter">
+			<select data-toggle="tooltip" data-placement="bottom" title="Y - Parameter" id="yParameter" class="form-control form-control-lg" name="yParameter">
 				<!-- TAKING PARAMETERS FROM INI FILE -->
 				{% for qualifier in context.qualifier_list %}
 					{% if loop.index0 == 0 %}
@@ -80,7 +102,7 @@ All Runs of the test
 				{% endfor %}
 			</select>
 			<p>vs</p>
-			<select id="xParameter" class="form-control form-control-lg" name="xParameter">
+			<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="X - Parameter" id="xParameter" class="form-control form-control-lg" name="xParameter">
 				<option value="Kernel Version" selected="selected">Kernel Version</option>
 				<option value="OS Version">OS Version</option>
 				<option value="OS Name">OS Name</option>
@@ -147,7 +169,7 @@ All Runs of the test
 							{% for key in context.data %}
 								{% if loop.index0 == 0%}
 									<td><input class="checkbox diff-checkbox" type="checkbox" name="diff-checkbox{{i}}" value="{{ context.data['originID'][i] }}"></td>
-									<td class="originID table-cell"><a href="/test-details/{{ context.data[key][i] }}">{{ context.data[key][i] }}</a></td>
+									<td class="originID table-cell"><a class="btn btn-lg btn-success font-weight-bold" href="/test-details/{{ context.data[key][i] }}">{{ context.data[key][i] }}</a></td>
 								{% else %}
 									<td class="table-cell"> {{ context.data[key][i] }}</td>
 								{% endif %}
