@@ -82,7 +82,7 @@ All Runs of {{ context.testname }}
 	
 	<div class="card bg-info" id="outer-graph-div">
 		<div class="card-header bg-transparent p-0" id="input-filter-div">
-			<h2>Filters</h2>
+			<h2>Input Filters</h2>
 				{% for column in context.input_details %}
 					{% set i = loop.index0 %}
 					{% set options_list = context.input_details[column] | unique_list %}
@@ -105,7 +105,7 @@ All Runs of {{ context.testname }}
 		</div>
 
 		<div class="card bg-light border-info" id="engineering-graph-div">
-			<div class="card-header bg-success text-white" id="engineering-team-title"><h2>For Engineering Team</h2></div>
+			<div class="card-header bg-success text-white text-center" id="engineering-team-title"><h2 class="font-weight-bold">For Engineering Team</h2></div>
 			<div id="clustered-graph"></div>
 
 			<select data-toggle="tooltip" data-placement="bottom" title="Y - Parameter" id="yParameter" class="form-control form-control-lg" name="yParameter">
@@ -140,7 +140,7 @@ All Runs of {{ context.testname }}
 		</div>
 
 		<div class="card bg-light border-info" id="marketing-graph-div">
-			<div class="card-header bg-success text-white" id="marketing-team-title"><h2>For Marketing and Communication Team</h2></div>
+			<div class="card-header bg-success text-white text-center" id="marketing-team-title"><h2 class="font-weight-bold">For Marketing and Communication Team</h2></div>
 			<div id="best-sku-graph"></div>
 
 			<div id="absolute-radio-div" class="custom-control custom-radio">
