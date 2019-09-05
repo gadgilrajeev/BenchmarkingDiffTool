@@ -132,6 +132,7 @@ All Runs of {{ context.testname }}
 				<option value="DDRfreq">DDRfreq</option>
 				<option value="SKUID">SKUID</option>
 				<option value="Hostname">Hostname</option>
+				<option value="Scaling">Scaling</option>
 				<!-- <option value="Flags">Flags</option> -->
 			</select>
 
@@ -214,8 +215,6 @@ All Runs of {{ context.testname }}
 	$normalizedList.hide();
 
 	$(document).ready(function() {
-		//hide/show the navbar on scroll down/up
-		registerNavbarHideFn()
 
 	    // Setup - append a text input to each header cell
 	    $('#allRunsTable thead tr').clone(true).appendTo( '#allRunsTable #search-thead' );
@@ -291,10 +290,6 @@ All Runs of {{ context.testname }}
 	    bestSkuAjaxData = {'xParameter': 'SKUs', 'yParameter': "", 'testname' : "{{ context.testname }}"}
 	    bestSkuAjaxData.inputFiltersList = inputFiltersList
 	    sendAjaxRequest(bestSkuAjaxData, url='/best_sku_graph')
-
-	    //fill the dropdown list
-	    //and hide it
-	    fillNormalizedDropdown();
 
 	    //Event handler on switching from "Absolute" to "Normalized" best_sku_graph and vice-versa
 		$('input[type=radio][name=typeOfGraph]').change(function() {
@@ -395,11 +390,6 @@ All Runs of {{ context.testname }}
 
 		bestSkuAjaxData.inputFiltersList = inputFiltersList
 		sendAjaxRequest(bestSkuAjaxData, url='/best_sku_graph')
-
-		//fill new normalizedDropdown
-		//hide it. and make absolute as checked
-		fillNormalizedDropdown();
-
 	})
 
 	$('#compare-best-sku-graph').click(function(){

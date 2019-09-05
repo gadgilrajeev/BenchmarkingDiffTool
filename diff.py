@@ -2,6 +2,8 @@ from pprint import pprint
 import time     
 import logging
 import os, shutil
+from joblib import Parallel, delayed    #For parallel processing
+import multiprocessing
 import pandas as pd
 import numpy as np
 import pymysql
@@ -20,8 +22,19 @@ DB_PASSWD = ''
 DB_NAME = 'benchtooldb'
 DB_PORT = 3306
 
+# Change the result_type according to result_type_map
+# Mapping for Result type field
+result_type_map = {0: "single thread", 1: 'single core',
+                   2: 'single socket', 3: 'dual socket',
+                   4: 'client scaling', 5: '1/8th socket',
+                   6: '1/4th socket', 7: '1/2 socket',
+                   8: '2 cores', 9: 'perf',
+                   10: 'I/O utilization', 11: 'socmon',
+                   12: 'OMP_MPI scaling', 20: 'Projection'}
+
+
 # Uncomment this line for toggling debugging messages on the console
-#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 # from datetime import datetime
 app = Flask(__name__)
@@ -379,7 +392,12 @@ def getAllRunsData(testname, secret=False):
                                 ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
                                 ON o.originID = r.origin_originID INNER JOIN subtest s
                                 ON  r.subtest_subtestID = s.subtestID WHERE r.isvalid = 1 and t.testname = \'""" + testname + "\';"
-        input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
+        print(INPUT_FILE_QUERY)
+        try:
+            input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
+        finally:
+            db.close()
+
         logging.debug("{}".format(input_parameters))
         logging.debug("{}".format(input_details_df))
 
@@ -535,13 +553,6 @@ def markOriginIDInvalid():
 def getTestDetailsData(originID, secret=False):
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
-    result_type_map = {0: "single thread", 1: 'single core',
-                       2: 'single socket', 3: 'dual socket',
-                       4: 'client scaling', 5: '1/8th socket',
-                       6: '1/4th socket', 7: '1/2 socket',
-                       8: '2 cores', 9: 'perf',
-                       10: 'I/O utilization', 11: 'socmon',
-                       12: 'OMP_MPI scaling', 20: 'Projection'}
 
     # Just get the TEST name
     test_name = get_test_name(originID)
@@ -711,6 +722,7 @@ def showTestDetails(originID):
         context = getTestDetailsData(originID)
         error = None
     except Exception as error_message:
+        print("Printing error == {}".format(error_message))
         context = None
         error = error_message
 
@@ -975,99 +987,139 @@ def diffTests():
 
         })
 
-        # Read all results. Store in a dataframe
-        join_on_columns_list = parameter_lists['results_param_list'][0:-4]
-        join_on_columns_list.extend(['resultype', 'unit', 'qualifier'])
+        # Function for reading "results.csv". 
+        # For Improved readability
+        def read_results():
+            # Read all results. Store in a dataframe
+            join_on_columns_list = parameter_lists['results_param_list'][0:-4]
+            join_on_columns_list.extend(['resultype', 'unit', 'qualifier'])
 
-        # read the first results file
-        results_file_path = '/mnt/nas/dbresults/' + str(jobname_list[0]) + '/' \
-                            + str(runID_list[0]) + '/results/results.csv'
-        first_results_dataframe = pd.read_csv(results_file_path, header=None,
-                                              names=parameter_lists['results_param_list'])
+            # read the first results file
+            results_file_path = '/mnt/nas/dbresults/' + str(jobname_list[0]) + '/' \
+                                + str(runID_list[0]) + '/results/results.csv'
+            first_results_dataframe = pd.read_csv(results_file_path, header=None,
+                                                  names=parameter_lists['results_param_list'])
 
-        # LOWERCASE THE QUALIFIER COLUMN
-        first_results_dataframe['qualifier'] = first_results_dataframe['qualifier'].apply(lambda x: x.lower().strip())
-
-        # GROUP BY join_on_columns_list AND FIND MIN/MAX OF EACH GROUP
-        if min_or_max_list[0] == '0':
-            first_results_dataframe = first_results_dataframe.groupby(by=join_on_columns_list).min()
-        else:
-            first_results_dataframe = first_results_dataframe.groupby(by=join_on_columns_list).max()
-
-        # Assign first results_dataframe to intermediate_dataframe for merging
-        intermediate_dataframe = first_results_dataframe
-
-        logging.debug('\n\nDONE\n\n')
-
-        # for each subsequent results file, merge with the already exsiting dataframe on "description" columns
-        for jobname, runID in zip(jobname_list[1:], runID_list[1:]):
-            results_file_path = '/mnt/nas/dbresults/' + str(jobname) + '/' + str(runID) + '/results/results.csv'
-
-            next_dataframe = pd.read_csv(results_file_path, header=None, names=parameter_lists['results_param_list'])
-            next_dataframe['qualifier'] = next_dataframe['qualifier'].apply(lambda x: x.lower().strip())
+            # LOWERCASE THE QUALIFIER COLUMN
+            first_results_dataframe['qualifier'] = first_results_dataframe['qualifier'].apply(lambda x: x.lower().strip())
 
             # GROUP BY join_on_columns_list AND FIND MIN/MAX OF EACH GROUP
             if min_or_max_list[0] == '0':
-                next_dataframe = next_dataframe.groupby(by=join_on_columns_list).min()
+                first_results_dataframe = first_results_dataframe.groupby(by=join_on_columns_list).min()
             else:
-                next_dataframe = next_dataframe.groupby(by=join_on_columns_list).max()
+                first_results_dataframe = first_results_dataframe.groupby(by=join_on_columns_list).max()
 
-            # Merge the next_dataframe with previous
-            intermediate_dataframe = intermediate_dataframe.merge(next_dataframe, how='outer', on=join_on_columns_list,
-                                                                  validate="many_to_many")
+            # Assign first results_dataframe to intermediate_dataframe for merging
+            intermediate_dataframe = first_results_dataframe
 
-        # Change column names according to OriginID
-        intermediate_dataframe = intermediate_dataframe.reset_index()
-        intermediate_dataframe.columns = join_on_columns_list + ["number_" + originID for originID in
-                                                                 originID_compare_list]
+            logging.debug('\n\nDONE\n\n')
 
-        # Change the result_type according to result_type_map
-        # Mapping for Result type field
-        result_type_map = {0: "single thread", 1: 'single core',
-                       2: 'single socket', 3: 'dual socket',
-                       4: 'client scaling', 5: '1/8th socket',
-                       6: '1/4th socket', 7: '1/2 socket',
-                       8: '2 cores', 9: 'perf',
-                       10: 'I/O utilization', 11: 'socmon',
-                       12: 'OMP_MPI scaling', 20: 'Projection'}
+            # for each subsequent results file, merge with the already exsiting dataframe on "description" columns
+            for jobname, runID in zip(jobname_list[1:], runID_list[1:]):
+                results_file_path = '/mnt/nas/dbresults/' + str(jobname) + '/' + str(runID) + '/results/results.csv'
 
-        def apply_result_type(x):
+                next_dataframe = pd.read_csv(results_file_path, header=None, names=parameter_lists['results_param_list'])
+                next_dataframe['qualifier'] = next_dataframe['qualifier'].apply(lambda x: x.lower().strip())
+
+                # GROUP BY join_on_columns_list AND FIND MIN/MAX OF EACH GROUP
+                if min_or_max_list[0] == '0':
+                    next_dataframe = next_dataframe.groupby(by=join_on_columns_list).min()
+                else:
+                    next_dataframe = next_dataframe.groupby(by=join_on_columns_list).max()
+
+                # Merge the next_dataframe with previous
+                intermediate_dataframe = intermediate_dataframe.merge(next_dataframe, how='outer', on=join_on_columns_list,
+                                                                      validate="many_to_many")
+
+            # Change column names according to OriginID
+            intermediate_dataframe = intermediate_dataframe.reset_index()
+            intermediate_dataframe.columns = join_on_columns_list + ["number_" + originID for originID in
+                                                                     originID_compare_list]
+
+            def apply_result_type(x):
+                try:
+                    return result_type_map[x]
+                except:
+                    logging.warning("Couldn't parse result type")
+                    return None
+
+            intermediate_dataframe['resultype'] = intermediate_dataframe['resultype'].apply(lambda x: apply_result_type(x))
+
+            final_results_dataframe = pd.DataFrame(columns=intermediate_dataframe.columns)
+            # SUBSET OF ROWS WHICH HAVE "qualifier" IN QUALIFIER LIST
+            for q in qualifier_list:
+                mask = (intermediate_dataframe['qualifier'] == pd.Series([q] * len(intermediate_dataframe)))
+                dataframe = intermediate_dataframe[mask]
+
+                final_results_dataframe = final_results_dataframe.append(dataframe)
+
+            logging.debug("PRINTING THE FINAL DATAFRAME")
+            logging.debug(' = {}'.format(final_results_dataframe))
+            logging.debug("DONE")
+
+            # DROP THE NAN rows for comparing results in graphs
+            comparable_results = final_results_dataframe.dropna()
+            comparable_results = comparable_results[
+                ['qualifier'] + [column for column in comparable_results.columns if column not in join_on_columns_list]]
+
+            comparable_results.columns = ['qualifier'] + ["Test_" + originID for originID in originID_compare_list]
+
+            # FILL NAN cells with ""
+            final_results_dataframe = final_results_dataframe.fillna("")
+
+            logging.debug("PRINTING COMPARABLE RESULTS")
+            logging.debug(' = {}'.format(comparable_results))
+            logging.debug("DONE")
+
+            return final_results_dataframe, comparable_results, join_on_columns_list
+
+        # Get Results table, comparable_results(unused),
+        # Join on columns list is (description_list + resultype + unit + qualifier)
+        final_results_dataframe, comparable_results, join_on_columns_list = read_results()
+
+        # Function for reading ram_dataframe
+        def read_ram_details():
+            # READ RAM.CSV file and add the size to get total RAM in GB
+            ram_dataframe = pd.read_csv(results_file_path + '/ram.csv', header=None,
+                                        names=parameter_lists['ram_details_param_list'])
+
+            #CUSTOM FILTER
+            # Returns boolean True if the group has all 'ramsize' entries as 'float'
+            def only_numeric_groups(df):
+                ramsize_series = df['ramsize'].astype(str).str.isnumeric().isin([True])
+                return ramsize_series.all()
+
+
+            ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]).filter(only_numeric_groups).reset_index(drop=True)
+
+            # Convert each entry of 'ramsize' column to float
+            ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: float(x))
+
+            ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]) \
+                                .apply(lambda x: x.sum()/1024).reset_index()
+
+            #Add ' GB' to the size
             try:
-                return result_type_map[x]
+                ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: str(x) + " GB")
             except:
-                logging.warning("Couldn't parse result type")
-                return None
+                logging.warning("Couldn't add 'GB' to RAM SIZE")
+                pass
 
-        intermediate_dataframe['resultype'] = intermediate_dataframe['resultype'].apply(lambda x: apply_result_type(x))
+            return ram_dataframe
+            pass
 
-        final_results_dataframe = pd.DataFrame(columns=intermediate_dataframe.columns)
-        # SUBSET OF ROWS WHICH HAVE "qualifier" IN QUALIFIER LIST
-        for q in qualifier_list:
-            mask = (intermediate_dataframe['qualifier'] == pd.Series([q] * len(intermediate_dataframe)))
-            dataframe = intermediate_dataframe[mask]
+        def read_disk_details():
+            pass
 
-            final_results_dataframe = final_results_dataframe.append(dataframe)
+        def read_nic_details():
+            pass
 
-        logging.debug("PRINTING THE FINAL DATAFRAME")
-        logging.debug(' = {}'.format(final_results_dataframe))
-        logging.debug("DONE")
-
-        # DROP THE NAN rows for comparing results in graphs
-        comparable_results = final_results_dataframe.dropna()
-        comparable_results = comparable_results[
-            ['qualifier'] + [column for column in comparable_results.columns if column not in join_on_columns_list]]
-
-        comparable_results.columns = ['qualifier'] + ["Test_" + originID for originID in originID_compare_list]
-
-        # FILL NAN cells with ""
-        final_results_dataframe = final_results_dataframe.fillna("")
-
-        logging.debug("PRINTING COMPARABLE RESULTS")
-        logging.debug(' = {}'.format(comparable_results))
-        logging.debug("DONE")
-
-        # Delete the results_param_list as it is no longer needed
+        # Delete the param_lists which are no longer needed
         del parameter_lists['results_param_list']
+        # del parameter_lists['ram_details_param_list'],
+        # del parameter_lists['nic_details_param_list'],
+        # del parameter_lists['disk_details_param_list'],
+
 
         # read csv files from NAS path
         compare_lists = read_all_csv_files(compare_lists, parameter_lists, originID_compare_list)
@@ -1082,7 +1134,7 @@ def diffTests():
             'parameter_lists': parameter_lists,
             'compare_lists': compare_lists,
 
-            'comparable_results': comparable_results.to_dict(orient='list'),
+            'comparable_results': comparable_results.to_dict(orient='list'), #Unused as of now
             'results': final_results_dataframe.to_dict(orient='list'),
         }
         # close the database connection
@@ -1155,6 +1207,7 @@ def get_data_for_graph():
         "DDRfreq": 'b.ddrfreq',
         "SKUID": 'n1.skuidname',
         "Hostname": 'o1.hostname',
+        "Scaling" : 'S.resultype',
     }
     table_map = {
         "Kernel Version": 'ostunings os', 
@@ -1169,23 +1222,30 @@ def get_data_for_graph():
         "Corefreq": 'bootenv b',
         "DDRfreq": 'bootenv b',
         "SKUID": 'node n1',
-        "Hostname": 'origin o1'
+        "Hostname": 'origin o1',
+        "Scaling" : 'subtest S',
     }
     join_on_map = {
-        'Kernel Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
-        'OS Version': 'o.ostunings_ostuningsID = os.ostuningsID', 
-        'OS Name': 'o.ostunings_ostuningsID = os.ostuningsID',
-        "Firmware Version": 'o.hwdetails_hwdetailsID = hw.hwdetailsID', 
-        "ToolChain Name": 'o.toolchain_toolchainID = tc.toolchainID', 
-        "ToolChain Version" : 'o.toolchain_toolchainID = tc.toolchainID', 
-        "Flags": 'o.toolchain_toolchainID = tc.toolchainID',
-        "SMT" : 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
-        "Cores": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
-        "Corefreq": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
-        "DDRfreq": 'o.hwdetails_bootenv_bootenvID = b.bootenvID',
-        "SKUID": 'o.hwdetails_node_nodeID = n1.nodeID',
-        "Hostname" : 'o1.originID = o.originID'
+        'Kernel Version': 'INNER JOIN origin o ON o.ostunings_ostuningsID = os.ostuningsID', 
+        'OS Version': 'INNER JOIN origin o ON o.ostunings_ostuningsID = os.ostuningsID', 
+        'OS Name': 'INNER JOIN origin o ON o.ostunings_ostuningsID = os.ostuningsID',
+        "Firmware Version": 'INNER JOIN origin o ON o.hwdetails_hwdetailsID = hw.hwdetailsID', 
+        "ToolChain Name": 'INNER JOIN origin o ON o.toolchain_toolchainID = tc.toolchainID', 
+        "ToolChain Version" : 'INNER JOIN origin o ON o.toolchain_toolchainID = tc.toolchainID', 
+        "Flags": 'INNER JOIN origin o ON o.toolchain_toolchainID = tc.toolchainID',
+        "SMT" : 'INNER JOIN origin o ON o.hwdetails_bootenv_bootenvID = b.bootenvID',
+        "Cores": 'INNER JOIN origin o ON o.hwdetails_bootenv_bootenvID = b.bootenvID',
+        "Corefreq": 'INNER JOIN origin o ON o.hwdetails_bootenv_bootenvID = b.bootenvID',
+        "DDRfreq": 'INNER JOIN origin o ON o.hwdetails_bootenv_bootenvID = b.bootenvID',
+        "SKUID": 'INNER JOIN origin o ON o.hwdetails_node_nodeID = n1.nodeID',
+        "Hostname" : 'INNER JOIN origin o ON o1.originID = o.originID',
+        "Scaling" : 'INNER JOIN result r1 on r1.subtest_subtestID=S.subtestID INNER JOIN origin o ON o.originID=r1.origin_originID',
     }
+
+    if(xParameter == "Scaling"):
+        SCALING_CONDITION = " AND S.resultype <= 8 "
+    else:
+        SCALING_CONDITION = " "
 
     server_cpu_list = []
 
@@ -1200,10 +1260,10 @@ def get_data_for_graph():
         skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
 
         X_LIST_QUERY = "SELECT DISTINCT " + parameter_map[xParameter] + " as \'" + parameter_map[xParameter] + \
-                        "\' from " + table_map[xParameter] + " INNER JOIN origin o ON " + \
+                        "\' from " + table_map[xParameter] + " " + \
                         join_on_map[xParameter] + """ INNER JOIN result r ON o.originID = r.origin_originID 
                         INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID 
-                        WHERE t.testname=\'""" + testname + "\';"
+                        WHERE t.testname=\'""" + testname + "\'" + SCALING_CONDITION + ";"
 
         x_df = pd.read_sql(X_LIST_QUERY, db)
         x_list = sorted(x_df[parameter_map[xParameter]].to_list())
@@ -1229,12 +1289,15 @@ def get_data_for_graph():
         # For removing 'not found' entries from x_list
         x_list_rm = []
         
-        for x_param in x_list:
+        def read_y_list(x_param):
+            db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                             passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+
             # max or min
             if min_or_max_list[index] == '0':
                 Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
-                                    FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
-                                    INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
+                                    FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+                                    " INNER JOIN result r ON o.originID = r.origin_originID " +\
                                     """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
                                     INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
                                     INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
@@ -1248,8 +1311,8 @@ def get_data_for_graph():
                                     " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
             else:
                 Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
-                                    FROM result r INNER JOIN origin o on o.originID = r.origin_originID 
-                                    INNER JOIN """ + table_map[xParameter] + " ON " + join_on_map[xParameter] + \
+                                    FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+                                    " INNER JOIN result r ON o.originID = r.origin_originID " +\
                                     """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
                                     INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
                                     INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
@@ -1262,7 +1325,9 @@ def get_data_for_graph():
                                     INPUT_FILTER_CONDITION + \
                                     " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
 
+            logging.debug("EXCECUTING Y QUERY")
             y_df = pd.read_sql(Y_LIST_QUERY, db)
+            logging.debug("EXCECUTED Y QUERY?")
 
             if y_df.empty is True:
                 x_list_rm.append(x_param)
@@ -1271,6 +1336,62 @@ def get_data_for_graph():
                 originID_list.extend(y_df['originID'].to_list())
                 skuid_list.extend(y_df['skuidname'].to_list())
                 skuid_list[-1] = skuid_list[-1].strip()
+
+            # close the database connection
+            try:
+                print("CLOSING PARALLEL CONNECTION FOR get_data_for_graph {}".format(testname))
+                db.close()
+            except:
+                pass
+
+        # Excecute parallely 'read_y_list' function
+        num_cores = 5
+        Parallel(n_jobs=num_cores)(delayed(read_y_list)(x_param) for x_param in x_list)
+
+        # for x_param in x_list:
+        #     # max or min
+        #     if min_or_max_list[index] == '0':
+        #         Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+        #                             FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+        #                             " INNER JOIN result r ON o.originID = r.origin_originID " +\
+        #                             """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+        #                             INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+        #                             INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+        #                             INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+        #                             INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+        #                             WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+        #                             " and " + parameter_map[xParameter] + " = \'" + x_param + \
+        #                             "\' and t.testname = \'" + testname + \
+        #                             "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+        #                             INPUT_FILTER_CONDITION + \
+        #                             " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
+        #     else:
+        #         Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+        #                             FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+        #                             " INNER JOIN result r ON o.originID = r.origin_originID " +\
+        #                             """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+        #                             INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
+        #                             INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+        #                             INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+        #                             INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+        #                             WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+        #                             " and " + parameter_map[xParameter] + " = \'" + x_param + \
+        #                             "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
+        #                             " AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+        #                             INPUT_FILTER_CONDITION + \
+        #                             " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
+
+        #     logging.debug("EXCECUTING Y QUERY")
+        #     y_df = pd.read_sql(Y_LIST_QUERY, db)
+        #     logging.debug("EXCECUTED Y QUERY?")
+
+        #     if y_df.empty is True:
+        #         x_list_rm.append(x_param)
+        #     else:
+        #         y_list.extend(y_df['number'].to_list())
+        #         originID_list.extend(y_df['originID'].to_list())
+        #         skuid_list.extend(y_df['skuidname'].to_list())
+        #         skuid_list[-1] = skuid_list[-1].strip()
 
         logging.debug("PRINTING Y LIST = {}".format(y_list))
         logging.debug("PRINTING ORIGIN LIST= {}".format(originID_list))
@@ -1326,6 +1447,8 @@ def get_data_for_graph():
     except Exception as error_message:
         logging.debug("\n\n\n\n\n\n\nTHERE SEEMES TO BE AN ERROR IN YOUR APPLICATOIN")
         logging.debug("= {}".format(error_message))
+
+    # IF Scaling Change result- Type before sending 
 
     response = {
         'x_list_list': x_list_list, 
@@ -1794,6 +1917,7 @@ def best_of_all_graph():
 
     return response
 
+# API Endpoint for Counter graphs
 @app.route('/counter_graphs', methods=['POST'])
 def counter_graphs():
     start_time = time.time()
@@ -1819,6 +1943,7 @@ def counter_graphs():
 
     return counter_graphs_data
 
+# API Endpoint for CPU Utilization graphs
 @app.route('/cpu_utilization_graphs', methods=['POST'])
 def cpu_utilization_graphs():
     print("Got request for heatmap")
@@ -1913,6 +2038,22 @@ def cpu_utilization_graphs():
 
     return cpu_ut_graphs_data
 
+# API Endpoint for Scaling graphs
+@app.route('/scaling_graphs', methods=['POST'])
+def scaling_graphs():
+    print("Got request for Scaling Graphs")
+    start_time = time.time()
+
+    data = request.get_json()
+    print("DATA = {}".format(data))
+
+    scaling_graph_data = {
+
+    }
+
+    logging.debug("IT took {} seconds for Scaling graph".format(time.time() - start_time))
+
+    return scaling_graph_data
 
 # One function for downloading everything as CSV
 @app.route('/download_as_csv', methods=['POST'])
