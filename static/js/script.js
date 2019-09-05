@@ -106,7 +106,6 @@ function drawBestOfAllGraph(normalizedWRT){
 
 	$.ajax({
     	url: '/best_of_all_graph',
-    	// async: async,
 		method: "POST",
 		dataType: 'json',
 		contentType: "application/json",
@@ -179,15 +178,8 @@ function sendAjaxRequest(ajaxData, url) {
 		'/best_sku_graph_normalized' : 'best-sku-graph',
 	}
 
-	// Async is kept false as we have to call fillNormalizedDropdown only after graph is drawn!
-	if(url == '/best_sku_graph')
-		async = false;
-	else
-		async = true;
-
 	$.ajax({
     	url: url,
-    	async: async,
 		method: "POST",
 		dataType: 'json',
 		contentType: "application/json",
@@ -206,6 +198,10 @@ function sendAjaxRequest(ajaxData, url) {
 			console.log("CALLING DRAW OTHER GRAPH")
 			drawComparisonGraph(response, graphID = url_graph_map[url])
 		}
+
+		// Fill the dropdown after the graph data is available
+		if(url == '/best_sku_graph')
+			fillNormalizedDropdown();
 	})
 }
 
