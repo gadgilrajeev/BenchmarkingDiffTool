@@ -72,6 +72,9 @@ All tests page
 				<div class="toast-body"><h5 id="reference-toast-body"></h5></div>
 			</div>
 
+			<!-- Download as CSV button -->
+			<button id="show-graph" class="btn btn-success font-weight-bold ml-auto h-50 align-self-center mr-5">Show Graph</button>
+
 		</div>
 
 	</div>
@@ -151,7 +154,7 @@ All tests page
 		console.log("SENDING REQUEST")
 
 		//Draw the initial best-of-all-graph
-    	drawBestOfAllGraph('{{ context.reference_list[0] }}')
+    	// drawBestOfAllGraph('{{ context.reference_list[0] }}')
 
     	$('#from-date').val("")
     	$('#to-date').val("")
@@ -282,6 +285,20 @@ All tests page
 		downloadAsCsv('Best of all Graph normalized WRT' + $bestOfAllGraph[0].data.normalizedWRT , data, $form)
 	})
 
+
+	// On 'Show Graph' clicked
+	$('#show-graph').click(function(){
+			// Get normalized WRT if graph exists, or choose the first one
+			// Graph does not exist initially when we load/refresh page
+			$dropdownMenu = $('#reference-for-normalized-dropdown')
+			$firstNormalized = $dropdownMenu.children()[1].innerHTML
+			
+			graphDiv = document.getElementById('best-of-all-graph')
+			normalizedWRT = graphDiv.data ? graphDiv.data.normalizedWRT : $firstNormalized
+			
+			//Draw new best_of_all_graph according to filters
+			drawBestOfAllGraph(normalizedWRT)
+	})
 
 	// Show the toast (popup message), with bgClass background 
 	function showFilterToast(bgClass, message, duration=3000) {
