@@ -14,7 +14,7 @@ import csv
 import json
 import counter_graphs_module
 
-DB_HOST_IP = '1.21.1.52'
+DB_HOST_IP = '1.21.1.65'
 # DB_HOST_IP = '10.110.169.149'
 # DB_HOST_IP = 'localhost'
 DB_USER = 'root'
@@ -34,7 +34,7 @@ result_type_map = {0: "single thread", 1: 'single core',
 
 
 # Uncomment this line for toggling debugging messages on the console
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 # from datetime import datetime
 app = Flask(__name__)
@@ -391,7 +391,7 @@ def getAllRunsData(testname, secret=False):
         INPUT_FILE_QUERY = """SELECT DISTINCT s.description FROM origin o INNER JOIN testdescriptor t
                                 ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
                                 ON o.originID = r.origin_originID INNER JOIN subtest s
-                                ON  r.subtest_subtestID = s.subtestID WHERE r.isvalid = 1 and t.testname = \'""" + testname + "\';"
+                                ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\';" #RRG
         print(INPUT_FILE_QUERY)
         try:
             input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
@@ -666,6 +666,7 @@ def getTestDetailsData(originID, secret=False):
             num_cpus_list = []
 
         print("Result Type = {}".format(result_type))
+        system_details_dataframe = system_details_dataframe.head(1)
 
         # Get the rest of the system details from jenkins table
         JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O INNER JOIN jenkins J 
@@ -1290,7 +1291,7 @@ def get_data_for_graph():
         x_list_rm = []
         
         def read_y_list(x_param):
-            db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+            db1 = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                              passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
             # max or min
@@ -1326,7 +1327,7 @@ def get_data_for_graph():
                                     " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
 
             logging.debug("EXCECUTING Y QUERY")
-            y_df = pd.read_sql(Y_LIST_QUERY, db)
+            y_df = pd.read_sql(Y_LIST_QUERY, db1)
             logging.debug("EXCECUTED Y QUERY?")
 
             if y_df.empty is True:
@@ -1340,7 +1341,7 @@ def get_data_for_graph():
             # close the database connection
             try:
                 print("CLOSING PARALLEL CONNECTION FOR get_data_for_graph {}".format(testname))
-                db.close()
+                db1.close()
             except:
                 pass
 
@@ -1625,11 +1626,15 @@ def best_sku_graph_normalized():
     logging.debug("FOUND AT INDEX = {}".format(index))
     if higher_is_better == "1":
         logging.debug("HIGHER IS BETTER")
+        logging.debug(y_list)
+
         normalized_y_list = [value/y_list[index] for value in y_list]
     else:
         # Inverse
         logging.debug("LOWER IS BETTER")
-        normalized_y_list = [y_list[index]/value for value in y_list]
+        logging.debug(y_list)
+       # normalized_y_list = [y_list[index]/value for value in y_list]
+        normalized_y_list = [value/y_list[index] for value in y_list]
 
     # Colors for the graphs
     sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
