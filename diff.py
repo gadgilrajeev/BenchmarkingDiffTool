@@ -1922,6 +1922,91 @@ def best_of_all_graph():
 
     return response
 
+# Custom CSV file generator for all tests
+@app.route('/secret/all-tests', methods=['GET'])
+def secret_all_tests():
+    context = get_all_tests_data()
+
+
+    # For getting input filter data for ALL TESTS
+    # Read metadata for results in wiki_description.ini file
+    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_parser = configparser.ConfigParser()
+    results_metadata_parser.read(results_metadata_file_path)
+
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+
+    all_tests = context['hpc_benchmarks_list'] + context['cloud_benchmarks_list']
+    for testname in all_tests:
+        print("#",testname)
+    print(len(all_tests))
+    # Dropdowns for input file
+    # for testname in  context['hpc_benchmarks_list'].extend(context['cloud_benchmarks_list'])
+    #     input_parameters = results_metadata_parser.get(testname, 'description') \
+    #                                                 .replace('\"', '').replace(' ', '').split(',')
+
+    #     INPUT_FILE_QUERY = """SELECT DISTINCT s.description FROM origin o INNER JOIN testdescriptor t
+    #                             ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
+    #                             ON o.originID = r.origin_originID INNER JOIN subtest s
+    #                             ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\';" #RRG
+    #     print(INPUT_FILE_QUERY)
+    #     try:
+    #         input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
+    #     finally:
+    #         db.close()
+
+    #     logging.debug("{}".format(input_parameters))
+    #     logging.debug("{}".format(input_details_df))
+
+    #     # Function which splits the description string into various parameters 
+    #     # according to 'description' field of the '.ini' file
+    #     def split_description(index, description):
+    #         try:
+    #             return description.split(',')[index]
+    #         except Exception as error_message:
+    #             logging.debug("{}".format(error_message))
+    #             return np.nan
+
+    #     # Split the 'description' column into multiple columns
+    #     for index, param in enumerate(input_parameters):
+    #         input_details_df[param] = input_details_df['description'].apply(lambda x: split_description(index, x))
+
+    #     # Delete the 'description' column
+    #     del input_details_df['description']
+        
+    #     # Drop all the rows which have NaN as an element
+    #     input_details_df.dropna(inplace=True)
+        
+    #     # Get default_inputs from wiki_description.ini
+    #     default_input_filters_list = results_metadata_parser.get(testname, 'default_input') \
+    #                                             .replace('\"', '').split(',')
+
+    #     'input_details': input_details_df.to_dict(orient='list'),
+    #   d['testname'] = input_details
+
+
+    # close the database connection
+    try:
+        db.close()
+    except:
+        pass
+
+
+    return render_template('secret-all-tests.html', context=context)
+
+# Generate custom csv (or Excel) file for all selected tests and input params
+@app.route('/generate_custom_data', methods=['POST'])
+def generate_custom_excel():
+    # ProTip: For completing this function
+    # Refer to 'download_as_csv'
+    print("Generating Custom Data")
+
+    response = {
+
+    }
+    return response
+
 # API Endpoint for Counter graphs
 @app.route('/counter_graphs', methods=['POST'])
 def counter_graphs():
