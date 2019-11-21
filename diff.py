@@ -874,7 +874,7 @@ def showEnvDetails(originID):
     node_dataframe = pd.read_sql(NODE_QUERY, db)
 
     BOOTENV_QUERY = """SELECT bootenv.corefreq, bootenv.ddrfreq, bootenv.memnetfreq, bootenv.smt, bootenv.turbo, 
-                               bootenv.cores, bootenv.tdp FROM bootenv INNER JOIN hwdetails H 
+                               bootenv.cores, bootenv.tdp,bootenv.corefeaturemask FROM bootenv INNER JOIN hwdetails H 
                                INNER JOIN origin O ON O.hwdetails_hwdetailsID = H.hwdetailsID 
                                AND H.bootenv_bootenvID = bootenv.bootenvID AND O.originID = """ + originID + ";"
     bootenv_dataframe = pd.read_sql(BOOTENV_QUERY, db)
