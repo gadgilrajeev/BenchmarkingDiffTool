@@ -1379,7 +1379,7 @@ def get_data_for_graph():
 
         # Excecute parallely 'read_y_list' function
         num_cores = 5
-        Parallel(n_jobs=num_cores)(delayed(read_y_list)(x_param) for x_param in x_list)
+        Parallel(n_jobs=num_cores,prefer="threads")(delayed(read_y_list)(x_param) for x_param in x_list)
 
         # for x_param in x_list:
         #     # max or min
