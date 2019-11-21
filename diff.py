@@ -651,19 +651,27 @@ def getTestDetailsData(originID, secret=False):
         logging.debug(" = {}".format(result_type))
 
         # Get Num_CPUs list if result_type is 'perf'
-        if result_type == "perf":
-            try:
-                # Calls unique_list function on list of unique 'Num_CPUs'
-                num_cpus_list = unique_list((results_dataframe['Num_CPUs']), reverse=True)
-                logging.debug("GOT NUM CPUS")
-                logging.debug(" = {}".format(num_cpus_list))
-            except Exception as e:
-                num_cpus_list = []
-                logging.debug(" = {}".format(e))
-                # logging.debug(results_dataframe)
-                logging.debug("DIDNT GET NUM CPUS")
-        else:
-            num_cpus_list = []
+        #if result_type == "perf":
+        #print('NUM CPUS START')
+        #try:
+            # Calls unique_list function on list of unique 'Num_CPUs'
+            #num_cpus_list = unique_list((results_dataframe['Num_CPUs']), reverse=True)
+        #    raw_dir = '/mnt/nas/dbresults/' + jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]) + '/results'
+        #    print(raw_dir)
+        #    raw_num_cpus_list = [d for d in os.listdir(raw_dir) if os.path.isdir(os.path.join(raw_dir, d))]
+        #    num_cpus_list = []
+        #    for one_by_one in raw_num_cpus_list:
+        #        if one_by_one.isdigit() is True:
+        #            num_cpus_list.append(one_by_one)
+        #    logging.debug("GOT NUM CPUS")
+        #    logging.debug(" = {}".format(num_cpus_list))
+        #except Exception as e:
+        #    num_cpus_list = []
+        #    logging.debug(" = {}".format(e))
+            # logging.debug(results_dataframe)
+        #    logging.debug("DIDNT GET NUM CPUS")
+        #else:
+        #    num_cpus_list = []
 
         print("Result Type = {}".format(result_type))
         system_details_dataframe = system_details_dataframe.head(1)
@@ -672,6 +680,30 @@ def getTestDetailsData(originID, secret=False):
         JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O INNER JOIN jenkins J 
                             ON O.jenkins_jenkinsID=J.jenkinsID AND O.originID=""" + originID + ";"
         jenkins_details = pd.read_sql(JENKINS_QUERY, db)
+
+        print('NUM CPUS START')
+        num_cpus_list = []
+        try:
+            # Calls unique_list function on list of unique 'Num_CPUs'
+            #num_cpus_list = unique_list((results_dataframe['Num_CPUs']), reverse=True)
+            raw_dir = '/mnt/nas/dbresults/' + jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]) + '/results'
+            print(raw_dir)
+            raw_num_cpus_list = [d for d in os.listdir(raw_dir) if os.path.isdir(os.path.join(raw_dir, d))]
+            num_cpus_list = []
+            for one_by_one in raw_num_cpus_list:
+                if one_by_one.isdigit() is True:
+                    num_cpus_list.append(one_by_one)
+            logging.debug("GOT NUM CPUS")
+            logging.debug(" = {}".format(num_cpus_list))
+        except Exception as e:
+            num_cpus_list = []
+            logging.debug(" = {}".format(e))
+            # logging.debug(results_dataframe)
+            logging.debug("DIDNT GET NUM CPUS")
+        #else:
+        #    num_cpus_list = []
+
+
 
         # list for creating a column in the system_details_dataframe
         nas_link = []
@@ -1997,7 +2029,7 @@ def secret_all_tests():
 
 # Generate custom csv (or Excel) file for all selected tests and input params
 @app.route('/generate_custom_data', methods=['POST'])
-def generate_custom_excel():
+def generate_custom_data():
     # ProTip: For completing this function
     # Refer to 'download_as_csv'
     print("Generating Custom Data")
@@ -2041,15 +2073,21 @@ def cpu_utilization_graphs():
 
     data = request.get_json()
     print("DATA = {}".format(data))
-
+    numCPUs = data['numCPUs']
     # Generate nas_path from received data
-    nas_path = "/mnt/nas/dbresults/" + data['jobname'] + '/' + data['runID'] + '/results/CPU_heatmap.csv'
-    logging.debug("NAS PATH = {}".format(nas_path))
+    nas_path = "/mnt/nas/dbresults/" + data['jobname'] + '/' + data['runID'] + '/results/' + numCPUs
+    cpu_file = nas_path + '/CPU_heatmap.csv'
+    logging.debug("NAS PATH = {}".format(cpu_file))
 
-    cpu_utilization_df = pd.read_csv(nas_path, usecols=['timestamp','CPU', '%idle'])
+    cpu_utilization_df = pd.read_csv(cpu_file, usecols=['timestamp','CPU', '%idle'])
 
     cpu_utilization_df['%busy'] = cpu_utilization_df['%idle'].apply(lambda x: 100 - x)
     cpu_utilization_df.pop('%idle')
+
+    network_file = nas_path + '/ethperc.csv'
+    network_utilization_df = pd.read_csv(network_file,usecols=['Time','Interface','NW_UTIL'])
+
+
 
     try:
         # Get data for bar graph from average_cpu_ut_df
@@ -2085,6 +2123,16 @@ def cpu_utilization_graphs():
     # Reset index
     cpu_utilization_df = cpu_utilization_df.reset_index()
 
+
+
+    network_heatmap_data = {
+        'graph_type' : 'heatmap',
+        'x_list' : [],
+        'y_list' : [],
+        'z_list_list' : [],
+        'xParameter' : 'Timestamp',
+        'yParameter' : 'Interface'
+    }    
     # Get data for heatmap
     heatmap_data = {
         'graph_type' : 'heatmap',
@@ -2104,24 +2152,50 @@ def cpu_utilization_graphs():
     # Take transpose of the list_list
     heatmap_data['z_list_list'] = np.array(heatmap_data['z_list_list']).T.tolist()
     # Heatmap is done
+    network_heatmap_data['x_list'] = network_utilization_df['Time'].unique().tolist()
+    
+    network_heatmap_data['y_list'] = network_utilization_df['Interface'].unique().tolist()
+    
+    network_heatmap_data['z_list_list'] = [network_utilization_df['NW_UTIL'].tolist()[x:x+len(network_heatmap_data['y_list'])]\
+                                for x in range(0,len(network_utilization_df['NW_UTIL']), len(network_heatmap_data['y_list']))]
+    network_heatmap_data['z_list_list'] = np.array(network_heatmap_data['z_list_list']).T.tolist()
+
+    #Calculate average CPU Utilization
+
 
     # Get data for line graph from all_cores_df
     line_graph_data = {
         'graph_type' : 'line',
         'x_list_list' : [],
         'y_list_list' : [],     #list_list because the JS function is written for multiple lines
+        'legend_list' : [],
         'xParameter' : 'Timestamp',
         'yParameter' : '% Utilization'
     }
+    
+    #for intface in network_utilization_df['Interface'].unique().tolist():
+    #    #print(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
+    #    print(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
+
     line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
     line_graph_data['y_list_list'].append(all_cores_df['%busy'].tolist())
-    # Line graph data is done
+    line_graph_data['legend_list'].append('Avg CPU Utilization')
+    #line_graph_data['x_list_list'].append(network_utilization_df['Time'].unique().tolist())
+    for intface in network_utilization_df['Interface'].unique().tolist():
+        #print(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
+        line_graph_data['x_list_list'].append(network_utilization_df['Time'].unique().tolist())
+        line_graph_data['y_list_list'].append(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
+        nw_util_str = intface
+        line_graph_data['legend_list'].append(nw_util_str)
+        #print(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
+    # Line graph data is d ne
     
 
     cpu_ut_graphs_data = {
         '1) heatmap_data' : heatmap_data,
-        '2) line_graph_data' : line_graph_data,
-        '3) bar_graph_data' : bar_graph_data,
+        '2) network_heatmap_data' : network_heatmap_data,
+        '3) line_graph_data' : line_graph_data,
+        '4) bar_graph_data' : bar_graph_data,
     }
 
     logging.debug("Time taken {}".format(time.time() - start_time))
