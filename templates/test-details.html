@@ -206,7 +206,7 @@ Test Details
                                                         </div>
 
 						<!-- 3 graphs for CPU utilization -->
-						{% for i in range(1,5) %}
+						{% for i in range(1,6) %}
 						<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
 							<div class="card-header">
 								<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
@@ -318,7 +318,7 @@ Test Details
 
 
 		function drawCPUUtilizationGraphs(){
-                        for(i = 1; i <=4; i++){
+                        for(i = 1; i <=5; i++){
 	                        Plotly.purge('cpu-graphs-'+i)
                         }
 			ajaxData = {

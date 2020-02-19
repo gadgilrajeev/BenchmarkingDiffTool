@@ -2079,7 +2079,7 @@ def cpu_utilization_graphs():
     cpu_file = nas_path + '/CPU_heatmap.csv'
     logging.debug("NAS PATH = {}".format(cpu_file))
 
-    cpu_utilization_df = pd.read_csv(cpu_file, usecols=['timestamp','CPU', '%idle'])
+    cpu_utilization_df = pd.read_csv(cpu_file, usecols=['timestamp','CPU', '%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice'])
 
     cpu_utilization_df['%busy'] = cpu_utilization_df['%idle'].apply(lambda x: 100 - x)
     cpu_utilization_df.pop('%idle')
@@ -2143,6 +2143,15 @@ def cpu_utilization_graphs():
         'yParameter' : 'Cores'
     }
 
+    softirq_heatmap_data = {
+        'graph_type' : 'heatmap',
+        'x_list' : [],
+        'y_list' : [],
+        'z_list_list' : [],
+        'xParameter' : 'Timestamp',
+        'yParameter' : 'Cores'          
+    }
+
     heatmap_data['x_list'] = cpu_utilization_df['timestamp'].unique().tolist()
     heatmap_data['y_list'] = cpu_utilization_df['CPU'].unique().tolist()
 
@@ -2159,6 +2168,14 @@ def cpu_utilization_graphs():
     network_heatmap_data['z_list_list'] = [network_utilization_df['NW_UTIL'].tolist()[x:x+len(network_heatmap_data['y_list'])]\
                                 for x in range(0,len(network_utilization_df['NW_UTIL']), len(network_heatmap_data['y_list']))]
     network_heatmap_data['z_list_list'] = np.array(network_heatmap_data['z_list_list']).T.tolist()
+
+    softirq_heatmap_data['x_list'] = cpu_utilization_df['timestamp'].unique().tolist()
+    softirq_heatmap_data['y_list'] = cpu_utilization_df['CPU'].unique().tolist()
+
+    softirq_heatmap_data['z_list_list'] = [cpu_utilization_df['%soft'].tolist()[x:x+len(softirq_heatmap_data['y_list'])]\
+                                for x in range(0,len(cpu_utilization_df['%soft']), len(softirq_heatmap_data['y_list']))]
+    # Take transpose of the list_list
+    softirq_heatmap_data['z_list_list'] = np.array(softirq_heatmap_data['z_list_list']).T.tolist()
 
     #Calculate average CPU Utilization
 
@@ -2180,6 +2197,49 @@ def cpu_utilization_graphs():
     line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
     line_graph_data['y_list_list'].append(all_cores_df['%busy'].tolist())
     line_graph_data['legend_list'].append('Avg CPU Utilization')
+
+
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%soft'].tolist())
+    line_graph_data['legend_list'].append('%soft')    
+#%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice'
+
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%usr'].tolist())
+    line_graph_data['legend_list'].append('%usr')
+
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%nice'].tolist())
+    line_graph_data['legend_list'].append('%nice')
+
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%sys'].tolist())
+    line_graph_data['legend_list'].append('%sys')
+
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%iowait'].tolist())
+    line_graph_data['legend_list'].append('%iowait')
+
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%irq'].tolist())
+    line_graph_data['legend_list'].append('%irq')
+
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%steal'].tolist())
+    line_graph_data['legend_list'].append('%steal')
+
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%guest'].tolist())
+    line_graph_data['legend_list'].append('%guest')
+
+    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+    line_graph_data['y_list_list'].append(all_cores_df['%gnice'].tolist())
+    line_graph_data['legend_list'].append('%gnice')
+
+
+
+
+
     #line_graph_data['x_list_list'].append(network_utilization_df['Time'].unique().tolist())
     for intface in network_utilization_df['Interface'].unique().tolist():
         #print(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
@@ -2193,9 +2253,10 @@ def cpu_utilization_graphs():
 
     cpu_ut_graphs_data = {
         '1) heatmap_data' : heatmap_data,
-        '2) network_heatmap_data' : network_heatmap_data,
-        '3) line_graph_data' : line_graph_data,
-        '4) bar_graph_data' : bar_graph_data,
+        '2) softirq_heatmap_data': softirq_heatmap_data,
+        '3) network_heatmap_data' : network_heatmap_data,
+        '4) line_graph_data' : line_graph_data,
+        '5) bar_graph_data' : bar_graph_data,
     }
 
     logging.debug("Time taken {}".format(time.time() - start_time))
