@@ -206,6 +206,9 @@ def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
                         for k in range(0, len(parameter_lists[table_name + '_param_list'])):
                             param_values_dictionary[parameter_lists[table_name + '_param_list'][k]] = row[k]
                         break
+                    except IndexError:
+                        #If Index error occurs, pass. Let the value remain empty
+                        pass
                     except:
                         for k in range(0, len(parameter_lists[table_name + '_details_param_list'])):
                             param_values_dictionary[parameter_lists[table_name + '_details_param_list'][k]] = row[k]
