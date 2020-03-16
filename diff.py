@@ -2248,14 +2248,28 @@ def cpu_utilization_graphs():
         'yParameter' : 'Cores'          
     }
 
+    print("PRINTING CPU Utilization DF")
+    print(cpu_utilization_df.columns)
+
     heatmap_data['x_list'] = cpu_utilization_df['timestamp'].unique().tolist()
     heatmap_data['y_list'] = cpu_utilization_df['CPU'].unique().tolist()
 
+    # list of lists. Length = unique timestamps = len(heatmap_data['x_list'])
+    # Each list has data for one timestamp
+    # Length of each list = No. of Cores
+    # x in range cpu_util_df['%busy'] with jumps of length = no of cores
     heatmap_data['z_list_list'] = [cpu_utilization_df['%busy'].tolist()[x:x+len(heatmap_data['y_list'])]\
                                 for x in range(0,len(cpu_utilization_df['%busy']), len(heatmap_data['y_list']))]
 
+
     # Take transpose of the list_list
+    # Because plotly.js plots it left->right, then top->bottom
+    # So now
+    # list of lists. Length = No. of Cores
+    # Each list has data for one Core
+    # Length of each list = unique timestamps = len(heatmap_data['x_list'])
     heatmap_data['z_list_list'] = np.array(heatmap_data['z_list_list']).T.tolist()
+
     # Heatmap is done
     network_heatmap_data['x_list'] = network_utilization_df['Time'].unique().tolist()
     
@@ -2344,18 +2358,75 @@ def cpu_utilization_graphs():
         nw_util_str = intface
         line_graph_data['legend_list'].append(nw_util_str)
         #print(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
-    # Line graph data is d ne
+    # Line graph data is done
     
 
-    cpu_ut_graphs_data = {
-        '1) heatmap_data' : heatmap_data,
-        '2) softirq_heatmap_data': softirq_heatmap_data,
-        '3) network_heatmap_data' : network_heatmap_data,
-        '4) line_graph_data' : line_graph_data,
-        '5) bar_graph_data' : bar_graph_data,
-    }
+    # Ram Utilization Graphs
+    ram_file = nas_path + '/ramstat.csv'
+    # Check if ramstat.csv file exists
+    if os.path.isfile(ram_file):
+        ramstat_df = pd.read_csv(ram_file)
 
-    logging.debug("Time taken {}".format(time.time() - start_time))
+        ram_heatmap_data = {
+            'graph_type' : 'heatmap',
+            'x_list' : [],
+            'y_list' : [],
+            'z_list_list' : [],
+            'xParameter' : 'Timestamp',
+            'yParameter' : 'RAM Nodes'
+        }
+
+        # Get relevant data from dataframe
+        ram_heatmap_data['x_list'] = ramstat_df['Timestamp'].unique().tolist()
+        ram_heatmap_data['y_list'] = ramstat_df.columns.tolist()
+        ram_heatmap_data['y_list'].remove('Timestamp')
+
+        # Fill z_list_list for each y_list element (Each Node)
+        for node in ram_heatmap_data['y_list']:
+            ram_heatmap_data['z_list_list'].append(ramstat_df[node].tolist())
+        # Ram util heatmap done
+
+        # Idea - RAM Line graph data can be derived from ram_heatmap_data. No need to recompute
+        # x_list_list (line) = list of x_list(heatmap) repeated len(y_list(heatmap)) times
+        # y_list_list (line) = z_list_list (heatmap)
+        # legend_list (line) = y_list (heatmap)
+        ram_line_graph_data = {
+            'graph_type' : 'line',
+            'x_list_list' : [],
+            'y_list_list' : [],     #list_list because the JS function is written for multiple lines
+            'legend_list' : [],
+            'xParameter' : 'Timestamp',
+            'yParameter' : '% Utilization'
+        }
+
+        for i in range(0, len(ram_heatmap_data['y_list'])):
+            ram_line_graph_data['x_list_list'].append(ram_heatmap_data['x_list'])
+
+        ram_line_graph_data['y_list_list'] = ram_heatmap_data['z_list_list']
+        ram_line_graph_data['legend_list'] = ram_heatmap_data['y_list']
+
+        cpu_ut_graphs_data = {
+            '1) heatmap_data' : heatmap_data,
+            '2) softirq_heatmap_data': softirq_heatmap_data,
+            '3) network_heatmap_data' : network_heatmap_data,
+            '4) line_graph_data' : line_graph_data,
+            '5) bar_graph_data' : bar_graph_data,
+            '6) %RAM Utilization Heatmap' : ram_heatmap_data,
+            '7) %RAM Utilization Line Graph' : ram_line_graph_data,
+        }
+    else:
+        print("File ramstat.csv does not exist. Skipping")
+
+        cpu_ut_graphs_data = {
+            '1) heatmap_data' : heatmap_data,
+            '2) softirq_heatmap_data': softirq_heatmap_data,
+            '3) network_heatmap_data' : network_heatmap_data,
+            '4) line_graph_data' : line_graph_data,
+            '5) bar_graph_data' : bar_graph_data,
+        }
+
+
+    print("Time taken for CPU utilization graphs {}".format(time.time() - start_time))
 
     return cpu_ut_graphs_data
 
