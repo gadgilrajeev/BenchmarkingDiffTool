@@ -554,6 +554,11 @@ function drawLineGraph(response, graphID) {
 	layout = {
 		xaxis: {
 			title : xParameter,
+			rangeslider : {
+				bordercolor : "#eee",
+				borderwidth : 2,
+				thickness : 0.07,
+			},
 		},
 		yaxis: {
 			title: yParameter,
@@ -688,6 +693,11 @@ function drawHeatmap(response, graphID) {
 	layout = {
 		xaxis: {
 			title : xParameter,
+			rangeslider : {
+				bordercolor : "#eee",
+				borderwidth : 2,
+				thickness : 0.07,
+			},
 		},
 		yaxis: {
 			title: yParameter,
