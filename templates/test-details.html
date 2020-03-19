@@ -382,7 +382,13 @@ Test Details
 						drawBarGraph(response[graphName], 'cpu-graphs-'+(index+1))
 					}
 					else if(graphType == 'line')
+					{
 						drawLineGraph(response[graphName], 'cpu-graphs-'+(index+1))
+					}
+					else if(graphType == 'stack')
+					{
+						drawStackGraph(response[graphName], 'cpu-graphs-'+(index+1))
+					}
 				})
 
 

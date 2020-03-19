@@ -2198,38 +2198,47 @@ def cpu_utilization_graphs():
 
     cpu_utilization_df = pd.read_csv(cpu_file, usecols=['timestamp','CPU', '%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice'])
 
-    cpu_utilization_df['%busy'] = cpu_utilization_df['%idle'].apply(lambda x: 100 - x)
-    cpu_utilization_df.pop('%idle')
-
     network_file = nas_path + '/ethperc.csv'
     network_utilization_df = pd.read_csv(network_file,usecols=['Time','Interface','NW_UTIL'])
 
 
 
     try:
-        # Get data for bar graph from average_cpu_ut_df
-        bar_graph_data = {
-            'graph_type' : 'bar',
+        # Get data for stack graph from average_cpu_ut_df
+        stack_graph_data = {
+            'graph_type' : 'stack',
             'x_list' : [],
-            'y_list' : [],
+            'y_list_list' : [],
+            'legend_list' : [],
             'xParameter' : 'Cores',
-            'yParameter' : 'AVG. % Utilization'
+            'yParameter' : 'AVG. % Utilization',
         }
 
         cpu_utilization_df = cpu_utilization_df.set_index('timestamp')
-        # For bar graph having average entries of all Cores and average of 'all'
+        # For stack graph having average entries of all Cores and average of 'all'
         average_cpu_ut_df = cpu_utilization_df.loc['Average:']
         # Drop all those columns
         cpu_utilization_df = cpu_utilization_df.drop('Average:')
 
-        bar_graph_data['x_list'] = average_cpu_ut_df['CPU'].tolist()
-        bar_graph_data['y_list'] = average_cpu_ut_df['%busy'].tolist()
-        # Bar graph is done
+        # Columns list for stack graph
+        stack_cols_list = ['%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice']
+
+        stack_graph_data['x_list'] = average_cpu_ut_df['CPU'].tolist()
+
+        for col in stack_cols_list:
+            stack_graph_data['y_list_list'].append(average_cpu_ut_df[col].tolist())
+            stack_graph_data['legend_list'].append(col)
+        # Stack graph is done
     except:
         pass
     finally:
         # Reset index
         cpu_utilization_df = cpu_utilization_df.reset_index()
+
+    # Calculate %busy by 100-%idle
+    cpu_utilization_df['%busy'] = cpu_utilization_df['%idle'].apply(lambda x: 100 - x)
+    cpu_utilization_df.pop('%idle')
+
 
     # Set 'CPU' as index
     cpu_utilization_df = cpu_utilization_df.set_index('CPU')
@@ -2431,7 +2440,7 @@ def cpu_utilization_graphs():
             '2) softirq_heatmap_data': softirq_heatmap_data,
             '3) network_heatmap_data' : network_heatmap_data,
             '4) line_graph_data' : line_graph_data,
-            '5) bar_graph_data' : bar_graph_data,
+            '5) stack_graph_data' : stack_graph_data,
             '6) %RAM Utilization Heatmap' : ram_heatmap_data,
             '7) %RAM Utilization Line Graph' : ram_line_graph_data,
         }
@@ -2443,7 +2452,7 @@ def cpu_utilization_graphs():
             '2) softirq_heatmap_data': softirq_heatmap_data,
             '3) network_heatmap_data' : network_heatmap_data,
             '4) line_graph_data' : line_graph_data,
-            '5) bar_graph_data' : bar_graph_data,
+            '5) stack_graph_data' : stack_graph_data,
         }
 
 
