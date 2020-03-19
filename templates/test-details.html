@@ -215,6 +215,9 @@ Test Details
 								<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
 							</div>
 							<div class="card-footer">
+								{% if i <= 4 %}
+								<button id="redraw-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold" onclick="updateRangeOfCPUUtilGraphs('cpu-graphs-{{i}}')">Redraw ALL</button>
+								{% endif %}
 								<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('CPU Utilization Graph', 'cpu-graphs-{{i}}')">Download as PNG</button>
 							</div>
 						</div>
@@ -316,6 +319,7 @@ Test Details
 			drawCPUUtilizationGraphs()
                 })
 
+		cpuGraphsDivList = ['cpu-graphs-1', 'cpu-graphs-2', 'cpu-graphs-3', 'cpu-graphs-4']
 
 		function drawCPUUtilizationGraphs(){
                         for(i = 1; i <=7; i++){
@@ -355,8 +359,48 @@ Test Details
 						drawLineGraph(response[graphName], 'cpu-graphs-'+(index+1))
 				})
 
+
+				// Make autorange=false for all CPU Utilization graphs
+				for (i =0; i < cpuGraphsDivList.length; i++)
+				{
+					div = document.getElementById(cpuGraphsDivList[i])
+
+					div.layout.xaxis.autorange = false
+				}
+
+				// Event to make autorange=false when Autoscale is clicked 
+				// (autorange becomes true when Autoscale is clicked)
+				$autoscaleButtons = $('[data-title="Autoscale"]')
+
+				$autoscaleButtons.on('click', function(e){
+					for (i =0; i < cpuGraphsDivList.length; i++)
+					{
+						div = document.getElementById(cpuGraphsDivList[i])
+
+						div.layout.xaxis.autorange = false
+					}
+				})
+
 			})
-		}
+		}		
+
+    	function updateRangeOfCPUUtilGraphs(graphID){
+			console.log(graphID)
+			
+			// Get corresponding range
+			graphDiv = document.getElementById(graphID)
+			rangeArray = graphDiv.layout.xaxis.range
+
+			for (i =0; i < cpuGraphsDivList.length; i++)
+			{
+				div = document.getElementById(cpuGraphsDivList[i])
+
+				// Change the range of the div's xaxis
+				div.layout.xaxis.range = rangeArray
+				Plotly.update(div, div.data, div.layout)
+			}
+  
+   		};
 
 
 		function drawCounterGraphs(){
@@ -413,6 +457,7 @@ Test Details
 
 			return $graphName;
 		}
+
 	</script>	
 
 {% endblock %}
