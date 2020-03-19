@@ -727,6 +727,26 @@ def getTestDetailsData(originID, secret=False):
         system_details_dataframe['Jenkins Link'] = jenkins_link
         # SYSTEM details is now ready
 
+        # Check if ramstat.csv exists
+        # Ram Utilization Graphs
+        nas_path = "/mnt/nas/dbresults/" + jenkins_details['jobname'][0] + '/' + str(jenkins_details['runID'][0]) + '/results/'
+        # Get list of directories in '/results/' directory
+        dir_list = []
+        for x in os.walk(nas_path):
+            dir_list = x[1]
+            break
+
+        # Get only numeric directories (corresponding to numCPUs)
+        dir_list = [x for x in dir_list if x.isnumeric()]
+
+        ram_file = nas_path + '/' + dir_list[0] + '/ramstat.csv'
+        # Check if ramstat.csv file exists
+        if os.path.isfile(ram_file):
+            ramstat_csv_exists = True
+        else:
+            ramstat_csv_exists = False
+
+
         context = {
             'testname': test_name,
             'system_details': system_details_dataframe.to_dict(orient='list'),
@@ -741,6 +761,7 @@ def getTestDetailsData(originID, secret=False):
                 'runID' : str(jenkins_details['runID'][0]),
             },
             'num_cpus_list' : num_cpus_list,
+            'ramstat_csv_exists' : ramstat_csv_exists,
         }
 
         # close the database connection
