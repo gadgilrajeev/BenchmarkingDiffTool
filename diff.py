@@ -2182,17 +2182,23 @@ def counter_graphs():
 
     return counter_graphs_data
 
-def parallel_compute_heatmap_zll(df, **kwargs):
+def parallel_compute_heatmap_zll(param, **kwargs):
 
     graph_name = kwargs['graph_name']
 
-
     if graph_name == 'cpu_heatmap':
+        df = param
         return df['%busy'].tolist()   
     elif graph_name == 'network_heatmap':
+        df = param
         return df['NW_UTIL'].tolist()
     elif graph_name == 'softirq_heatmap':
+        df = param
         return df['%soft'].tolist()
+    elif graph_name == 'ram_heatmap':
+        node = param
+        df = kwargs['ramstat_df']
+        return df[node].tolist()
 
 
 # API Endpoint for CPU Utilization graphs
@@ -2490,8 +2496,18 @@ def cpu_utilization_graphs():
         ram_heatmap_data['y_list'].remove('Timestamp')
 
         # Fill z_list_list for each y_list element (Each Node)
-        for node in ram_heatmap_data['y_list']:
-            ram_heatmap_data['z_list_list'].append(ramstat_df[node].tolist())
+        pool = multiprocessing.Pool(num_processes)
+
+        ram_heatmap_data['z_list_list'] = \
+                        pool.map(partial(parallel_compute_heatmap_zll, \
+                        graph_name='ram_heatmap', ramstat_df=ramstat_df), \
+                        ram_heatmap_data['y_list'])
+
+        pool.close()
+        pool.join()
+
+        # for node in ram_heatmap_data['y_list']:
+            # ram_heatmap_data['z_list_list'].append(ramstat_df[node].tolist())
         # Ram util heatmap done
 
         # Idea - RAM Line graph data can be derived from ram_heatmap_data. No need to recompute
@@ -2514,11 +2530,11 @@ def cpu_utilization_graphs():
         ram_line_graph_data['legend_list'] = ram_heatmap_data['y_list']
 
         cpu_ut_graphs_data = {
-            '1) heatmap_data' : heatmap_data,
-            '2) softirq_heatmap_data': softirq_heatmap_data,
+            '1) CPU %busy heatmap' : heatmap_data,
+            '2) CPU %softirq heatmap': softirq_heatmap_data,
             '3) network_heatmap_data' : network_heatmap_data,
-            '4) line_graph_data' : line_graph_data,
-            '5) stack_graph_data' : stack_graph_data,
+            '4) %CPU Utilization Multi-line Graph' : line_graph_data,
+            '5) %CPU Utilization Stack graph' : stack_graph_data,
             '6) %RAM Utilization Heatmap' : ram_heatmap_data,
             '7) %RAM Utilization Line Graph' : ram_line_graph_data,
         }
@@ -2527,11 +2543,11 @@ def cpu_utilization_graphs():
         print("File ramstat.csv does not exist. Skipping")
 
         cpu_ut_graphs_data = {
-            '1) heatmap_data' : heatmap_data,
-            '2) softirq_heatmap_data': softirq_heatmap_data,
+            '1) CPU %busy heatmap' : heatmap_data,
+            '2) CPU %softirq heatmap': softirq_heatmap_data,
             '3) network_heatmap_data' : network_heatmap_data,
-            '4) line_graph_data' : line_graph_data,
-            '5) stack_graph_data' : stack_graph_data,
+            '4) %CPU Utilization Multi-line Graph' : line_graph_data,
+            '5) %CPU Utilization Stack graph' : stack_graph_data,
         }
 
 
