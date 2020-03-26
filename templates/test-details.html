@@ -195,37 +195,37 @@ Test Details
 					<!-- You can put as many graphs as you want inside this Body -->
 					<!-- Each card corresponds to a graph -->
 					<div class="modal-body">
-                                                        <div class="d-flex flex-row-reverse">
-                                                               <select id="num-cpus-util-select" class="form-control form-control-lg w-25 px-2">
-                                                                        {% for cpu_count in context.num_cpus_list %}
-                                                                                <option value="{{cpu_count}}">{{cpu_count}}</option>
-                                                                        {% endfor %}
-                                                                </select>
+						<div class="d-flex flex-row-reverse">
+							<select id="num-cpus-util-select" class="form-control form-control-lg w-25 px-2">
+								{% for cpu_count in context.num_cpus_list %}
+									<option value="{{cpu_count}}">{{cpu_count}}</option>
+								{% endfor %}
+							</select>
 
-                                                                <h4 class="align-self-center mx-2">Select Num_CPUs</h4>
-                                                        </div>
+							<h4 class="align-self-center mx-2">Select Num_CPUs</h4>
+						</div>
 
-						<!-- 7 graphs for CPU utilization -->
-						{% if context.ramstat_csv_exists %}
-							{% for i in range(1,8) %}
-							<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
-								<div class="card-header">
-									<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
-								</div>
-								<div class="card-body m-0 p-0" style="height: 500px;">
-									<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
-								</div>
-								<div class="card-footer">
-									{% if i <= 4 %}
-									<button id="redraw-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold" onclick="updateRangeOfCPUUtilGraphs('cpu-graphs-{{i}}')">Redraw ALL</button>
-									{% endif %}
-									<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('CPU Utilization Graph', 'cpu-graphs-{{i}}')">Download as PNG</button>
-								</div>
+						<!-- 5 graphs for CPU utilization -->
+						{% for i in range(1,6) %}
+						<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
+							<div class="card-header">
+								<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
 							</div>
-							{% endfor %}
-						{% else %}
-						<!-- 5 graphs if ramstat.csv does not exist -->
-							{% for i in range(1,6) %}
+							<div class="card-body m-0 p-0" style="height: 500px;">
+								<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
+							</div>
+							<div class="card-footer">
+								{% if i <= 4 %}
+								<button id="redraw-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold" onclick="updateRangeOfCPUUtilGraphs('cpu-graphs-{{i}}')">Redraw ALL</button>
+								{% endif %}
+								<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('CPU Utilization Graph', 'cpu-graphs-{{i}}')">Download as PNG</button>
+							</div>
+						</div>
+						{% endfor %}
+
+						<!-- 3 graphs for Freq_dump  -->
+						{% if context.freq_dump_csv_exists %}
+							{% for i in range(6,9) %}
 							<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
 								<div class="card-header">
 									<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
@@ -234,14 +234,45 @@ Test Details
 									<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
 								</div>
 								<div class="card-footer">
-									{% if i <= 4 %}
-									<button id="redraw-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold" onclick="updateRangeOfCPUUtilGraphs('cpu-graphs-{{i}}')">Redraw ALL</button>
-									{% endif %}
 									<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('CPU Utilization Graph', 'cpu-graphs-{{i}}')">Download as PNG</button>
 								</div>
 							</div>
 							{% endfor %}
 						{% endif %}
+
+						<!-- 2 graphs for RAM utilization -->
+						{% if context.ramstat_csv_exists %}
+							{% if context.freq_dump_csv_exists %}
+								{% for i in range(9,11) %}
+								<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
+									<div class="card-header">
+										<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
+									</div>
+									<div class="card-body m-0 p-0" style="height: 500px;">
+										<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
+									</div>
+									<div class="card-footer">
+										<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('CPU Utilization Graph', 'cpu-graphs-{{i}}')">Download as PNG</button>
+									</div>
+								</div>
+								{% endfor %}
+							{% else %}
+								{% for i in range(6,8) %}
+								<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
+									<div class="card-header">
+										<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
+									</div>
+									<div class="card-body m-0 p-0" style="height: 500px;">
+										<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
+									</div>
+									<div class="card-footer">
+										<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('CPU Utilization Graph', 'cpu-graphs-{{i}}')">Download as PNG</button>
+									</div>
+								</div>
+								{% endfor %}
+							{% endif %}
+						{% endif %}
+
 
 					</div>
 					<!-- Footer -->
@@ -335,22 +366,38 @@ Test Details
 		$("#num-cpus-select").change(function(){
 			drawCounterGraphs()
 		})
-                $("#num-cpus-util-select").change(function(){
+
+		$("#num-cpus-util-select").change(function(){
 			drawCPUUtilizationGraphs()
-                })
+		})
 
 		cpuGraphsDivList = ['cpu-graphs-1', 'cpu-graphs-2', 'cpu-graphs-3', 'cpu-graphs-4']
 
 		function drawCPUUtilizationGraphs(){
-			"{% if context.ramstat_csv_exists %}"
-			for(i = 1; i <=7; i++){
+			// The first 5 cpu util graphs
+			for(i = 1; i < 6; i++){
 				Plotly.purge('cpu-graphs-'+i)
 			}
-			"{% else %}"
-			for(i = 1; i <=5; i++){
+			"{% if context.freq_dump_csv_exists %}"
+			for(i = 6; i < 9; i++){
 				Plotly.purge('cpu-graphs-'+i)
 			}
 			"{% endif %}"
+
+			"{% if context.ramstat_csv_exists %}"
+				"{% if context.freq_dump_csv_exists %}"
+					for(i = 9; i < 11; i++){
+						Plotly.purge('cpu-graphs-'+i)
+					}
+				"{% else %}"
+					for(i = 6; i < 8; i++){
+						Plotly.purge('cpu-graphs-'+i)
+					}				
+				"{% endif %}"
+				
+			"{% endif %}"
+
+
 			ajaxData = {
 				'jobname' : '{{context.jenkins_details.jobname}}',
 				'runID' : '{{context.jenkins_details.runID}}',

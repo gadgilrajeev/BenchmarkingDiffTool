@@ -746,6 +746,12 @@ def getTestDetailsData(originID, secret=False):
         else:
             ramstat_csv_exists = False
 
+        freq_dump_file = nas_path + '/' + dir_list[0] + '/freq_dump.csv'
+        # Check if freq_dump.csv exists
+        if os.path.isfile(freq_dump_file):
+            freq_dump_csv_exists = True
+        else:
+            freq_dump_csv_exists = False
 
         context = {
             'testname': test_name,
@@ -762,6 +768,7 @@ def getTestDetailsData(originID, secret=False):
             },
             'num_cpus_list' : num_cpus_list,
             'ramstat_csv_exists' : ramstat_csv_exists,
+            'freq_dump_csv_exists' : freq_dump_csv_exists,
         }
 
         # close the database connection
@@ -2200,6 +2207,12 @@ def parallel_compute_heatmap_zll(param, **kwargs):
         df = kwargs['ramstat_df']
         return df[node].tolist()
 
+def parallel_compute_freq_dump_yll(param, **kwargs):
+    df = kwargs['df']
+
+    col = param
+
+    return (list(range(df.shape[0])),df[col].tolist())
 
 # API Endpoint for CPU Utilization graphs
 @app.route('/cpu_utilization_graphs', methods=['POST'])
@@ -2473,12 +2486,112 @@ def cpu_utilization_graphs():
     print("Line Graph overall took {} seconds".format(time.time() - start_time15))
     # Line graph data is done
     
+    cpu_ut_graphs_data = {
+            'A1) CPU %busy heatmap' : heatmap_data,
+            'A2) CPU %softirq heatmap': softirq_heatmap_data,
+            'A3) network_heatmap_data' : network_heatmap_data,
+            'A4) %CPU Utilization Multi-line Graph' : line_graph_data,
+            'A5) %CPU Utilization Stack graph' : stack_graph_data,
+    }
+    
+
+    # Freq dump graphs
+    freq_dump_file = nas_path + '/freq_dump.csv'
+    # Check if freq_dump.csv exists
+    if os.path.isfile(freq_dump_file):
+        start_time16 = time.time()
+
+        freq_dump_df = pd.read_csv(freq_dump_file)
+
+        memnet_freq_line_graph_data = {
+            'graph_type' : 'line',
+            'x_list_list' : [],
+            'y_list_list' : [],     #list_list because the JS function is written for multiple lines
+            'legend_list' : [],
+            'xParameter' : 'Timestamp',
+            'yParameter' : 'Freq'
+        }
+
+        power_line_graph_data = {
+            'graph_type' : 'line',
+            'x_list_list' : [],
+            'y_list_list' : [],     #list_list because the JS function is written for multiple lines
+            'legend_list' : [],
+            'xParameter' : 'Timestamp',
+            'yParameter' : '% Utilization'
+        }
+
+        temperature_line_graph_data = {
+            'graph_type' : 'line',
+            'x_list_list' : [],
+            'y_list_list' : [],     #list_list because the JS function is written for multiple lines
+            'legend_list' : [],
+            'xParameter' : 'Timestamp',
+            'yParameter' : '% Utilization'
+        }
+
+
+        no_of_nodes = freq_dump_df['Node'].unique().tolist()
+
+        power_columns = ['core-power','mem-power','core-voltage','mem-voltage','sram-power','soc-power']
+        temperature_columns = ['temperature']
+        memnet_columns = [x for x in freq_dump_df.columns.tolist() if x not in power_columns and x not in temperature_columns and x != "Node"]
+
+        freq_dump_df = freq_dump_df.set_index('Node')
+
+        print("NO OF NODES = ", no_of_nodes, type(no_of_nodes[0]))
+
+        for node in no_of_nodes:
+            pool = multiprocessing.Pool(num_processes)
+            print("PRINTING NODE = ", node)
+            df = freq_dump_df.loc[int(node)]
+            
+            # Memnet freq
+            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df), memnet_columns)
+
+            memnet_freq_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
+            memnet_freq_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+            # Legend list is the list of columns
+            memnet_freq_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in memnet_columns])
+
+            # Power
+            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df), power_columns)
+
+            power_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
+            power_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+            # Legend list is the list of columns
+            power_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in power_columns])
+
+            # Temperature
+            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df), temperature_columns)
+
+            temperature_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
+            temperature_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+            # Legend list is the list of columns
+            temperature_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in temperature_columns])
+
+
+            pool.close()
+            pool.join()
+
+
+        freq_dump_df = freq_dump_df.reset_index()
+        # Add freq_dump data in context dict
+        cpu_ut_graphs_data['A6) Memnet freq'] = memnet_freq_line_graph_data
+        cpu_ut_graphs_data['A7) Power Consumption'] = power_line_graph_data
+        cpu_ut_graphs_data['A8) Temperature'] = temperature_line_graph_data
+
+        print("Freq dump Graphs overall took {} seconds".format(time.time() - start_time16))
+    else:
+        print("File freq_dump.csv does not exist. Skipping")
+
+    # Freq dump graphs DONE
 
     # Ram Utilization Graphs
     ram_file = nas_path + '/ramstat.csv'
     # Check if ramstat.csv file exists
     if os.path.isfile(ram_file):
-        start_time16 = time.time()
+        start_time17 = time.time()
         ramstat_df = pd.read_csv(ram_file)
 
         ram_heatmap_data = {
@@ -2529,27 +2642,17 @@ def cpu_utilization_graphs():
         ram_line_graph_data['y_list_list'] = ram_heatmap_data['z_list_list']
         ram_line_graph_data['legend_list'] = ram_heatmap_data['y_list']
 
-        cpu_ut_graphs_data = {
-            '1) CPU %busy heatmap' : heatmap_data,
-            '2) CPU %softirq heatmap': softirq_heatmap_data,
-            '3) network_heatmap_data' : network_heatmap_data,
-            '4) %CPU Utilization Multi-line Graph' : line_graph_data,
-            '5) %CPU Utilization Stack graph' : stack_graph_data,
-            '6) %RAM Utilization Heatmap' : ram_heatmap_data,
-            '7) %RAM Utilization Line Graph' : ram_line_graph_data,
-        }
-        print("Ram Graphs overall took {} seconds".format(time.time() - start_time16))
+        # Add ram data in context dict
+        if os.path.isfile(freq_dump_file):
+            cpu_ut_graphs_data['A9) %RAM Utilization Heatmap'] = ram_heatmap_data
+            cpu_ut_graphs_data['B10) %RAM Utilization Line Graph'] = ram_line_graph_data
+        else:
+            cpu_ut_graphs_data['A6) %RAM Utilization Heatmap'] = ram_heatmap_data
+            cpu_ut_graphs_data['A7) %RAM Utilization Line Graph'] = ram_line_graph_data
+            
+        print("Ram Graphs overall took {} seconds".format(time.time() - start_time17))
     else:
         print("File ramstat.csv does not exist. Skipping")
-
-        cpu_ut_graphs_data = {
-            '1) CPU %busy heatmap' : heatmap_data,
-            '2) CPU %softirq heatmap': softirq_heatmap_data,
-            '3) network_heatmap_data' : network_heatmap_data,
-            '4) %CPU Utilization Multi-line Graph' : line_graph_data,
-            '5) %CPU Utilization Stack graph' : stack_graph_data,
-        }
-
 
     print("Time taken for CPU utilization graphs {}".format(time.time() - start_time))
 
