@@ -713,3 +713,69 @@ function drawHeatmap(response, graphID) {
 
 	Plotly.newPlot(graphID, data, layout);
 }
+
+function drawComboGraph(response, graphID) {
+	console.log("Drawing Combo Graph")
+	console.log(response)
+	console.log(graphID)
+	graphData1 = response['graph_1_data']
+
+	graphData2 = response['graph_2_data']
+
+	// Stack Graph
+	traceList = []
+	graphData1.y_list_list.forEach((value, index) => {
+		traceList.push({
+			x: graphData1.x_list,
+			y: graphData1.y_list_list[index],
+			name: graphData1.legend_list[index],
+			type: 'bar',
+			xaxis:'x',
+			yaxis:'y',
+		})
+	})
+
+	graphData2.x_list_list.forEach((value, index) => {
+		traceList.push({
+			type: 'scatter',
+			x: graphData2.x_list_list[index],
+			y: graphData2.y_list_list[index],
+			mode: 'lines',
+			name: graphData2.legend_list[index],
+			line: {
+				width: 3,
+			},
+			xaxis:'x',
+			yaxis:'y2',
+		})
+	})
+
+	var data = traceList
+
+	var layout = {
+		showlegend: true,
+		legend: {
+			"orientation": "h",
+		},
+		xaxis: {
+			title : {
+				text: graphData1.xParameter,
+				standoff : 50,
+			}
+		},
+
+		yaxis: {title: graphData1.yParameter},
+		yaxis2: {
+			title: graphData2.yParameter,
+			autorange: true,
+			titlefont: {color: 'rgb(148, 103, 189)'},
+			tickfont: {color: 'rgb(148, 103, 189)'},
+			overlaying: 'y',
+			side: 'right',
+		},
+		barmode: 'stack',
+		title: response.graphTitle,
+	  };
+
+	Plotly.newPlot(graphID, data, layout);
+}
