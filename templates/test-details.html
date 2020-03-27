@@ -436,6 +436,10 @@ Test Details
 					{
 						drawStackGraph(response[graphName], 'cpu-graphs-'+(index+1))
 					}
+                    else if (graphType == 'combo')
+                    {
+                        drawComboGraph(response[graphName], 'cpu-graphs-'+(index+1))
+                    }
 				})
 
 

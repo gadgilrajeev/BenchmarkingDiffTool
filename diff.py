@@ -1225,6 +1225,9 @@ def diffTests():
 @app.route('/get_data_for_graph', methods=['POST'])
 def get_data_for_graph():
     print("GOT THE REQUEST FOR GET DATA FOR GRAPH")
+
+    start_time = time.time()
+
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
@@ -1539,12 +1542,16 @@ def get_data_for_graph():
     except:
         pass
 
+    print("get_data_for_graph took {} seconds".format(time.time() - start_time))
+
     return response
 
 # This function handles the AJAX request for Best SKU Graph data.
 # JS then draws the graph using this data
 @app.route('/best_sku_graph', methods=['POST'])
 def best_sku_graph():
+    start_time = time.time()
+
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
@@ -1662,6 +1669,8 @@ def best_sku_graph():
         db.close()
     except:
         pass
+
+    print("best_sku_graph took {} seconds".format(time.time() - start_time))
 
     return response
 
@@ -2185,7 +2194,8 @@ def counter_graphs():
     logging.debug("COUNTERS HISTOGRAM DATA")
     logging.debug(counter_graphs_data['dmc_histogram_data_' + numCPUs])
 
-    logging.debug("IT took {} seconds for counter graph".format(time.time() - start_time))
+    print("HELLOOOOOOOOOOOOOOOOOOOOOOOOOO")
+    print("IT took {} seconds for counter graph".format(time.time() - start_time))
 
     return counter_graphs_data
 
@@ -2330,11 +2340,6 @@ def cpu_utilization_graphs():
     # Each list has data for one timestamp
     # Length of each list = No. of Cores
     # x in range cpu_util_df['%busy'] with jumps of length = no of cores
-    #heatmap_data['z_list_list'] = [cpu_utilization_df['%busy'].tolist()[x:x+len(heatmap_data['y_list'])]\
-                                        #for x in range(0,len(cpu_utilization_df['%busy']), len(heatmap_data['y_list']))]
-
-    print(cpu_utilization_df.shape[0])
-
     pool = multiprocessing.Pool(num_processes)
 
     heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='cpu_heatmap'), \
@@ -2375,8 +2380,6 @@ def cpu_utilization_graphs():
     pool.close()
     pool.join()
 
-    #network_heatmap_data['z_list_list'] = [network_utilization_df['NW_UTIL'].tolist()[x:x+len(network_heatmap_data['y_list'])]\
-                                                    #for x in range(0,len(network_utilization_df['NW_UTIL']), len(network_heatmap_data['y_list']))]
     print("Z LIST LIST took {} seconds".format(time.time() - start_time10))
 
     start_time11 = time.time()
@@ -2401,9 +2404,6 @@ def cpu_utilization_graphs():
     pool.close()
     pool.join()
 
-
-    #softirq_heatmap_data['z_list_list'] = [cpu_utilization_df['%soft'].tolist()[x:x+len(softirq_heatmap_data['y_list'])]\
-                                                #for x in range(0,len(cpu_utilization_df['%soft']), len(softirq_heatmap_data['y_list']))]
 
     print("Z LIST LIST took {} seconds".format(time.time() - start_time13))
     # Take transpose of the list_list 
@@ -2486,6 +2486,8 @@ def cpu_utilization_graphs():
     print("Line Graph overall took {} seconds".format(time.time() - start_time15))
     # Line graph data is done
     
+    # Do NOT change key names.
+    # Changing them will require changes in HTML code
     cpu_ut_graphs_data = {
             'A1) CPU %busy heatmap' : heatmap_data,
             'A2) CPU %softirq heatmap': softirq_heatmap_data,
@@ -2509,16 +2511,25 @@ def cpu_utilization_graphs():
             'y_list_list' : [],     #list_list because the JS function is written for multiple lines
             'legend_list' : [],
             'xParameter' : 'Timestamp',
-            'yParameter' : 'Freq'
+            'yParameter' : 'Core and memnet frequency'
         }
 
-        power_line_graph_data = {
+        voltage_line_graph_data = {
             'graph_type' : 'line',
             'x_list_list' : [],
             'y_list_list' : [],     #list_list because the JS function is written for multiple lines
             'legend_list' : [],
             'xParameter' : 'Timestamp',
-            'yParameter' : '% Utilization'
+            'yParameter' : 'Power in W'
+        }
+
+        power_stack_graph_data = {
+            'graph_type' : 'stack',
+            'x_list' : [],
+            'y_list_list' : [],
+            'legend_list' : [],
+            'xParameter' : 'Timestamp',
+            'yParameter' : 'Power in W'
         }
 
         temperature_line_graph_data = {
@@ -2527,15 +2538,18 @@ def cpu_utilization_graphs():
             'y_list_list' : [],     #list_list because the JS function is written for multiple lines
             'legend_list' : [],
             'xParameter' : 'Timestamp',
-            'yParameter' : '% Utilization'
+            'yParameter' : 'Temperature in °C'
         }
 
 
         no_of_nodes = freq_dump_df['Node'].unique().tolist()
 
-        power_columns = ['core-power','mem-power','core-voltage','mem-voltage','sram-power','soc-power']
+        voltage_columns = ['core-voltage', 'mem-voltage']
+        power_columns = ['core-power','mem-power','sram-power','soc-power']
         temperature_columns = ['temperature']
-        memnet_columns = [x for x in freq_dump_df.columns.tolist() if x not in power_columns and x not in temperature_columns and x != "Node"]
+        memnet_columns = [x for x in freq_dump_df.columns.tolist() \
+            if x not in power_columns and x not in temperature_columns \
+            and x not in voltage_columns and x != "Node"]
 
         freq_dump_df = freq_dump_df.set_index('Node')
 
@@ -2547,7 +2561,7 @@ def cpu_utilization_graphs():
             df = freq_dump_df.loc[int(node)]
             
             # Memnet freq
-            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df), memnet_columns)
+            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='memnet_graph'), memnet_columns)
 
             memnet_freq_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
             memnet_freq_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
@@ -2555,15 +2569,23 @@ def cpu_utilization_graphs():
             memnet_freq_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in memnet_columns])
 
             # Power
-            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df), power_columns)
+            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='power_graph'), power_columns)
 
-            power_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
-            power_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+            power_stack_graph_data['x_list'] = list(range(df.shape[0]))
+            power_stack_graph_data['y_list_list'].extend([x[1] for x in temp_data])
             # Legend list is the list of columns
-            power_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in power_columns])
+            power_stack_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in power_columns])
+
+            # Voltage
+
+            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='voltage_graph'), voltage_columns)
+
+            voltage_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
+            voltage_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+            voltage_line_graph_data['legend_list'].extend('Node-'+str(node)+'-'+col for col in voltage_columns)
 
             # Temperature
-            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df), temperature_columns)
+            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='temperature_graph'), temperature_columns)
 
             temperature_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
             temperature_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
@@ -2574,11 +2596,16 @@ def cpu_utilization_graphs():
             pool.close()
             pool.join()
 
+        power_voltage_graph_data = {
+                'graph_type' : 'combo',
+                'graph_1_data' : power_stack_graph_data,
+                'graph_2_data' : voltage_line_graph_data,
+        }
 
         freq_dump_df = freq_dump_df.reset_index()
         # Add freq_dump data in context dict
         cpu_ut_graphs_data['A6) Memnet freq'] = memnet_freq_line_graph_data
-        cpu_ut_graphs_data['A7) Power Consumption'] = power_line_graph_data
+        cpu_ut_graphs_data['A7) Power & Voltage Consumption'] = power_voltage_graph_data
         cpu_ut_graphs_data['A8) Temperature'] = temperature_line_graph_data
 
         print("Freq dump Graphs overall took {} seconds".format(time.time() - start_time16))
@@ -2618,9 +2645,6 @@ def cpu_utilization_graphs():
 
         pool.close()
         pool.join()
-
-        # for node in ram_heatmap_data['y_list']:
-            # ram_heatmap_data['z_list_list'].append(ramstat_df[node].tolist())
         # Ram util heatmap done
 
         # Idea - RAM Line graph data can be derived from ram_heatmap_data. No need to recompute
