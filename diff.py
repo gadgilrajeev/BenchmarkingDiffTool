@@ -1220,6 +1220,226 @@ def diffTests():
     else:
         return redirect('/')
 
+# Parallel excecute "y" query for each "x" of x_list
+def parallel_excecute_y_query(x_param, **kwargs):
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+
+    # unpack kwargs 
+    min_or_max_list = kwargs['min_or_max_list']
+    index = kwargs['index']
+    qualifier_list = kwargs['qualifier_list']
+    INPUT_FILTER_CONDITION = kwargs['INPUT_FILTER_CONDITION']
+    xParameter = kwargs['xParameter']
+    parameter_map = kwargs['parameter_map']
+    skus = kwargs['skus']
+    table_map = kwargs['table_map']
+    join_on_map = kwargs['join_on_map']
+    testname = kwargs['testname']
+
+    # max or min
+    if min_or_max_list[index] == '0':
+        Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+                            FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+                            " INNER JOIN result r ON o.originID = r.origin_originID " +\
+                            """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                            INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                            INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+                            INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+                            INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+                            WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+                            " and " + parameter_map[xParameter] + " = \'" + x_param + \
+                            "\' and t.testname = \'" + testname + \
+                            "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+                            INPUT_FILTER_CONDITION + \
+                            " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
+    else:
+        Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+                            FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+                            " INNER JOIN result r ON o.originID = r.origin_originID " +\
+                            """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                            INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
+                            INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+                            INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+                            INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+                            WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+                            " and " + parameter_map[xParameter] + " = \'" + x_param + \
+                            "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
+                            " AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+                            INPUT_FILTER_CONDITION + \
+                            " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
+
+    logging.debug("EXCECUTING Y QUERY")
+    y_df = pd.read_sql(Y_LIST_QUERY, db)
+    logging.debug("EXCECUTED Y QUERY?")
+
+    # # Close database connection
+    # try:
+    #     print("Trying closing the db conn")
+    #     db.close()
+    # except:
+    #     print("EXCEPTION!!!!!!!!!!!!!!! While closing the DB Connection")
+    #     pass
+
+    if y_df.empty is True:
+        # Return x_param for removal. All others as "None"
+        return (x_param, None, None, None)
+    else:
+        # Return x_param as "None". All other values
+        # Also strip skuidname after returning
+        return (None, y_df['number'].to_list()[0], y_df['originID'].to_list()[0], y_df['skuidname'].to_list()[0])
+
+# Parallel compute data for get_data_for_graph()
+def parallel_sku_compare(section, **kwargs):
+    print("Excecuting {} parallely".format(section))
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+            
+    # unpack kwargs 
+    sku_parser = kwargs['sku_parser']
+    SCALING_CONDITION = kwargs['SCALING_CONDITION']
+    INPUT_FILTER_CONDITION = kwargs['INPUT_FILTER_CONDITION']
+    xParameter = kwargs['xParameter']
+    parameter_map = kwargs['parameter_map']
+    table_map = kwargs['table_map']
+    join_on_map = kwargs['join_on_map']
+    testname = kwargs['testname']
+    min_or_max_list = kwargs['min_or_max_list']
+    index = kwargs['index']
+    qualifier_list = kwargs['qualifier_list']
+
+    skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
+
+    X_LIST_QUERY = "SELECT DISTINCT " + parameter_map[xParameter] + " as \'" + parameter_map[xParameter] + \
+                    "\' from " + table_map[xParameter] + " " + \
+                    join_on_map[xParameter] + """ INNER JOIN result r ON o.originID = r.origin_originID 
+                    INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID 
+                    WHERE t.testname=\'""" + testname + "\'" + SCALING_CONDITION + ";"
+
+    x_df = pd.read_sql(X_LIST_QUERY, db)
+    x_list = sorted(x_df[parameter_map[xParameter]].to_list())
+    
+    # Convert each element to type "str"
+    x_list = list(map(lambda x: str(x), x_list))
+
+    # Remove ALL the entries which are '' in the list 
+    x_list = list(filter(lambda x: x!='',x_list))
+
+    logging.debug("\nAFTER REMOVING wrong entries \n")
+    logging.debug("\nPRINTING X LIST  = {}".format(x_list))
+
+    y_list = []
+    originID_list = []
+    skuid_list = []     
+
+    # For removing 'not found' entries from x_list
+    x_list_rm = []
+
+    print("Length of x_list = {}".format(len(x_list)))
+
+    # for x_param in x_list:
+    #     # max or min
+    #     if min_or_max_list[index] == '0':
+    #         Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+    #                             FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+    #                             " INNER JOIN result r ON o.originID = r.origin_originID " +\
+    #                             """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+    #                             INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+    #                             INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+    #                             INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+    #                             INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+    #                             WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+    #                             " and " + parameter_map[xParameter] + " = \'" + x_param + \
+    #                             "\' and t.testname = \'" + testname + \
+    #                             "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+    #                             INPUT_FILTER_CONDITION + \
+    #                             " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
+    #     else:
+    #         Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+    #                             FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+    #                             " INNER JOIN result r ON o.originID = r.origin_originID " +\
+    #                             """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+    #                             INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
+    #                             INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+    #                             INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+    #                             INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+    #                             WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+    #                             " and " + parameter_map[xParameter] + " = \'" + x_param + \
+    #                             "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
+    #                             " AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+    #                             INPUT_FILTER_CONDITION + \
+    #                             " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
+
+    #     logging.debug("EXCECUTING Y QUERY")
+    #     y_df = pd.read_sql(Y_LIST_QUERY, db)
+    #     logging.debug("EXCECUTED Y QUERY?")
+
+    #     if y_df.empty is True:
+    #         x_list_rm.append(x_param)
+    #     else:
+    #         y_list.extend(y_df['number'].to_list())
+    #         originID_list.extend(y_df['originID'].to_list())
+    #         skuid_list.extend(y_df['skuidname'].to_list())
+    #         print("SKUID LIST BEFORE = {}".format(skuid_list))
+    #         skuid_list[-1] = skuid_list[-1].strip()
+    #         print("SKUID LIST AFTER = {}".format(skuid_list))
+
+    # Parallel excecution for "y" query
+    pool = multiprocessing.Pool(num_processes)
+
+    data_lists = pool.map(partial(parallel_excecute_y_query, min_or_max_list=min_or_max_list, \
+                qualifier_list=qualifier_list, INPUT_FILTER_CONDITION=INPUT_FILTER_CONDITION, \
+                index=index, xParameter=xParameter, parameter_map=parameter_map, \
+                table_map=table_map, join_on_map=join_on_map, testname=testname ), x_list)
+
+    pool.close()
+    pool.join()
+    # Done 
+    print("Got Data list")
+    print(len(data_lists), type(data_lists))
+    print(data_lists[0])
+
+    x_list_rm = [l[0] for l in data_lists]
+    y_list.extend = [l[1] for l in data_lists]
+    originID_list = [l[2] for l in data_lists]
+    # Filter on '' simultaneously
+    skuid_list = [skuidname.strip() for skuidname in [l[3] for l in data_lists]]
+
+    logging.debug("PRINTING Y LIST = {}".format(y_list))
+    logging.debug("PRINTING ORIGIN LIST= {}".format(originID_list))
+    logging.debug("PRINTING SKUID LIST = {}".format(skuid_list))
+
+    # Remove all the entries where skuid = ''
+    while True:
+        try:
+            index = skuid_list.index('')
+            skuid_list.remove(skuid_list[index])
+            y_list.remove(y_list[index])
+            originID_list.remove(originID_list[index])
+        except:
+            logging.debug("DONE REMOVING")
+            break
+
+    logging.debug("\n\n###############\n\nPrinting after removing wrong entries")
+    logging.debug("PRINTING Y LIST = {}".format(y_list))
+    logging.debug("PRINTING ORIGIN LIST = {}".format(originID_list))
+    logging.debug("PRINTING SKUID LIST = {}".format(skuid_list))
+
+    #Remove everything that has an empty set returned
+    x_list = [x for x in x_list if x not in x_list_rm]
+
+    print("Done Excecuting {}. returning values".format(section))
+
+    # Close database connection
+    try:
+        db.close()
+    except:
+        pass
+
+    # Do not return Empty Lists
+    if(x_list):
+        return (x_list, y_list, originID_list, section)
+
 # This function handles the AJAX request for Comparison graph data. 
 # JS then draws the graph using this data
 @app.route('/get_data_for_graph', methods=['POST'])
@@ -1258,10 +1478,11 @@ def get_data_for_graph():
     # Dictionary mapping from 'skuidname' : 'server_cpu_name'
     # Example 'Cavium ThunderX2(R) CPU CN9980 v2.2 @ 2.20 GHz' : Marvell TX2-B2
     skuid_cpu_map = OrderedDict({section: sku_parser.get(section, 'SKUID').replace('\"', '').split(',') for section in sku_parser.sections()})
-    
+
     # Fill the sku_cpu_map with all "sku->section" mapping entries
     for section in sku_parser.sections():
         skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
+        print("For section", section, "SKUS = ", len(skus))
         for sku in skus:
             skuid_cpu_map[sku] = section
 
@@ -1328,7 +1549,7 @@ def get_data_for_graph():
     y_list_list = []
     originID_list_list = []
 
-    # For each cpu manufacturer
+    # # For each cpu manufacturer
     for section in sku_parser.sections():
         skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
 
@@ -1346,11 +1567,7 @@ def get_data_for_graph():
 
         
         # Remove ALL the entries which are '' in the list 
-        while True:
-            try:
-                x_list.remove('')
-            except:
-                break
+        x_list = list(filter(lambda x: x!='',x_list))
 
         logging.debug("\nAFTER REMOVING wrong entries \n")
         logging.debug("\nPRINTING X LIST  = {}".format(x_list))
@@ -1362,64 +1579,65 @@ def get_data_for_graph():
         # For removing 'not found' entries from x_list
         x_list_rm = []
         
-        def read_y_list(x_param):
-            db1 = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
-                             passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+        print("Length of x_list = {}".format(len(x_list)))
+    #     # def read_y_list(x_param):
+    #     #     db1 = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+    #     #                      passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
-            # max or min
-            if min_or_max_list[index] == '0':
-                Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
-                                    FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
-                                    " INNER JOIN result r ON o.originID = r.origin_originID " +\
-                                    """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
-                                    INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
-                                    INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
-                                    INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
-                                    INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
-                                    WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
-                                    " and " + parameter_map[xParameter] + " = \'" + x_param + \
-                                    "\' and t.testname = \'" + testname + \
-                                    "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
-                                    INPUT_FILTER_CONDITION + \
-                                    " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
-            else:
-                Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
-                                    FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
-                                    " INNER JOIN result r ON o.originID = r.origin_originID " +\
-                                    """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
-                                    INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
-                                    INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
-                                    INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
-                                    INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
-                                    WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
-                                    " and " + parameter_map[xParameter] + " = \'" + x_param + \
-                                    "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
-                                    " AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
-                                    INPUT_FILTER_CONDITION + \
-                                    " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
+    #     #     # max or min
+    #     #     if min_or_max_list[index] == '0':
+    #     #         Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+    #     #                             FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+    #     #                             " INNER JOIN result r ON o.originID = r.origin_originID " +\
+    #     #                             """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+    #     #                             INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+    #     #                             INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+    #     #                             INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+    #     #                             INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+    #     #                             WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+    #     #                             " and " + parameter_map[xParameter] + " = \'" + x_param + \
+    #     #                             "\' and t.testname = \'" + testname + \
+    #     #                             "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+    #     #                             INPUT_FILTER_CONDITION + \
+    #     #                             " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
+    #     #     else:
+    #     #         Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
+    #     #                             FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
+    #     #                             " INNER JOIN result r ON o.originID = r.origin_originID " +\
+    #     #                             """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+    #     #                             INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
+    #     #                             INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
+    #     #                             INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
+    #     #                             INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+    #     #                             WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
+    #     #                             " and " + parameter_map[xParameter] + " = \'" + x_param + \
+    #     #                             "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
+    #     #                             " AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+    #     #                             INPUT_FILTER_CONDITION + \
+    #     #                             " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
 
-            logging.debug("EXCECUTING Y QUERY")
-            y_df = pd.read_sql(Y_LIST_QUERY, db1)
-            logging.debug("EXCECUTED Y QUERY?")
+    #     #     logging.debug("EXCECUTING Y QUERY")
+    #     #     y_df = pd.read_sql(Y_LIST_QUERY, db1)
+    #     #     logging.debug("EXCECUTED Y QUERY?")
 
-            if y_df.empty is True:
-                x_list_rm.append(x_param)
-            else:
-                y_list.extend(y_df['number'].to_list())
-                originID_list.extend(y_df['originID'].to_list())
-                skuid_list.extend(y_df['skuidname'].to_list())
-                skuid_list[-1] = skuid_list[-1].strip()
+    #     #     if y_df.empty is True:
+    #     #         x_list_rm.append(x_param)
+    #     #     else:
+    #     #         y_list.extend(y_df['number'].to_list())
+    #     #         originID_list.extend(y_df['originID'].to_list())
+    #     #         skuid_list.extend(y_df['skuidname'].to_list())
+    #     #         skuid_list[-1] = skuid_list[-1].strip()
 
-            # close the database connection
-            try:
-                print("CLOSING PARALLEL CONNECTION FOR get_data_for_graph {}".format(testname))
-                db1.close()
-            except:
-                pass
+    #     #     # close the database connection
+    #     #     try:
+    #     #         print("CLOSING PARALLEL CONNECTION FOR get_data_for_graph {}".format(testname))
+    #     #         db1.close()
+    #     #     except:
+    #     #         pass
 
-        # Excecute parallely 'read_y_list' function
-        num_cores = 5
-        Parallel(n_jobs=num_cores,prefer="threads")(delayed(read_y_list)(x_param) for x_param in x_list)
+    #     # # Excecute parallely 'read_y_list' function
+    #     # num_cores = 5
+    #     # Parallel(n_jobs=num_cores,prefer="threads")(delayed(read_y_list)(x_param) for x_param in x_list)
 
         # for x_param in x_list:
         #     # max or min
@@ -1466,6 +1684,33 @@ def get_data_for_graph():
         #         skuid_list.extend(y_df['skuidname'].to_list())
         #         skuid_list[-1] = skuid_list[-1].strip()
 
+        # Parallel excecution for "y" query
+        pool = multiprocessing.Pool(30)
+
+        data_lists = pool.map(partial(parallel_excecute_y_query, min_or_max_list=min_or_max_list, \
+                    qualifier_list=qualifier_list, INPUT_FILTER_CONDITION=INPUT_FILTER_CONDITION, \
+                    index=index, xParameter=xParameter, parameter_map=parameter_map, skus=skus, \
+                    table_map=table_map, join_on_map=join_on_map, testname=testname ), x_list)
+
+        pool.close()
+        pool.join()
+
+        print("Got Data list")
+        print(len(data_lists), type(data_lists))
+        print(data_lists[0])
+
+        x_list_rm.extend([l[0] for l in data_lists if l[0] != None])
+        y_list.extend([l[1] for l in data_lists if l[1] != None])
+        originID_list.extend([l[2] for l in data_lists if l[2] != None])
+        # Filter on '' simultaneously
+        skuid_list.extend([skuidname.strip() for skuidname in [l[3] for l in data_lists if l[3] != None]])
+        print("X rm list = {}".format(x_list_rm))
+        print("Y list = {}".format(y_list))
+        print("OriginID list = {}".format(originID_list))
+        print("SKUID list = {}".format(skuid_list))
+        # Done 
+
+
         logging.debug("PRINTING Y LIST = {}".format(y_list))
         logging.debug("PRINTING ORIGIN LIST= {}".format(originID_list))
         logging.debug("PRINTING SKUID LIST = {}".format(skuid_list))
@@ -1487,8 +1732,8 @@ def get_data_for_graph():
         logging.debug("PRINTING SKUID LIST = {}".format(skuid_list))
 
         #Remove everything that has an empty set returned
-        for rm_elem in x_list_rm:
-            x_list.remove(rm_elem)
+        x_list = [x for x in x_list if x not in x_list_rm]
+    
 
         # Do not append Empty Lists
         if(x_list):
@@ -1498,6 +1743,45 @@ def get_data_for_graph():
             server_cpu_list.append(section)
 
 
+    # FOR LOOP HAS ENDED
+    # PARALELLism CODE STARTS
+
+    # parallel_start_time = time.time()
+    # pool = multiprocessing.Pool(10)
+
+    # sections_list = sku_parser.sections()
+    # compare_lists = pool.map(partial(parallel_sku_compare, sku_parser=sku_parser, \
+    #                 xParameter=xParameter, parameter_map=parameter_map, table_map=table_map, \
+    #                 join_on_map=join_on_map, testname=testname, min_or_max_list=min_or_max_list, \
+    #                 index=index, qualifier_list=qualifier_list, SCALING_CONDITION=SCALING_CONDITION, \
+    #                 INPUT_FILTER_CONDITION=INPUT_FILTER_CONDITION), sections_list)
+
+    # pool.close()
+    # pool.join()
+
+    # print("Parallelism took {} seconds".format(time.time() - parallel_start_time))
+
+    # # Remove all the 'None' values from the list
+    # compare_lists = list(filter(None, compare_lists))
+
+    # print("Compare lists len")
+    # print(len(compare_lists), type(compare_lists))
+    # print(compare_lists)
+
+    # print("Original lists")
+    # print(x_list_list)
+    # print(y_list_list)
+    # print(originID_list_list)
+        
+
+    # for i in range(len(compare_lists)):    
+    #     x_list_list.append( compare_lists[i][0] )
+    #     y_list_list.append( compare_lists[i][1] )
+    #     originID_list_list.append( compare_lists[i][2] )
+    #     server_cpu_list.append( compare_lists[i][3] )
+
+
+    # Parallelism code ends
     logging.debug("PRINTING FINAL SERVER CPU LIST")
     logging.debug("= {}".format(server_cpu_list))
     # Get colours for cpu manufacturer
@@ -2520,7 +2804,7 @@ def cpu_utilization_graphs():
             'y_list_list' : [],     #list_list because the JS function is written for multiple lines
             'legend_list' : [],
             'xParameter' : 'Timestamp',
-            'yParameter' : 'Power in W'
+            'yParameter' : 'Voltage in V'
         }
 
         power_stack_graph_data = {
@@ -2528,7 +2812,7 @@ def cpu_utilization_graphs():
             'x_list' : [],
             'y_list_list' : [],
             'legend_list' : [],
-            'xParameter' : 'Timestamp',
+            'xParameter' : '',
             'yParameter' : 'Power in W'
         }
 
@@ -2537,7 +2821,7 @@ def cpu_utilization_graphs():
             'x_list_list' : [],
             'y_list_list' : [],     #list_list because the JS function is written for multiple lines
             'legend_list' : [],
-            'xParameter' : 'Timestamp',
+            'xParameter' : '',
             'yParameter' : 'Temperature in °C'
         }
 
@@ -2605,7 +2889,7 @@ def cpu_utilization_graphs():
         freq_dump_df = freq_dump_df.reset_index()
         # Add freq_dump data in context dict
         cpu_ut_graphs_data['A6) Memnet freq'] = memnet_freq_line_graph_data
-        cpu_ut_graphs_data['A7) Power & Voltage Consumption'] = power_voltage_graph_data
+        cpu_ut_graphs_data['A7) Power & Voltage Consumption vs Timestamp'] = power_voltage_graph_data
         cpu_ut_graphs_data['A8) Temperature'] = temperature_line_graph_data
 
         print("Freq dump Graphs overall took {} seconds".format(time.time() - start_time16))
