@@ -3041,9 +3041,12 @@ def download_as_csv():
     for column in data:
         csv_df[column] = data[column]
 
-    # Clear the csv_temp_files directory
-    base_path = os.getcwd() + '/csv_temp_files/'
-    shutil.rmtree(base_path)    #this removes the directory too
+    # Clear the temp_download_files directory
+    base_path = os.getcwd() + '/temp_download_files/'
+    try:
+        shutil.rmtree(base_path)    #this removes the directory too
+    except:
+        pass
     os.mkdir(base_path)         #So create it again
 
     # Save the current csv file there
