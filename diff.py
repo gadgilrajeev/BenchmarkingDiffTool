@@ -233,10 +233,13 @@ def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
     return compare_lists
 
 # Returns INPUT_FILTER_CONDITION from 'test_name' and 'input_filters_list'
-def get_input_filter_condition(test_name, input_filters_list):
+def get_input_filter_condition(test_name, input_filters_list, wiki_description_file=""):
     INPUT_FILTER_CONDITION = ""
 
-    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    if wiki_description_file == "":
+        results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    else:
+        results_metadata_file_path = wiki_description_file
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -2029,7 +2032,7 @@ def parallel_get_reference_results(params, **kwargs):
                      passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     #Unpacking of the tuple
-    test_name, qualifier, higher_is_better = params
+    test_name, test_section, qualifier, higher_is_better = params
 
     # Other Arguments
     results_metadata_parser = kwargs['results_metadata_parser']
@@ -2038,9 +2041,10 @@ def parallel_get_reference_results(params, **kwargs):
     TO_DATE_FILTER = kwargs['TO_DATE_FILTER']
 
     # Get input_filter_condition by calling the function
-    input_filters_list = results_metadata_parser.get(test_name, 'default_input') \
+    input_filters_list = results_metadata_parser.get(test_section, 'default_input') \
                                                 .replace('\"', '').split(',')
-    INPUT_FILTER_CONDITION = get_input_filter_condition(test_name, input_filters_list)
+    INPUT_FILTER_CONDITION = get_input_filter_condition(test_section, input_filters_list, \
+                                wiki_description_file="./config/best_of_all_graph.ini")
 
     # Build the query along with the input filters condition
     if higher_is_better == '0':
@@ -2090,9 +2094,9 @@ def parallel_get_reference_results(params, **kwargs):
 
 
     if not results_df.empty:
-        return(test_name, results_df['number'][0])
+        return(test_section, results_df['number'][0])
 
-# Function for getting reference results. Excecuted parallely with multiprocessing "pool"
+# Function for getting section results. Excecuted parallely with multiprocessing "pool"
 def parallel_get_section_results(params, **kwargs):
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                      passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
@@ -2103,7 +2107,7 @@ def parallel_get_section_results(params, **kwargs):
     originID_list = []
 
     #Unpacking of the tuple
-    test_name, qualifier, higher_is_better = params
+    test_name, test_section, qualifier, higher_is_better = params
 
     # Other Arguments
     reference_results_map = kwargs['reference_results_map']
@@ -2111,17 +2115,18 @@ def parallel_get_section_results(params, **kwargs):
     skuid_list = kwargs['skuid_list']
     FROM_DATE_FILTER = kwargs['FROM_DATE_FILTER']
     TO_DATE_FILTER = kwargs['TO_DATE_FILTER']
-    
+
 
     # If the test_result is not Empty (None) in the reference_results_map
-    if test_name in reference_results_map:
+    if test_section in reference_results_map:
         # Get input_filter_condition by calling the function
-        input_filters_list = results_metadata_parser.get(test_name, 'default_input') \
-                                                    .replace('\"', '').split(',')                                                    
-        INPUT_FILTER_CONDITION = get_input_filter_condition(test_name, input_filters_list)
+        input_filters_list = results_metadata_parser.get(test_section, 'default_input') \
+                                                    .replace('\"', '').split(',')
+        INPUT_FILTER_CONDITION = get_input_filter_condition(test_section, input_filters_list, \
+                                    wiki_description_file="./config/best_of_all_graph.ini")
 
 
-        # logging.debug("RESULT {} exists in REFERENCE".format(test_name))
+        # logging.debug("RESULT {} exists in REFERENCE".format(test_section))
         if higher_is_better == '0':
             # Fix this hack
             BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
@@ -2158,28 +2163,28 @@ def parallel_get_section_results(params, **kwargs):
         # logging.debug("\n\n########################\n\nPRINTING RESULTS DF for ={}".format(section))
         # logging.debug(" ={}".format(results_df))
 
-        # A function which returns the normalized value y_list[-1] w.r.t. reference_results_map[test_name] 
+        # A function which returns the normalized value y_list[-1] w.r.t. reference_results_map[test_section] 
         def normalized_value():
             try:
                 # Take inverse if lower is better
                 if higher_is_better == '0':
-                    return reference_results_map[test_name]/y_list[-1]
+                    return reference_results_map[test_section]/y_list[-1]
                 else:
-                    return y_list[-1]/reference_results_map[test_name]
+                    return y_list[-1]/reference_results_map[test_section]
             except:
                 # If divide by zero what to do????
                 pass
 
         if not results_df.empty:
             # logging.debug("ENTERING")
-            x_list.append(test_name)
+            x_list.append(test_section)
             y_list.extend(results_df['number'])
-            logging.debug("Y_LIST ={}".format(y_list, test_name))
+            logging.debug("Y_LIST ={}".format(y_list, test_section))
 
             # Normalize IT
             y_list[-1] = normalized_value()
             logging.debug("AFTER NORMALIZING")
-            logging.debug("Y_LIST ={} {}".format(y_list, test_name))
+            logging.debug("Y_LIST ={} {}".format(y_list, test_section))
             originID_list.extend(results_df['originID'])
         else:
             pass
@@ -2201,7 +2206,7 @@ def parallel_get_section_results(params, **kwargs):
             pass
         
         pass
-        # logging.debug("######################RESULT {} DOES NOT EXIST in REFERENCE".format(test_name))
+        # logging.debug("######################RESULT {} DOES NOT EXIST in REFERENCE".format(test_section))
             
 
 @app.route('/best_of_all_graph', methods=['POST'])
@@ -2209,11 +2214,13 @@ def best_of_all_graph():
     # Just for testing the speed
     start_time = time.time()
 
-    wiki_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    wiki_metadata_file_path = './config/best_of_all_graph.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(wiki_metadata_file_path)    
 
-    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    all_test_sections = results_metadata_parser.sections()
+
+    sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -2250,12 +2257,23 @@ def best_of_all_graph():
             raise Exception
     except:
         # Read all test names from .ini file
-        test_name_list = [test_name.strip() for test_name in results_metadata_parser.sections()]
+        test_name_list = [results_metadata_parser.get(section, 'testname').strip() for section in all_test_sections]
+
+    # A list of 'sections' corresponding to filtered(selected) tests in test_name_list
+    test_sections_list = sorted([section for section in all_test_sections if results_metadata_parser.get(section,'testname') in test_name_list])
+
+    # Modify test_name_list according to test_sections_list
+    # This is a necessary step since we have multiple sections for the same 'testname'
+    test_name_list = sorted([results_metadata_parser.get(section, 'testname') for section in test_sections_list])
+
+    print("LENGTH of sections i.e. no of benchmarks = ", len(all_test_sections))
+    print("Printing selected testnames list", test_name_list, len(test_name_list))
+    print("\n\nPrinting corresponding sections list", test_sections_list, len(test_sections_list))
 
     # The list of the first qualifier for all tests
     # and the corresponding higher_is_better
-    qualifier_list = [results_metadata_parser.get(test_name, 'fields').replace('\"', '').split(',')[0] for test_name in test_name_list]
-    higher_is_better_list = [results_metadata_parser.get(test_name, 'higher_is_better').replace('\"', '').replace(' ','').split(',')[0] for test_name in test_name_list]
+    qualifier_list = [results_metadata_parser.get(section, 'fields').replace('\"', '').split(',')[0] for section in test_sections_list]
+    higher_is_better_list = [results_metadata_parser.get(section, 'higher_is_better').replace('\"', '').replace(' ','').split(',')[0] for section in test_sections_list]
 
     # Remove all the entries where fields = ""
     while True:
@@ -2264,13 +2282,15 @@ def best_of_all_graph():
             qualifier_list.remove(qualifier_list[index])
             higher_is_better_list.remove(higher_is_better_list[index])
             test_name_list.remove(test_name_list[index])
+            test_section_list.remove(test_section_list[index])
         except:
             logging.debug("DONE REMOVING")
             break
 
     # logging.debug(" = {}".format(test_name_list))
+    # logging.debug(" = {}".format(test_sections_list))
     # logging.debug(" = {}".format(qualifier_list))
-    #logging.debug(" = {}".format(higher_is_better_list))
+    # logging.debug(" = {}".format(higher_is_better_list))
 
     # Get colour and skuid_list for reference Cpu 
     reference_color = sku_parser.get(normalized_wrt, 'color').replace('\"', '').split(',')[0]
@@ -2283,7 +2303,8 @@ def best_of_all_graph():
     start_time2 = time.time()
     reference_results_list = pool.map(partial(parallel_get_reference_results, results_metadata_parser=results_metadata_parser, \
                                 reference_skuid_list = reference_skuid_list, FROM_DATE_FILTER = FROM_DATE_FILTER, \
-                                TO_DATE_FILTER = TO_DATE_FILTER ), zip(test_name_list, qualifier_list, higher_is_better_list)) 
+                                TO_DATE_FILTER = TO_DATE_FILTER ), \
+                                zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list)) 
 
 
     pool.close()
@@ -2297,6 +2318,7 @@ def best_of_all_graph():
     # Build a map from the list of tuples
     reference_results_map = {k : v for k, v in reference_results_list}
 
+    print("Reference KEYS = ", reference_results_map.keys(), len(reference_results_map.keys()))
     print("The Parallel Function (for Reference CPU Manufacturer) took {} seconds!!!".format(time.time() - start_time2))
     # logging.debug("Reference results map = {}".format(reference_results_map))
 
@@ -2323,7 +2345,7 @@ def best_of_all_graph():
             results_list_list = pool.map(partial(parallel_get_section_results, reference_results_map = reference_results_map, \
                                         results_metadata_parser=results_metadata_parser, skuid_list = skuid_list, \
                                         FROM_DATE_FILTER = FROM_DATE_FILTER, TO_DATE_FILTER = TO_DATE_FILTER ), \
-                                        zip(test_name_list, qualifier_list, higher_is_better_list) ) 
+                                        zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list) ) 
 
             # Shut down multiprocessing gracefully
             pool.close()
