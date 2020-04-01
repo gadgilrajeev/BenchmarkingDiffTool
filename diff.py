@@ -1389,14 +1389,15 @@ def parallel_sku_compare(section, **kwargs):
 
     # Parallel excecution for "y" query
     pool = multiprocessing.Pool(num_processes)
-
-    data_lists = pool.map(partial(parallel_excecute_y_query, min_or_max_list=min_or_max_list, \
+    try:
+        data_lists = pool.map(partial(parallel_excecute_y_query, min_or_max_list=min_or_max_list, \
                 qualifier_list=qualifier_list, INPUT_FILTER_CONDITION=INPUT_FILTER_CONDITION, \
                 index=index, xParameter=xParameter, parameter_map=parameter_map, \
                 table_map=table_map, join_on_map=join_on_map, testname=testname ), x_list)
-
-    pool.close()
-    pool.join()
+    finally:
+        print("Closing Pool")
+        pool.close()
+        pool.join()
     # Done 
     print("Got Data list")
     print(len(data_lists), type(data_lists))
@@ -1689,14 +1690,15 @@ def get_data_for_graph():
 
         # Parallel excecution for "y" query
         pool = multiprocessing.Pool(30)
-
-        data_lists = pool.map(partial(parallel_excecute_y_query, min_or_max_list=min_or_max_list, \
+        try:
+            data_lists = pool.map(partial(parallel_excecute_y_query, min_or_max_list=min_or_max_list, \
                     qualifier_list=qualifier_list, INPUT_FILTER_CONDITION=INPUT_FILTER_CONDITION, \
                     index=index, xParameter=xParameter, parameter_map=parameter_map, skus=skus, \
                     table_map=table_map, join_on_map=join_on_map, testname=testname ), x_list)
-
-        pool.close()
-        pool.join()
+        finally:
+            print("Closing pool")
+            pool.close()
+            pool.join()
 
         print("Got Data list")
         print(len(data_lists), type(data_lists))
@@ -1753,14 +1755,16 @@ def get_data_for_graph():
     # pool = multiprocessing.Pool(10)
 
     # sections_list = sku_parser.sections()
-    # compare_lists = pool.map(partial(parallel_sku_compare, sku_parser=sku_parser, \
+    # try:
+    #   compare_lists = pool.map(partial(parallel_sku_compare, sku_parser=sku_parser, \
     #                 xParameter=xParameter, parameter_map=parameter_map, table_map=table_map, \
     #                 join_on_map=join_on_map, testname=testname, min_or_max_list=min_or_max_list, \
     #                 index=index, qualifier_list=qualifier_list, SCALING_CONDITION=SCALING_CONDITION, \
     #                 INPUT_FILTER_CONDITION=INPUT_FILTER_CONDITION), sections_list)
-
-    # pool.close()
-    # pool.join()
+    # finally:
+    #   print("Closing pool")
+    #   pool.close()
+    #   pool.join()
 
     # print("Parallelism took {} seconds".format(time.time() - parallel_start_time))
 
@@ -2301,14 +2305,16 @@ def best_of_all_graph():
     pool = multiprocessing.Pool(processes=num_processes)
 
     start_time2 = time.time()
-    reference_results_list = pool.map(partial(parallel_get_reference_results, results_metadata_parser=results_metadata_parser, \
+    try:
+        reference_results_list = pool.map(partial(parallel_get_reference_results, results_metadata_parser=results_metadata_parser, \
                                 reference_skuid_list = reference_skuid_list, FROM_DATE_FILTER = FROM_DATE_FILTER, \
                                 TO_DATE_FILTER = TO_DATE_FILTER ), \
                                 zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list)) 
 
-
-    pool.close()
-    pool.join()
+    finally:
+        print("Closing pool")
+        pool.close()
+        pool.join()
 
     # Remove all the 'None' values from the list
     reference_results_list = filter(None, reference_results_list)
@@ -2341,15 +2347,17 @@ def best_of_all_graph():
 
             # Get normalized results of all tests of this section parallely            
             pool = multiprocessing.Pool(processes=num_processes)
-
-            results_list_list = pool.map(partial(parallel_get_section_results, reference_results_map = reference_results_map, \
+            try:
+                results_list_list = pool.map(partial(parallel_get_section_results, reference_results_map = reference_results_map, \
                                         results_metadata_parser=results_metadata_parser, skuid_list = skuid_list, \
                                         FROM_DATE_FILTER = FROM_DATE_FILTER, TO_DATE_FILTER = TO_DATE_FILTER ), \
                                         zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list) ) 
 
             # Shut down multiprocessing gracefully
-            pool.close()
-            pool.join()
+            finally:
+                print("Closing pool")
+                pool.close()
+                pool.join()
 
             # Remove all the 'None' values from the list
             results_list_list = list(filter(None, results_list_list))
@@ -2648,11 +2656,13 @@ def cpu_utilization_graphs():
     # x in range cpu_util_df['%busy'] with jumps of length = no of cores
     pool = multiprocessing.Pool(num_processes)
 
-    heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='cpu_heatmap'), \
+    try:
+        heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='cpu_heatmap'), \
                     np.array_split(cpu_utilization_df, (cpu_utilization_df.shape[0]/len(heatmap_data['y_list']))))
-
-    pool.close()
-    pool.join()
+    finally:
+        print("Closing pool")
+        pool.close()
+        pool.join()
 
     print("Z LIST LIST took {} seconds".format(time.time() - start_time7))        
 
@@ -2678,13 +2688,14 @@ def cpu_utilization_graphs():
     start_time10 = time.time()
 
     pool = multiprocessing.Pool(num_processes)
-
-    network_heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='network_heatmap'), \
+    try:
+        network_heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='network_heatmap'), \
                                                 np.array_split(network_utilization_df, (network_utilization_df.shape[0]/len(network_heatmap_data['y_list']))))
 
-
-    pool.close()
-    pool.join()
+    finally:
+        print("Closing pool")
+        pool.close()
+        pool.join()
 
     print("Z LIST LIST took {} seconds".format(time.time() - start_time10))
 
@@ -2703,12 +2714,13 @@ def cpu_utilization_graphs():
 
 
     pool = multiprocessing.Pool(num_processes)
-
-    softirq_heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='softirq_heatmap'), \
+    try:
+        softirq_heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='softirq_heatmap'), \
                     np.array_split(cpu_utilization_df, (cpu_utilization_df.shape[0]/len(softirq_heatmap_data['y_list']))))
-
-    pool.close()
-    pool.join()
+    finally:
+        print("Closing pool")
+        pool.close()
+        pool.join()
 
 
     print("Z LIST LIST took {} seconds".format(time.time() - start_time13))
@@ -2866,41 +2878,43 @@ def cpu_utilization_graphs():
             print("PRINTING NODE = ", node)
             df = freq_dump_df.loc[int(node)]
             
-            # Memnet freq
-            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='memnet_graph'), memnet_columns)
+            try:
+                # Memnet freq
+                temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='memnet_graph'), memnet_columns)
 
-            memnet_freq_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
-            memnet_freq_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
-            # Legend list is the list of columns
-            memnet_freq_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in memnet_columns])
+                memnet_freq_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
+                memnet_freq_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+                # Legend list is the list of columns
+                memnet_freq_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in memnet_columns])
 
-            # Power
-            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='power_graph'), power_columns)
+                # Power
+                temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='power_graph'), power_columns)
 
-            power_stack_graph_data['x_list'] = list(range(df.shape[0]))
-            power_stack_graph_data['y_list_list'].extend([x[1] for x in temp_data])
-            # Legend list is the list of columns
-            power_stack_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in power_columns])
+                power_stack_graph_data['x_list'] = list(range(df.shape[0]))
+                power_stack_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+                # Legend list is the list of columns
+                power_stack_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in power_columns])
 
-            # Voltage
+                # Voltage
 
-            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='voltage_graph'), voltage_columns)
+                temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='voltage_graph'), voltage_columns)
 
-            voltage_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
-            voltage_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
-            voltage_line_graph_data['legend_list'].extend('Node-'+str(node)+'-'+col for col in voltage_columns)
+                voltage_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
+                voltage_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+                voltage_line_graph_data['legend_list'].extend('Node-'+str(node)+'-'+col for col in voltage_columns)
 
-            # Temperature
-            temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='temperature_graph'), temperature_columns)
+                # Temperature
+                temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='temperature_graph'), temperature_columns)
 
-            temperature_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
-            temperature_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
-            # Legend list is the list of columns
-            temperature_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in temperature_columns])
+                temperature_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
+                temperature_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+                # Legend list is the list of columns
+                temperature_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in temperature_columns])
 
-
-            pool.close()
-            pool.join()
+            finally:
+                print("Closing pool")
+                pool.close()
+                pool.join()
 
         power_voltage_graph_data = {
                 'graph_type' : 'combo',
@@ -2944,13 +2958,15 @@ def cpu_utilization_graphs():
         # Fill z_list_list for each y_list element (Each Node)
         pool = multiprocessing.Pool(num_processes)
 
-        ram_heatmap_data['z_list_list'] = \
+        try:
+            ram_heatmap_data['z_list_list'] = \
                         pool.map(partial(parallel_compute_heatmap_zll, \
                         graph_name='ram_heatmap', ramstat_df=ramstat_df), \
                         ram_heatmap_data['y_list'])
-
-        pool.close()
-        pool.join()
+        finally:
+            print("Closing pool")
+            pool.close()
+            pool.join()
         # Ram util heatmap done
 
         # Idea - RAM Line graph data can be derived from ram_heatmap_data. No need to recompute
@@ -3051,3 +3067,4 @@ def download_as_csv():
 
     except Exception as error_message:
         return error_message, 404
+
