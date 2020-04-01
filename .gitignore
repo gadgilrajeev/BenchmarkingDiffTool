@@ -103,7 +103,7 @@ venv.bak/
 .mypy_cache/
 
 # exclude everything inside the folder
-csv_temp_files/*
+temp_download_files/*
 
 # exception to the rule
-!csv_temp_files/.gitkeep 
+temp_downlaod_files/.gitkeep 
