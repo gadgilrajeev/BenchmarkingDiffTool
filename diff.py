@@ -2536,7 +2536,10 @@ def parallel_compute_freq_dump_yll(param, **kwargs):
 
     col = param
 
-    return (list(range(df.shape[0])),df[col].tolist())
+    try:
+        return (list(range(df.shape[0])),df[col].tolist(), col)
+    except:
+        return None
 
 # API Endpoint for CPU Utilization graphs
 @app.route('/cpu_utilization_graphs', methods=['POST'])
@@ -2823,6 +2826,9 @@ def cpu_utilization_graphs():
 
         freq_dump_df = pd.read_csv(freq_dump_file)
 
+        # Drop all columns with any 'NaN' value
+        freq_dump_df.dropna(axis=1, how='any', inplace=True)
+
         memnet_freq_line_graph_data = {
             'graph_type' : 'line',
             'x_list_list' : [],
@@ -2862,12 +2868,20 @@ def cpu_utilization_graphs():
 
         no_of_nodes = freq_dump_df['Node'].unique().tolist()
 
-        voltage_columns = ['core-voltage', 'mem-voltage']
-        power_columns = ['core-power','mem-power','sram-power','soc-power']
-        temperature_columns = ['temperature']
+        all_voltage_columns = ['core-voltage', 'mem-voltage']
+        all_power_columns = ['core-power','mem-power','sram-power','soc-power']
+        all_temperature_columns = ['temperature']
+        
         memnet_columns = [x for x in freq_dump_df.columns.tolist() \
-            if x not in power_columns and x not in temperature_columns \
-            and x not in voltage_columns and x != "Node"]
+            if x not in all_power_columns and x not in all_temperature_columns \
+            and x not in all_voltage_columns and x != "Node"]
+
+        voltage_columns = [x for x in all_voltage_columns \
+                            if x in freq_dump_df.columns.tolist()]
+        power_columns = [x for x in all_power_columns \
+                            if x in freq_dump_df.columns.tolist()]
+        temperature_columns = [x for x in all_temperature_columns \
+                                if x in freq_dump_df.columns.tolist()]
 
         freq_dump_df = freq_dump_df.set_index('Node')
 
@@ -2881,35 +2895,43 @@ def cpu_utilization_graphs():
             try:
                 # Memnet freq
                 temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='memnet_graph'), memnet_columns)
+                # Filter out NoneType elements
+                temp_data = list(filter(None, temp_data))
 
                 memnet_freq_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
                 memnet_freq_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
                 # Legend list is the list of columns
-                memnet_freq_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in memnet_columns])
+                memnet_freq_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+x[2] for x in temp_data])
 
                 # Power
                 temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='power_graph'), power_columns)
+                # Filter out NoneType elements
+                temp_data = list(filter(None, temp_data))
 
                 power_stack_graph_data['x_list'] = list(range(df.shape[0]))
                 power_stack_graph_data['y_list_list'].extend([x[1] for x in temp_data])
                 # Legend list is the list of columns
-                power_stack_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in power_columns])
-
+                power_stack_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+x[2] for x in temp_data])
+                
                 # Voltage
 
                 temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='voltage_graph'), voltage_columns)
+                # Filter out NoneType elements
+                temp_data = list(filter(None, temp_data))
 
                 voltage_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
                 voltage_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
-                voltage_line_graph_data['legend_list'].extend('Node-'+str(node)+'-'+col for col in voltage_columns)
+                voltage_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+x[2] for x in temp_data])
 
                 # Temperature
                 temp_data = pool.map(partial(parallel_compute_freq_dump_yll, df=df, graph_name='temperature_graph'), temperature_columns)
+                # Filter out NoneType elements
+                temp_data = list(filter(None, temp_data))
 
                 temperature_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
                 temperature_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
                 # Legend list is the list of columns
-                temperature_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+col for col in temperature_columns])
+                temperature_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+x[2] for x in temp_data])
 
             finally:
                 print("Closing pool")
@@ -2991,7 +3013,7 @@ def cpu_utilization_graphs():
         # Add ram data in context dict
         if os.path.isfile(freq_dump_file):
             cpu_ut_graphs_data['A9) %RAM Utilization Heatmap'] = ram_heatmap_data
-            cpu_ut_graphs_data['B10) %RAM Utilization Line Graph'] = ram_line_graph_data
+            cpu_ut_graphs_data['B1) %RAM Utilization Line Graph'] = ram_line_graph_data
         else:
             cpu_ut_graphs_data['A6) %RAM Utilization Heatmap'] = ram_heatmap_data
             cpu_ut_graphs_data['A7) %RAM Utilization Line Graph'] = ram_line_graph_data
@@ -3070,4 +3092,3 @@ def download_as_csv():
 
     except Exception as error_message:
         return error_message, 404
-
