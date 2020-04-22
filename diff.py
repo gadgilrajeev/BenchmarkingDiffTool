@@ -143,12 +143,12 @@ def no_of_rows(dictionary):
 def read_all_parameter_lists(parameter_lists, test_name):
 
     # read metadata from metadata.ini file
-    env_metadata_file_path = '/mnt/nas/scripts/metadata.ini'
+    env_metadata_file_path = './config/metadata.ini'
     env_metadata_parser = configparser.ConfigParser()
     env_metadata_parser.read(env_metadata_file_path)
 
     # Read metadata for results in wiki_description.ini file
-    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -237,7 +237,7 @@ def get_input_filter_condition(test_name, input_filters_list, wiki_description_f
     INPUT_FILTER_CONDITION = ""
 
     if wiki_description_file == "":
-        results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+        results_metadata_file_path = './config/wiki_description.ini'
     else:
         results_metadata_file_path = wiki_description_file
     results_metadata_parser = configparser.ConfigParser()
@@ -275,11 +275,11 @@ def page_not_found(e):
 # Get all-tests data
 def get_all_tests_data():
     parser = configparser.ConfigParser()
-    wiki_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    wiki_metadata_file_path = './config/wiki_description.ini'
     parser.read(wiki_metadata_file_path)
 
     # Reference for best_of_all_graph
-    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -332,7 +332,7 @@ def home_page():
 # Get data for All runs of the test 'testname' from database
 def getAllRunsData(testname, secret=False):
     # Read metadata for results in wiki_description.ini file
-    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -575,7 +575,7 @@ def getTestDetailsData(originID, secret=False):
         RESULTS_VALIDITY_CONDITION = " AND R.isvalid = 1 "
 
     # Read the subtests description from the wiki_description
-    config_file = "/mnt/nas/scripts/wiki_description.ini"
+    config_file = "./config/wiki_description.ini"
     config_options = configparser.ConfigParser()
     config_options.read(config_file)
 
@@ -942,6 +942,7 @@ def showEnvDetails(originID):
     results_file_path = '/mnt/nas/dbresults/' + str(jobname) + '/' + str(runID);
 
     # READ RAM.CSV file and add the size to get total RAM in GB
+
     ram_dataframe = pd.read_csv(results_file_path + '/ram.csv', header=None,
                                 names=parameter_lists['ram_details_param_list'])
 
@@ -966,11 +967,14 @@ def showEnvDetails(originID):
     except:
         logging.warning("Couldn't add 'GB' to RAM SIZE")
         pass
+
     # Read disk dataframe
     disk_dataframe = pd.read_csv(results_file_path + '/disk.csv', header=None,
                                  names=parameter_lists['disk_details_param_list'])
+    
     nic_dataframe = pd.read_csv(results_file_path + '/nic.csv', header=None,
                                 names=parameter_lists['nic_details_param_list'])
+
 
     context = {
         'originID' : originID,
@@ -1465,7 +1469,7 @@ def get_data_for_graph():
     input_filters_list = data['inputFiltersList']
     INPUT_FILTER_CONDITION = get_input_filter_condition(testname, input_filters_list)
 
-    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -1475,7 +1479,7 @@ def get_data_for_graph():
                     .replace('\"', '').replace(' ', '').split(',')
     index = qualifier_list.index(yParameter)
 
-    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -1851,7 +1855,7 @@ def best_sku_graph():
     yParameter = data['yParameter']
     testname = data['testname']
 
-    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -1877,7 +1881,7 @@ def best_sku_graph():
                     .replace('\"', '').replace(' ', '').split(',')[0]
 
 
-    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -1968,7 +1972,7 @@ def best_sku_graph():
 # Returns the NORMALIZED version of the graph with respect to a xParameter
 @app.route('/best_sku_graph_normalized', methods=['POST'])
 def best_sku_graph_normalized():
-    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -2006,7 +2010,7 @@ def best_sku_graph_normalized():
         normalized_y_list = [value/y_list[index] for value in y_list]
 
     # Colors for the graphs
-    sku_file_path = '/mnt/nas/scripts/sku_definition.ini'
+    sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -2409,7 +2413,7 @@ def secret_all_tests():
 
     # For getting input filter data for ALL TESTS
     # Read metadata for results in wiki_description.ini file
-    results_metadata_file_path = '/mnt/nas/scripts/wiki_description.ini'
+    results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
