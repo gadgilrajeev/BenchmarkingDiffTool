@@ -3110,3 +3110,30 @@ def download_as_csv():
 
     except Exception as error_message:
         return error_message, 404
+
+@app.route('/reports_page')
+def reports_page():
+
+    param_list = [
+        {'name' : 'Kernel Version', 'data_type' : 'string',},
+        {'name' : 'OS Version', 'data_type' : 'string',},
+        {'name' : 'OS Name', 'data_type' : 'string',},
+        {'name' : 'Firmware Version', 'data_type' : 'string',},
+        {'name' : 'ToolChain Name', 'data_type' : 'string',},
+        {'name' : 'ToolChain Version', 'data_type' : 'string',},
+        {'name' : 'SMT', 'data_type' : 'numeric',},
+        {'name' : 'Cores', 'data_type' : 'numeric',},
+        {'name' : 'DDRfreq', 'data_type' : 'numeric',},
+        {'name' : 'SKUID', 'data_type' : 'string',},
+        {'name' : 'Hostname', 'data_type' : 'string',},
+        {'name' : 'Scaling', 'data_type' : 'string',},
+        {'name' : 'Test Date', 'data_type' : 'date',},
+    ]
+
+    context = {'param_list':param_list}
+    error = None
+
+    # For 'Go To Benchmark' Dropdown
+    all_tests_data = get_all_tests_data()
+
+    return render_template('reports.html', error=error, context=context, all_tests_data=all_tests_data)
