@@ -134,10 +134,13 @@ def unique_list(input_list, reverse=False):
 
 @app.template_filter('no_of_rows')
 def no_of_rows(dictionary):
-    # this is a dictionary of lists
-    # return length of the first list in the dictionary
-    # fastest way
-    return len(dictionary[next(iter(dictionary))])
+    if dictionary != {}:
+        # this is a dictionary of lists
+        # return length of the first list in the dictionary
+        # fastest way
+        return len(dictionary[next(iter(dictionary))])
+    else:
+        return 0
 
 
 def read_all_parameter_lists(parameter_lists, test_name):
@@ -942,38 +945,49 @@ def showEnvDetails(originID):
     results_file_path = '/mnt/nas/dbresults/' + str(jobname) + '/' + str(runID);
 
     # READ RAM.CSV file and add the size to get total RAM in GB
-
-    ram_dataframe = pd.read_csv(results_file_path + '/ram.csv', header=None,
+    try:
+        ram_dataframe = pd.read_csv(results_file_path + '/ram.csv', header=None,
                                 names=parameter_lists['ram_details_param_list'])
 
-    #CUSTOM FILTER
-    # Returns boolean True if the group has all 'ramsize' entries as 'float'
-    def only_numeric_groups(df):
-        ramsize_series = df['ramsize'].astype(str).str.isnumeric().isin([True])
-        return ramsize_series.all()
+        #CUSTOM FILTER
+        # Returns boolean True if the group has all 'ramsize' entries as 'float'
+        def only_numeric_groups(df):
+            ramsize_series = df['ramsize'].astype(str).str.isnumeric().isin([True])
+            return ramsize_series.all()
 
 
-    ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]).filter(only_numeric_groups).reset_index(drop=True)
+        ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]).filter(only_numeric_groups).reset_index(drop=True)
 
-    # Convert each entry of 'ramsize' column to float
-    ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: float(x))
+        # Convert each entry of 'ramsize' column to float
+        ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: float(x))
 
-    ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]) \
-                        .apply(lambda x: x.sum()/1024).reset_index()
+        ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]) \
+                            .apply(lambda x: x.sum()/1024).reset_index()
 
-    #Add ' GB' to the size
-    try:
-        ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: str(x) + " GB")
-    except:
-        logging.warning("Couldn't add 'GB' to RAM SIZE")
-        pass
+        #Add ' GB' to the size
+        try:
+            ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: str(x) + " GB")
+        except:
+            logging.warning("Couldn't add 'GB' to RAM SIZE")
+            pass
+    except Exception as e:
+        print("Error: ", e)
+        ram_dataframe = pd.DataFrame()
 
     # Read disk dataframe
-    disk_dataframe = pd.read_csv(results_file_path + '/disk.csv', header=None,
+    try:
+        disk_dataframe = pd.read_csv(results_file_path + '/disk.csv', header=None,
                                  names=parameter_lists['disk_details_param_list'])
+    except Exception as e:
+        print("Error: ", e)
+        disk_dataframe = pd.DataFrame()
     
-    nic_dataframe = pd.read_csv(results_file_path + '/nic.csv', header=None,
+    try:
+        nic_dataframe = pd.read_csv(results_file_path + '/nic.csv', header=None,
                                 names=parameter_lists['nic_details_param_list'])
+    except Exception as e:
+        print("Error: ", e)
+        nic_dataframe = pd.DataFrame()
 
 
     context = {
