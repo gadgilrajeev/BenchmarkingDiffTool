@@ -12,6 +12,7 @@ import configparser
 from flask import Flask, render_template, request, redirect, send_file, url_for, session, send_from_directory
 from collections import OrderedDict
 import csv
+import openpyxl
 import json
 import counter_graphs_module
 
@@ -3114,26 +3115,333 @@ def download_as_csv():
 @app.route('/reports_page')
 def reports_page():
 
+    # For 'Go To Benchmark' Dropdown
+    all_tests_data = get_all_tests_data()
+
     param_list = [
-        {'name' : 'Kernel Version', 'data_type' : 'string',},
-        {'name' : 'OS Version', 'data_type' : 'string',},
-        {'name' : 'OS Name', 'data_type' : 'string',},
-        {'name' : 'Firmware Version', 'data_type' : 'string',},
-        {'name' : 'ToolChain Name', 'data_type' : 'string',},
-        {'name' : 'ToolChain Version', 'data_type' : 'string',},
-        {'name' : 'SMT', 'data_type' : 'numeric',},
-        {'name' : 'Cores', 'data_type' : 'numeric',},
-        {'name' : 'DDRfreq', 'data_type' : 'numeric',},
-        {'name' : 'SKUID', 'data_type' : 'string',},
-        {'name' : 'Hostname', 'data_type' : 'string',},
-        {'name' : 'Scaling', 'data_type' : 'string',},
-        {'name' : 'Test Date', 'data_type' : 'date',},
+        {
+            'name' : 'SKUID', 'data_type' : 'string', 'input_type' : 'dropdown multiple select', 'dropdown_label' : '', 
+            'dropdown_values_list' : [""] + all_tests_data['reference_list']
+        },
+        {
+            'name' : 'Test Date', 'data_type' : 'date', 'input_type' : 'dropdown', 'dropdown_label' : 'Year',
+            'dropdown_values_list' : ["", "2020", "2019", "2018"]
+        
+        },
+        {
+            'name' : 'Scaling', 'data_type' : 'string', 'input_type' : 'dropdown', 'dropdown_label' : 'Scaling Type',
+            'dropdown_values_list' : [
+                "", "Single Thread", "Single Socket", "Dual Socket", 
+                "1/2 Socket", "1/4 Socket", "1/8 Socket", "Single core", "2 Cores",
+            ]
+        },
+        {'name' : 'Hostname', 'data_type' : 'string', 'input_type' : 'text'},
+        {'name' : 'Kernel Version', 'data_type' : 'string', 'input_type' : 'text'},
+        {'name' : 'OS Version', 'data_type' : 'string', 'input_type' : 'text'},
+        {'name' : 'OS Name', 'data_type' : 'string', 'input_type' : 'text'},
+        {'name' : 'Firmware Version', 'data_type' : 'string', 'input_type' : 'text'},
+        {'name' : 'ToolChain Name', 'data_type' : 'string', 'input_type' : 'text'},
+        {'name' : 'ToolChain Version', 'data_type' : 'string', 'input_type' : 'text'},
+        {'name' : 'SMT', 'data_type' : 'numeric', 'input_type' : 'text'},
+        {'name' : 'Cores', 'data_type' : 'numeric', 'input_type' : 'text'},
+        {'name' : 'DDRfreq', 'data_type' : 'numeric', 'input_type' : 'text'},
     ]
 
     context = {'param_list':param_list}
     error = None
 
-    # For 'Go To Benchmark' Dropdown
-    all_tests_data = get_all_tests_data()
-
     return render_template('reports.html', error=error, context=context, all_tests_data=all_tests_data)
+
+
+def parallel_test_report(testname, **kwargs):
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+
+    print("################################################################################")
+    print("Processing Paralelly for {}".format(testname))
+    print("################################################################################")
+
+    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_parser = configparser.ConfigParser()
+    results_metadata_parser.read(results_metadata_file_path)
+
+    description_string = results_metadata_parser[testname]['description'].replace('\"', '')
+
+    SELECT_PARAMS = kwargs['SELECT_PARAMS']
+    FINAL_CRITERIA = kwargs['FINAL_CRITERIA']
+    skuid_cpu_map = kwargs['skuid_cpu_map']
+
+    RESULTS_QUERY = "SELECT t.testname, o.originID as originID, " + SELECT_PARAMS + \
+                    """s.description, r.number, disp.unit, disp.qualifier 
+                    FROM result r INNER JOIN subtest s ON s.subtestID=r.subtest_subtestID 
+                    INNER JOIN display disp ON disp.displayID=r.display_displayID 
+                    INNER JOIN origin o ON o.originID=r.origin_originID 
+                    INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                    INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID
+                    INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID
+                    INNER JOIN node n ON hw.node_nodeID = n.nodeID 
+                    INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID
+                    INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID
+                    WHERE t.testname = \'""" + testname + \
+                    "\'" + FINAL_CRITERIA + " AND r.isvalid = 1;"
+
+    print("FINAL QUERY = ", RESULTS_QUERY)
+
+    results_dataframe = pd.read_sql(RESULTS_QUERY, db)
+
+    if 'test_timestamp' in results_dataframe.columns:
+        results_dataframe.insert(2, 'test time', [d.time() for d in results_dataframe['test_timestamp']])
+        results_dataframe.insert(2, 'test_date', [d.date() for d in results_dataframe['test_timestamp']])
+        results_dataframe.drop('test_timestamp', axis=1, inplace=True)
+
+    # Corresponding SKUID for skuidname
+    # "Unkown SKUID" if skuidname not found in sku_definition.ini (For older benchmarking tests)
+    if 'skuidname' in results_dataframe.columns:
+        results_dataframe.insert(1, 'SKUID', [skuid_cpu_map.get(skuidname.strip(), "Unkown SKUID") for skuidname in results_dataframe['skuidname']])
+
+    # SPLIT the description string
+    # Add Columns corresponding to the description_string
+    description_list = description_string.split(',')
+    description_list = list(map(lambda x: x.strip(), description_list))
+    for col in reversed(description_list):
+        results_dataframe.insert(len(results_dataframe.columns)-4, col, 'default value')
+
+    # Function which splits the description string into various parameters 
+    # according to 'description' field of the '.ini' file
+    def split_description(index, description):
+        try:
+            return description.split(',')[index]
+        except Exception as error_message:
+            logging.debug("Error = {}".format(error_message))
+            return np.nan
+
+    # For all the rows in the dataframe, set the description_list values    
+    for j in range(len(description_list)):
+        results_dataframe[description_list[j]] = results_dataframe['description'].apply(lambda x: split_description(j, x))
+
+    # Drop the 'description' column as we have now split it into various columns according to description_string
+    del results_dataframe['description']
+
+
+    return results_dataframe
+    
+@app.route('/generate_reports', methods=['POST'])
+def generate_reports():
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+
+    print("Got request for generate reports")
+
+    sku_file_path = './config/sku_definition.ini'
+    sku_parser = configparser.ConfigParser()
+    sku_parser.read(sku_file_path)
+
+    #  Map from CPU Section->list(skuidname) in sku_definition.ini 
+    skuid_cpu_map = OrderedDict({section: sku_parser.get(section, 'SKUID').replace('\"', '').split(',') for section in sku_parser.sections()})
+
+    # Also a map from skuidname->Cpu Section. We need both in diff scenarios
+    for section in sku_parser.sections():
+        skuids = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
+        for skuid in skuids:
+            skuid_cpu_map[skuid] = section
+
+    # Metadata 
+    parameter_map_for_display = {
+        "Kernel Version": 'os.kernelname', 
+        'OS Version': 'os.osversion', 
+        'OS Name': 'os.osdistro as osname', 
+        "Firmware Version": 'hw.fwversion' , 
+        "ToolChain Name": 'tc.toolchainname', 
+        "ToolChain Version" : 'tc.toolchainversion', 
+        "Flags": 'tc.flags',
+        "SMT" : 'b.smt',
+        "Cores": 'b.cores',
+        "Corefreq": 'b.corefreq',
+        "DDRfreq": 'b.ddrfreq',
+        "SKUID": 'n.skuidname',
+        "Hostname": 'o.hostname',
+        "Scaling" : 's.resultype',
+        "Test Date" : 'o.testdate as test_timestamp',
+    }
+    parameter_map_for_criteria = {
+        "Kernel Version": 'os.kernelname', 
+        'OS Version': 'os.osversion', 
+        'OS Name': 'os.osdistro', 
+        "Firmware Version": 'hw.fwversion' , 
+        "ToolChain Name": 'tc.toolchainname', 
+        "ToolChain Version" : 'tc.toolchainversion', 
+        "Flags": 'tc.flags',
+        "SMT" : 'b.smt',
+        "Cores": 'b.cores',
+        "Corefreq": 'b.corefreq',
+        "DDRfreq": 'b.ddrfreq',
+        "SKUID": 'n.skuidname',
+        "Hostname": 'o.hostname',
+        "Scaling" : 's.resultype',
+        "Test Date" : 'o.testdate',
+    }
+
+    # Required for date criteria
+    month_name_number_map = {
+        'Jan' : '01',
+        'Feb' : '02',
+        'Mar' : '03',
+        'Apr' : '04',
+        'May' : '05',
+        'Jun' : '06',
+        'Jul' : '07',
+        'Aug' : '08',
+        'Sep' : '09',
+        'Oct' : '10',
+        'Nov' : '11',
+        'Dec' : '12',
+    }
+
+
+    param_list = [
+        {'name' : 'Kernel Version', 'data_type' : 'string', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'OS Version', 'data_type' : 'string', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'OS Name', 'data_type' : 'string', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'Firmware Version', 'data_type' : 'string', 'display' : '', 'criteria' : '','criteria-op' : '' , 'query_condition' : ''},
+        {'name' : 'ToolChain Name', 'data_type' : 'string', 'display' : '', 'criteria' : '','criteria-op' : '' , 'query_condition' : ''},
+        {'name' : 'ToolChain Version', 'data_type' : 'string', 'display' : '', 'criteria' : '','criteria-op' : '' , 'query_condition' : ''},
+        {'name' : 'SMT', 'data_type' : 'numeric', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'Cores', 'data_type' : 'numeric', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'DDRfreq', 'data_type' : 'numeric', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'SKUID', 'data_type' : 'string', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'Hostname', 'data_type' : 'string', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'Scaling', 'data_type' : 'string', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'Test Date', 'data_type' : 'date', 'display' : '', 'criteria' : '', 'criteria2' : '', 'criteria-op' : '', 'query_condition' : ''},
+    ]
+
+    # Fill 'param_list' with the request params
+    # Generate 'query_condition' for each param
+
+    SELECT_PARAMS = " "
+    FINAL_CRITERIA = " "
+
+    for d in param_list:
+        d['display'] = request.form.get('disp-'+d['name'])
+        if d['name'] == 'SKUID':
+            d['criteria'] = request.form.getlist('criteria-'+d['name'])
+            #Remove the empty string '' from the list
+            if '' in d['criteria']:
+                d['criteria'].remove('')
+        else:
+            d['criteria'] = request.form.get('criteria-'+d['name'])
+        d['criteria-op'] = request.form.get('criteria-op-'+d['name'])
+
+        if d['name'] == 'Test Date':
+            d['criteria2'] = request.form.get('criteria2-'+d['name'])
+
+        # Append to SELECT_PARAMS according to 'display' value
+        if d['display'] == 'Yes':
+            SELECT_PARAMS += parameter_map_for_display[d['name']] + ', '
+
+        # Gives 'result type' number from result type string
+        # Example if value="2 cores" then key=8
+        def get_key_from_value(value):
+            return str(list(result_type_map.keys())[list(result_type_map.values()).index(value)])
+
+        # Append FINAL_CRITERIA
+        if d['criteria']:
+            if d['data_type'] == 'string':
+                if d['name'] == 'Scaling':
+                    if d['criteria-op'] == 'matches':
+                        FINAL_CRITERIA += " AND s.resultype = " + get_key_from_value(d['criteria'].lower())
+                    else:
+                        FINAL_CRITERIA += " AND s.resultype = " + get_key_from_value(d['criteria'].lower())
+                elif d['name'] == 'SKUID' and d['criteria'] != []:
+                    all_skuidnames_criteria = []
+                    for criteria in d['criteria']:
+                        all_skuidnames_criteria.extend(skuid_cpu_map[criteria])
+                        print(all_skuidnames_criteria)
+                    if d['criteria-op'] == 'matches':
+                        FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
+                    else:
+                        FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " NOT IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
+                elif d['name'] != 'Kernel Version' and d['name'] != 'OS Version':
+                    if d['criteria-op'] == 'matches':
+                        FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " LIKE \'%" + d['criteria'].strip() +"%\'"
+                    else:
+                        FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " NOT LIKE \'%" + d['criteria'].strip() +"%\'"
+            elif d['data_type'] == 'numeric':
+                if d['criteria-op'] == 'less than':
+                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " < " + d['criteria'].strip()
+                elif d['criteria-op'] == 'equals':
+                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " = " + d['criteria'].strip()
+                elif d['criteria-op'] == 'greater than':
+                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " > " + d['criteria'].strip()
+            elif d['data_type'] == 'date':
+                if d['criteria-op'] == 'before':
+                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " < \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
+                elif d['criteria-op'] == 'during':
+                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " LIKE \'%" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + "-" "%\'"
+                elif d['criteria-op'] == 'since':
+                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " > \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
+
+
+
+    print("PRINTING Select params")
+    print(SELECT_PARAMS)
+    print("PRINTING Final Criteria")
+    print(FINAL_CRITERIA)
+    # print("\n\nPrinting Param List")
+    # print(param_list)
+
+
+    # Retrieve data from the request object
+    selected_tests_list = ['tealeaf', 'cloverleaf', 'Laghos']
+    filename = request.form.get('filename')
+
+    # Clear the temp_download_files directory
+    base_path = os.getcwd() + '/temp_download_files/'
+    try:
+        shutil.rmtree(base_path)    #this removes the directory too
+    except:
+        pass
+    os.mkdir(base_path)         #So create it again
+
+    # Filename .xlsx
+    absolute_file_path = base_path + filename + '.xlsx'
+
+    parallel_start_time = time.time()
+
+    # Parallel excecution 
+    results_dataframe_list = []
+    pool = multiprocessing.Pool(10)
+    try:
+        results_dataframe_list = pool.map(partial(parallel_test_report, SELECT_PARAMS=SELECT_PARAMS, \
+                        FINAL_CRITERIA=FINAL_CRITERIA, skuid_cpu_map=skuid_cpu_map, ), selected_tests_list)
+    finally:
+        print("Closing Pool")
+        pool.close()
+        pool.join()
+
+    print("Parallelism took {} seconds".format(time.time() - parallel_start_time))
+
+    start_time2 = time.time()
+
+    # Write the first dataframe to create the excel file
+    with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
+        results_dataframe_list[0].to_excel(writer, sheet_name=selected_tests_list[0])
+
+
+    # Write rest of the dataframes with the excel file in "Append" mode
+    for results_dataframe, testname in zip(results_dataframe_list[1:], selected_tests_list[1:]):
+        with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
+            results_dataframe.to_excel(writer, sheet_name=testname)
+
+    print("Writing all excel files took {} seconds".format(time.time() - start_time2))
+    
+  
+    # Send the Excel file as response for download
+    try:
+        return send_file(absolute_file_path,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            attachment_filename= filename + '.xlsx',
+            as_attachment=True)
+
+    except Exception as error_message:
+        return error_message, 404
+
