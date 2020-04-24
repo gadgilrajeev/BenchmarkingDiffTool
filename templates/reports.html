@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Reports Generation 
+{% endblock title %}
+
+{% block navbar %}
+	<nav class="navbar sticky-top navbar-expand-sm bg-dark navbar-dark lead">
+		<a class="navbar-brand bg-light text-dark py-1 px-2 font-weight-normal" href="#">
+			<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="30" height="30" class="d-inline-block align-top" alt=""> FACTs Frontend
+		</a>
+		<!-- Links -->
+		<ul class="navbar-nav font-weight-normal">
+			<li class="nav-item">
+				<a class="nav-link active" href="/">Home Page</a>
+    		</li>
+    	</ul>
+
+    	<!-- Go to Benchmark Dropdown -->
+    	<ul class="navbar-nav font-weight-normal ml-auto">
+			<div class="dropdown p-0 m-0">
+				<button id="reference-for-normalized" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
+				Go to Benchmark </button>
+				<div id="reference-for-normalized-dropdown" class="dropdown-menu dropdown-menu-right" style="height: auto; max-height: 500px;overflow-x: hidden;">
+					<h3 class="dropdown-header font-weight-bold mt-1 mb-2">HPC BENCHMARKS</h3>
+					{% for benchmark in all_tests_data.hpc_benchmarks_list %}
+						<button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
+					{% endfor %}
+					<h3 class="dropdown-header font-weight-bold mt-5 mb-2">CLOUD BENCHMARKS</h3>
+					{% for benchmark in all_tests_data.cloud_benchmarks_list %}
+						<button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
+					{% endfor %}
+				</div>
+			</div>
+    	</ul>
+
+	</nav>
+{% endblock %}
+
+{% block content %}
+
+	<div class="container-fluid text-center page-header">
+		<h1 class="font-weight-bold display-4">Generate reports</h1>
+	</div>
+
+	<div id="reports-page-info" class="card border-info">
+		<div class="card-header bg-transparent border-info font-weight-bolder" style="font-size: 25px;">Information</div>
+		<div class="card-body text-secondary">
+			<h5 class="font-weight-bold card-title">About page and How to use</h5>
+			<p class="card-text lead">Reports generation page does "SOMETHING".</p>
+			<p>Click "View more" to know how to use</p>
+			<div class="collapse" id="fullSummaryCollapse">
+					<p><strong>HOW TO USE<br></strong> Select the tests you want.  </p>
+					<p>
+						Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. 
+					</p>
+			</div>
+		</div>
+		<div class="card-footer bg-transparent border-info d-flex flex-row-reverse">
+			<button class="btn btn-success font-weight-bold" type="button" data-toggle="collapse" data-target="#fullSummaryCollapse" aria-expanded="false" aria-controls="fullSummaryCollapse">
+				View more
+			</button>
+		</div>
+	</div>
+
+	<div class="container-fluid my-3">
+		<h4>Specify what columns you want to see, and which records would qualify.</h4>
+	</div>
+
+	<!-- Hidden form for Generating report in xslx format -->
+	<form action="/generate_reports" method="POST" id="generate-reports-form">
+		<div class="container">
+			<div class="row px-1 align-items-center" style="background: azure;">
+					<div class="col-sm">
+						<h5>Parameter</h5>
+					</div>
+					<div class="col-sm">
+						<h5>Display</h5>
+					</div>
+					<div class="col-sm">
+						<h5>Criteria-Option</h5>
+					</div>
+					<div class="col-sm">
+						<h5>Criteria</h5>
+					</div>
+             </div>
+
+			{% for param in context.param_list %}
+				<div class="row px-1 align-items-center" style="background: azure;">
+					<div class="col-sm">
+						<h5>{{param.name}}</h5>
+					</div>
+					<!-- Display dropdown Yes/No -->
+					<div class="col-sm">
+						<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="disp-{{param.name}}" class="form-control " name="disp-{{param.name}}">
+							<option value="Yes" selected="selected">Yes</option>
+							<option value="No">No</option>
+						</select>
+					</div>
+
+					<!-- Criteria-op according to data_type -->
+					<div class="col-sm">
+						{% if param.data_type == "string" %}
+							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
+								<option value="matches" selected="selected">matches</option>
+								<option value="does not match">does not match</option>
+							</select>
+						{% elif param.data_type == "numeric" %}
+							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
+								<option value="less than">less than</option>
+								<option value="equals" selected="selected">equals</option>
+								<option value="greater than">greater than</option>
+							</select>
+						{% elif param.data_type == "date" %}
+							<div class="d-flex m-0 p-0">
+								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="criteria-op-{{param.name}}" class="form-control w-50 px-2" name="criteria-op-{{param.name}}">
+									<option value="before">before</option>
+									<option value="during">during</option>
+									<option value="since" selected="selected">since</option>
+								</select>
+								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="criteria2-{{param.name}}" class="form-control w-50 px-2" name="criteria2-{{param.name}}">
+									<option value="Jan">Jan<option value="Feb">Feb<option value="Mar">Mar<option value="Apr">Apr
+									<option value="May">May<option value="Jun">Jun<option value="Jul">Jul<option value="Aug">Aug
+									<option value="Sep">Sep<option value="Oct">Oct<option value="Nov">Nov<option value="Dec">Dec
+								</select>
+							</div>
+						{% endif %}
+					</div>
+
+					<!-- Criteria according to input_type -->
+					{% if param.input_type == "dropdown" %}
+						<div class="col-sm">
+							<div class="d-flex m-0 p-0">
+								<label class="px-3" for="criteria-{{param.name}}">{{param.dropdown_label}}</label>
+								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select one" id="criteria-{{param.name}}" class="form-control w-50" name="criteria-{{param.name}}">
+									{% for item in param.dropdown_values_list %}
+										<option value="{{item}}">{{item}}</option>
+									{% endfor %}
+								</select>
+							</div>
+						</div>
+					{% elif param.input_type == "dropdown multiple select" %}
+						<div class="col-sm py-0 m-0">
+							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="CTRL + Click to select multiple" id="criteria-{{param.name}}" class="form-control" multiple="multiple" name="criteria-{{param.name}}" required>
+								{% for item in param.dropdown_values_list %}
+                                    {% if item == "" %}
+                                        <option value="{{item}}" selected>{{item}}</option>
+                                    {% else %}
+                                        <option value="{{item}}">{{item}}</option>
+                                    {% endif %}
+								{% endfor %}
+							</select>
+						</div>
+					{% elif param.input_type == "text" %}
+						<div class="col-sm py-0 m-0">
+							<input type="text" class="form-control" id="criteria-{{param.name}}" name="criteria-{{param.name}}" placeholder="Enter value (Optional)">
+						</div>
+					{% endif %}
+				</div>
+			{% endfor %}
+
+		</div>
+
+		<!-- Filename (hidden input field) -->
+		<input type="hidden" id="filename" name="filename" value="Sample Filename">
+
+		<!-- Generate reports (Submit form) button -->
+		<div>
+			<button type="submit" id="generate-reports-button" class="btn btn-primary font-weight-bold">Generate Reports</button>
+		</div>
+
+	</form>
+
+
+
+	<script>
+    
+        $(document).ready(function() {
+            console.log("Reports generation page loaded")
+			$('#generate-reports-form')[0].reset()
+        })
+
+
+
+        function generateReports(filename, data, $form){
+            data_string = JSON.stringify({ 'data': data, 'filename': filename})
+            $form.append($("<input name= 'data' type= 'text' value = '" + data_string + "'/>"))
+
+            console.log($form)
+            $form.submit()
+
+            // Clear the contents of the form
+            $form.empty()
+        }
+
+        // $('#generate-reports-button').click(function(){
+        //     console.log("Sending request for reports generation")
+
+        //     $form = $('#generate-reports-form')
+        //     filename = 'Sample Excel Report'
+
+        //     data = {'Somekey': 'Somevalue'}
+
+        //     generateReports(filename, data, $form)
+
+        // })
+    </script>	
+
+{% endblock %}
