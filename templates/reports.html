@@ -16,23 +16,7 @@ Reports Generation
     		</li>
     	</ul>
 
-    	<!-- Go to Benchmark Dropdown -->
-    	<ul class="navbar-nav font-weight-normal ml-auto">
-			<div class="dropdown p-0 m-0">
-				<button id="reference-for-normalized" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
-				Go to Benchmark </button>
-				<div id="reference-for-normalized-dropdown" class="dropdown-menu dropdown-menu-right" style="height: auto; max-height: 500px;overflow-x: hidden;">
-					<h3 class="dropdown-header font-weight-bold mt-1 mb-2">HPC BENCHMARKS</h3>
-					{% for benchmark in all_tests_data.hpc_benchmarks_list %}
-						<button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
-					{% endfor %}
-					<h3 class="dropdown-header font-weight-bold mt-5 mb-2">CLOUD BENCHMARKS</h3>
-					{% for benchmark in all_tests_data.cloud_benchmarks_list %}
-						<button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
-					{% endfor %}
-				</div>
-			</div>
-    	</ul>
+	{{ super() }}
 
 	</nav>
 {% endblock %}
@@ -84,15 +68,22 @@ Reports Generation
 						<h5>Criteria</h5>
 					</div>
              </div>
-
+             <div class="w-100 m-0 p-0" style="background: azure;">
+                 <hr class="m-0 p-0" style="color: black; background : black;" >
+             </div>
 			{% for param in context.param_list %}
+                {% if param.name == 'Kernel Version' or param.name == 'Firmware Version' or param.name == 'SMT' %}
+                    <div class="w-100 m-0 p-0" style="background: azure;">
+                        <hr class="m-0 p-0" style="color: black; background : black;" >
+                    </div>
+                {% endif %}
 				<div class="row px-1 align-items-center" style="background: azure;">
 					<div class="col-sm">
 						<h5>{{param.name}}</h5>
 					</div>
 					<!-- Display dropdown Yes/No -->
 					<div class="col-sm">
-						<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="disp-{{param.name}}" class="form-control " name="disp-{{param.name}}">
+						<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display this parameter's column in the final Excel Sheet (Yes/No)" id="disp-{{param.name}}" class="form-control " name="disp-{{param.name}}">
 							<option value="Yes" selected="selected">Yes</option>
 							<option value="No">No</option>
 						</select>
@@ -101,24 +92,34 @@ Reports Generation
 					<!-- Criteria-op according to data_type -->
 					<div class="col-sm">
 						{% if param.data_type == "string" %}
-							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
-								<option value="matches" selected="selected">matches</option>
-								<option value="does not match">does not match</option>
+							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select option" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
+                                {% if 'criteria_op_list' in param %}
+                                    {% for i in range(param.criteria_op_list | length) %}
+                                        {% if i == 0 %}
+                                            <option value="{{ param.criteria_op_list[i] }}" selected="selected">{{ param.criteria_op_list[i] }}</option>
+                                        {% else %}
+                                            <option value="{{ param.criteria_op_list[i] }}">{{ param.criteria_op_list[i] }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+								    <option value="matches" selected="selected">matches</option>
+								    <option value="does not match">does not match</option>
+                                {% endif %}
 							</select>
 						{% elif param.data_type == "numeric" %}
-							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
+							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select option" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
 								<option value="less than">less than</option>
 								<option value="equals" selected="selected">equals</option>
 								<option value="greater than">greater than</option>
 							</select>
 						{% elif param.data_type == "date" %}
 							<div class="d-flex m-0 p-0">
-								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="criteria-op-{{param.name}}" class="form-control w-50 px-2" name="criteria-op-{{param.name}}">
+								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select option" id="criteria-op-{{param.name}}" class="form-control w-50 px-2" name="criteria-op-{{param.name}}">
 									<option value="before">before</option>
 									<option value="during">during</option>
 									<option value="since" selected="selected">since</option>
 								</select>
-								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display" id="criteria2-{{param.name}}" class="form-control w-50 px-2" name="criteria2-{{param.name}}">
+								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select month" id="criteria2-{{param.name}}" class="form-control w-50 px-2" name="criteria2-{{param.name}}">
 									<option value="Jan">Jan<option value="Feb">Feb<option value="Mar">Mar<option value="Apr">Apr
 									<option value="May">May<option value="Jun">Jun<option value="Jul">Jul<option value="Aug">Aug
 									<option value="Sep">Sep<option value="Oct">Oct<option value="Nov">Nov<option value="Dec">Dec
@@ -153,7 +154,7 @@ Reports Generation
 						</div>
 					{% elif param.input_type == "text" %}
 						<div class="col-sm py-0 m-0">
-							<input type="text" class="form-control" id="criteria-{{param.name}}" name="criteria-{{param.name}}" placeholder="Enter value (Optional)">
+							<input type="text"  data-toggle="tooltip" data-placement="bottom" data-container="body" title="" class="form-control" id="criteria-{{param.name}}" name="criteria-{{param.name}}" placeholder="Enter value (Optional)">
 						</div>
 					{% endif %}
 				</div>
@@ -166,7 +167,7 @@ Reports Generation
 
 		<!-- Generate reports (Submit form) button -->
 		<div>
-			<button type="submit" id="generate-reports-button" class="btn btn-primary font-weight-bold">Generate Reports</button>
+			<button type="submit" id="generate-reports-button" class="btn btn-primary font-weight-bold float-right mr-5">Generate Reports</button>
 		</div>
 
 	</form>
@@ -180,6 +181,12 @@ Reports Generation
 			$('#generate-reports-form')[0].reset()
         })
 
+
+	{% block live_search_script %}
+
+		{{ super() }}
+
+	{% endblock %}
 
 
         function generateReports(filename, data, $form){
