@@ -13,6 +13,7 @@ from flask import Flask, render_template, request, redirect, send_file, url_for,
 from collections import OrderedDict
 import csv
 import openpyxl
+from packaging.version import LegacyVersion
 import json
 import counter_graphs_module
 
@@ -3136,8 +3137,8 @@ def reports_page():
             ]
         },
         {'name' : 'Hostname', 'data_type' : 'string', 'input_type' : 'text'},
-        {'name' : 'Kernel Version', 'data_type' : 'string', 'input_type' : 'text'},
-        {'name' : 'OS Version', 'data_type' : 'string', 'input_type' : 'text'},
+        {'name' : 'Kernel Version', 'data_type' : 'string', 'input_type' : 'text', 'criteria_op_list' : ['greater than', 'equals', 'less than']},
+        {'name' : 'OS Version', 'data_type' : 'string', 'input_type' : 'text', 'criteria_op_list' : ['greater than', 'equals', 'less than']},
         {'name' : 'OS Name', 'data_type' : 'string', 'input_type' : 'text'},
         {'name' : 'Firmware Version', 'data_type' : 'string', 'input_type' : 'text'},
         {'name' : 'ToolChain Name', 'data_type' : 'string', 'input_type' : 'text'},
@@ -3169,6 +3170,10 @@ def parallel_test_report(testname, **kwargs):
 
     SELECT_PARAMS = kwargs['SELECT_PARAMS']
     FINAL_CRITERIA = kwargs['FINAL_CRITERIA']
+    kernel_criteria = kwargs['kernel_criteria']
+    os_version_criteria = kwargs['os_version_criteria']
+    kernel_criteria_op = kwargs['kernel_criteria_op']
+    os_version_criteria_op = kwargs['os_version_criteria_op']
     skuid_cpu_map = kwargs['skuid_cpu_map']
 
     RESULTS_QUERY = "SELECT t.testname, o.originID as originID, " + SELECT_PARAMS + \
@@ -3193,6 +3198,34 @@ def parallel_test_report(testname, **kwargs):
         results_dataframe.insert(2, 'test time', [d.time() for d in results_dataframe['test_timestamp']])
         results_dataframe.insert(2, 'test_date', [d.date() for d in results_dataframe['test_timestamp']])
         results_dataframe.drop('test_timestamp', axis=1, inplace=True)
+
+    print("PRINTING Kernel criteria_op for ", testname, "\'",kernel_criteria_op,"\'")
+    print("PRINTING Os criteria_op for ", testname, "\'", os_version_criteria_op, "\'")
+    # Filter rows on kernel_criteria
+    if kernel_criteria != '':
+        if kernel_criteria_op == "greater than":
+            print("greater than selected for ", testname, " Kernel version")
+            results_dataframe = results_dataframe[results_dataframe['kernelname'].apply(lambda x: LegacyVersion(x) > LegacyVersion(kernel_criteria))]
+        elif kernel_criteria_op == "equals":
+            print("Equals selected  for ", testname, " Kernel version")
+            results_dataframe = results_dataframe[results_dataframe['kernelname'].apply(lambda x: LegacyVersion(x) == LegacyVersion(kernel_criteria))]
+        else:
+            print("Less than selected!  for ", testname, " Kernel version")
+            results_dataframe = results_dataframe[results_dataframe['kernelname'].apply(lambda x: LegacyVersion(x) < LegacyVersion(kernel_criteria))]
+
+
+    # Filter rows on os_version_criteria
+    if os_version_criteria != '':
+        if os_version_criteria_op == "greater than":
+            print("greater than selected for ", testname, " OS version")
+            results_dataframe = results_dataframe[results_dataframe['osversion'].apply(lambda x: LegacyVersion(x) > LegacyVersion(os_version_criteria))]
+        elif kernel_criteria_op == "equals":
+            print("Equals selected for ", testname, " OS version")
+            results_dataframe = results_dataframe[results_dataframe['osversion'].apply(lambda x: LegacyVersion(x) == LegacyVersion(os_version_criteria))]
+        else:
+            print("Less than selected again!? for ", testname, " OS version")
+            results_dataframe = results_dataframe[results_dataframe['osversion'].apply(lambda x: LegacyVersion(x) < LegacyVersion(os_version_criteria))]
+
 
     # Corresponding SKUID for skuidname
     # "Unkown SKUID" if skuidname not found in sku_definition.ini (For older benchmarking tests)
@@ -3411,8 +3444,10 @@ def generate_reports():
     results_dataframe_list = []
     pool = multiprocessing.Pool(10)
     try:
-        results_dataframe_list = pool.map(partial(parallel_test_report, SELECT_PARAMS=SELECT_PARAMS, \
-                        FINAL_CRITERIA=FINAL_CRITERIA, skuid_cpu_map=skuid_cpu_map, ), selected_tests_list)
+        results_dataframe_list = pool.map(partial(parallel_test_report, SELECT_PARAMS=SELECT_PARAMS, FINAL_CRITERIA=FINAL_CRITERIA, \
+                                kernel_criteria=request.form.get('criteria-Kernel Version'), os_version_criteria=request.form.get('criteria-OS Version'), \
+                                os_version_criteria_op=request.form.get('criteria-op-OS Version'), kernel_criteria_op=request.form.get('criteria-op-Kernel Version'), \
+                                skuid_cpu_map=skuid_cpu_map, ), selected_tests_list)
     finally:
         print("Closing Pool")
         pool.close()
