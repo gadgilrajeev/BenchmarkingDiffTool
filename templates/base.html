@@ -7,11 +7,12 @@
 	
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/lib/bootstrap.css') }}" />
 
+
 	<script  src="{{ url_for('static', filename='js/lib/plotly-latest.min.js') }}"></script>
 	<script src="{{ url_for('static', filename='js/lib/jquery-3.4.1.js') }}"></script>
 	<script type="text/javascript" src="{{ url_for('static', filename='js/lib/datatables.min.js') }}"></script>
 	
-	<script src="{{ url_for('static', filename='js/lib/popper.min.js') }}" type="text/javascript"></script>
+	<script src="{{ url_for('static', filename='js/lib/popper.min.js') }}"></script>
 	<script src="{{ url_for('static', filename='js/lib/bootstrap.js') }}"></script>
 	<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </head>
@@ -20,6 +21,28 @@
 	{% endblock %}
 
 	{% block navbar %}
+
+        <!-- Go to Benchmark Dropdown -->
+        <ul class="navbar-nav font-weight-normal ml-auto">
+            <div class="dropdown p-0 m-0">
+                <button id="go-to-benchmark-button" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
+                    Go to Benchmark </button>
+                <div id="go-to-benchmark-dropdown" class="dropdown-menu dropdown-menu-right" style="height: auto; max-height: 500px;overflow-x: hidden;">
+                    <form id="live-search-benchmark" action="" method="post">
+                        <input type="text" class="text-input form-control mx-1" id="live-search-textbox" placeholder="Search Benchmark" value="" />
+                    </form>
+                    <h3 class="dropdown-header font-weight-bold mt-1 mb-2">HPC BENCHMARKS</h3>
+                        {% for benchmark in all_tests_data.hpc_benchmarks_list %}
+                            <button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
+                        {% endfor %}
+                        <h3 class="dropdown-header font-weight-bold mt-5 mb-2">CLOUD BENCHMARKS</h3>
+                        {% for benchmark in all_tests_data.cloud_benchmarks_list %}
+                            <button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
+                        {% endfor %}
+                </div>
+            </div>
+        </ul>
+
 	{% endblock %}
 
 	{% if error %}
@@ -44,14 +67,43 @@
 	<a href="javascript:" id="return-to-top"><img src="{{ url_for('static', filename='images/arrow-up.png') }}" width="250" height="100" class="img-fluid" alt=""></a>
 
 <script>
-	
+
+    $('[data-toggle="tooltip"]').tooltip()
+
 	$('#return-to-top').click(function() {      // When arrow is clicked
 	    $('body,html').animate({
 	        scrollTop : 0                       // Scroll to top of body
 	    }, 500);
 	});
 
+	{% block live_search_script %}
+
+        $("#live-search-textbox").keyup(function(){
+
+            // Retrieve the input field text
+            var filter = $(this).val();
+
+            // Loop through the comment list
+            $(".dropdown-item").each(function(){
+
+                // If the list item does not contain the text phrase fade it out
+                if ($(this).text().search(new RegExp(filter, "i")) < 0) {
+                    $(this).fadeOut();
+
+                // Show the list item if the phrase matches
+                } else {
+                    $(this).show();
+
+                }
+            });
+        });
+
+
+	{% endblock %}
+
 </script>
 
 </body>
 </html>
+
+

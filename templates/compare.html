@@ -29,23 +29,7 @@ Comparison of tests
 	    	{% endfor %}
     	</ul>
 
-    	<!-- Go to Benchmark Dropdown -->
-    	<ul class="navbar-nav font-weight-normal ml-auto">
-			<div class="dropdown p-0 m-0">
-				<button id="reference-for-normalized" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
-				Go to Benchmark </button>
-				<div id="reference-for-normalized-dropdown" class="dropdown-menu dropdown-menu-right" style="height: auto; max-height: 500px;overflow-x: hidden;">
-					<h3 class="dropdown-header font-weight-bold mt-1 mb-2">HPC BENCHMARKS</h3>
-					{% for benchmark in all_tests_data.hpc_benchmarks_list %}
-						<button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
-					{% endfor %}
-					<h3 class="dropdown-header font-weight-bold mt-5 mb-2">CLOUD BENCHMARKS</h3>
-					{% for benchmark in all_tests_data.cloud_benchmarks_list %}
-						<button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
-					{% endfor %}
-				</div>
-			</div>
-    	</ul>
+        {{ super() }}
 
 	</nav>
 {% endblock navbar %}
@@ -143,6 +127,13 @@ Comparison of tests
     	$("#checkbox-common").prop("checked", false);
 	});
 
+        {% block live_search_script %}
+
+                {{ super() }}
+
+        {% endblock %}
+
+
 	function toggleCheckbox(){
 		state = $('#checkbox-common').prop('checked');
 		$('#checkbox-common').prop('checked', !state);
@@ -153,3 +144,4 @@ Comparison of tests
 </script>
 
 {% endblock content %}
+
