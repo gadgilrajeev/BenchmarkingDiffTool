@@ -209,6 +209,10 @@ def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
                 pass
             else:
                 table_name = list_of_keys[j][0:list_of_keys[j].find("_details_list")]
+                if(os.path.exists(file_path + str(jobname_list[i]) + '/' + str(runID_list[i]) + '/' + table_name + '.csv')):
+                    pass
+                else:
+                    continue
             with open(file_path + str(jobname_list[i]) + '/' + str(runID_list[i]) + '/' + table_name + '.csv',
                       newline='') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
@@ -721,7 +725,6 @@ def getTestDetailsData(originID, secret=False):
         #    num_cpus_list = []
 
 
-
         # list for creating a column in the system_details_dataframe
         nas_link = []
         nas_link.append("http://sm2650-2s-01/dbresults/" +
@@ -747,14 +750,20 @@ def getTestDetailsData(originID, secret=False):
         # Get only numeric directories (corresponding to numCPUs)
         dir_list = [x for x in dir_list if x.isnumeric()]
 
-        ram_file = nas_path + '/' + dir_list[0] + '/ramstat.csv'
+        try:
+            ram_file = nas_path + '/' + dir_list[0] + '/ramstat.csv'
+        except:
+            ram_file = ''
         # Check if ramstat.csv file exists
         if os.path.isfile(ram_file):
             ramstat_csv_exists = True
         else:
             ramstat_csv_exists = False
 
-        freq_dump_file = nas_path + '/' + dir_list[0] + '/freq_dump.csv'
+        try:
+            freq_dump_file = nas_path + '/' + dir_list[0] + '/freq_dump.csv'
+        except:
+            freq_dump_file = ''
         # Check if freq_dump.csv exists
         if os.path.isfile(freq_dump_file):
             freq_dump_csv_exists = True
