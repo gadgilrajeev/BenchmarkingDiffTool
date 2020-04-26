@@ -198,11 +198,6 @@ All Runs of {{ context.testname }}
 	var $normalizedList = $("#normalized-dropdown");
 	$normalizedList.hide();
 
-        {% block live_search_script %}
-
-                {{ super() }}
-
-        {% endblock %}
 
 
 	$(document).ready(function() {

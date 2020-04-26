@@ -127,12 +127,6 @@ Comparison of tests
     	$("#checkbox-common").prop("checked", false);
 	});
 
-        {% block live_search_script %}
-
-                {{ super() }}
-
-        {% endblock %}
-
 
 	function toggleCheckbox(){
 		state = $('#checkbox-common').prop('checked');

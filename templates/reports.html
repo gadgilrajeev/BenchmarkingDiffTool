@@ -182,13 +182,6 @@ Reports Generation
         })
 
 
-	{% block live_search_script %}
-
-		{{ super() }}
-
-	{% endblock %}
-
-
         function generateReports(filename, data, $form){
             data_string = JSON.stringify({ 'data': data, 'filename': filename})
             $form.append($("<input name= 'data' type= 'text' value = '" + data_string + "'/>"))
