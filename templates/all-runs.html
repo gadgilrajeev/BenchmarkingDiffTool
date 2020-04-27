@@ -151,7 +151,7 @@ All Runs of {{ context.testname }}
 		</div>
 	</div>
 
-	<form action="/diff" method="GET">
+	<form action="/diff" id="compare-tests-form" method="GET">
 
 		<div class='inline-block-child'>
 			<table class="table table-hover" id="allRunsTable">
@@ -188,6 +188,26 @@ All Runs of {{ context.testname }}
 		
 	</form>
 
+	<!-- Modal -->
+	<div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+			<h5 class="modal-title" id="notification-title">Notification</h5>
+			<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+			</button>
+			</div>
+			<div class="modal-body" id="notification-text">
+			The Notification
+			</div>
+			<div class="modal-footer">
+			<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+		</div>
+	</div>
+
 	<!-- Hidden form for Downloading data as CSV -->
 	<form action="/download_as_csv" method="POST" id="download-csv-form" style="display:none;">
 	</form>
@@ -206,7 +226,7 @@ All Runs of {{ context.testname }}
 	    $('#allRunsTable thead tr').clone(true).appendTo( '#allRunsTable #search-thead' );
 	    $('#allRunsTable #search-thead tr th').each( function (i) {
 	    	if(i == 0)
-	    		$(this).html( '<button id="diff-button" class="btn btn-primary font-weight-bold" type="submit">Compare</button>' );
+	    		$(this).html( '<button id="diff-button" class="btn btn-primary font-weight-bold" type="button">Compare</button>' );
 	    	else
 	        {
 	        	var title = $(this).text();
@@ -301,7 +321,24 @@ All Runs of {{ context.testname }}
 			})
 		});
 
+		$('#diff-button').click(function(){
+			// Get the checkboxes which are 'checked'
+			$checkboxes = $('.diff-checkbox:checkbox:checked')
+			
+			if ( $checkboxes.length < 2) {
+				// Alert showing the error
+				$('#notification-title').html('Notification : <span class="badge badge-danger">Error</span>')
+				$('#notification-text').html('You need to select atleast 2 checkboxes')
+				$('#notificationModal').modal('show')
+			}
+			else {
+				$('#compare-tests-form').submit()
+			}
+		})
+
+
 	});
+
 
 	$('#download-best-sku-graph-csv').click(function(){
 
