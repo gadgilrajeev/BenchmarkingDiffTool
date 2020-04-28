@@ -207,9 +207,11 @@ Test Details
 						</div>
 						{% endfor %}
 
+						{% set cpu_util_graphs_count = 5 %}
+
 						<!-- 3 graphs for Freq_dump  -->
 						{% if context.freq_dump_csv_exists %}
-							{% for i in range(6,9) %}
+							{% for i in range(cpu_util_graphs_count + 1, cpu_util_graphs_count + 4) %}
 							<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
 								<div class="card-header">
 									<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
@@ -222,12 +224,14 @@ Test Details
 								</div>
 							</div>
 							{% endfor %}
+
+							<!-- Update CPU Util graphs COUNT value by 3-->
+							{% set cpu_util_graphs_count = cpu_util_graphs_count + 3 %}
 						{% endif %}
 
 						<!-- 2 graphs for RAM utilization -->
 						{% if context.ramstat_csv_exists %}
-							{% if context.freq_dump_csv_exists %}
-								{% for i in range(9,11) %}
+								{% for i in range(cpu_util_graphs_count + 1, cpu_util_graphs_count + 3) %}
 								<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
 									<div class="card-header">
 										<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
@@ -240,23 +244,30 @@ Test Details
 									</div>
 								</div>
 								{% endfor %}
-							{% else %}
-								{% for i in range(6,8) %}
-								<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
-									<div class="card-header">
-										<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
-									</div>
-									<div class="card-body m-0 p-0" style="height: 500px;">
-										<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
-									</div>
-									<div class="card-footer">
-										<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('CPU Utilization Graph', 'cpu-graphs-{{i}}')">Download as PNG</button>
-									</div>
-								</div>
-								{% endfor %}
-							{% endif %}
+
+							<!-- Update CPU Util graphs COUNT value by 2-->
+							{% set cpu_util_graphs_count = cpu_util_graphs_count + 2 %}
 						{% endif %}
 
+						<!-- 1 graph for iostat -->
+						{% if context.iostat_csv_exists %}
+								{% for i in range(cpu_util_graphs_count + 1, cpu_util_graphs_count + 2) %}
+								<div id="cpu-graphs-card-{{i}}" class="card my-4 p-0">
+									<div class="card-header">
+										<h5 id="cpu-graphs-title-{{i}}">Loading Graph... This may take a while ...</h5>
+									</div>
+									<div class="card-body m-0 p-0" style="height: 500px;">
+										<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
+									</div>
+									<div class="card-footer">
+										<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('CPU Utilization Graph', 'cpu-graphs-{{i}}')">Download as PNG</button>
+									</div>
+								</div>
+								{% endfor %}
+
+							<!-- Update CPU Util graphs COUNT value by 1-->
+							{% set cpu_util_graphs_count = cpu_util_graphs_count + 1 %}
+						{% endif %}
 
 					</div>
 					<!-- Footer -->
@@ -279,8 +290,7 @@ Test Details
 	    	
 	        	var title = $(this).text();
 	        	$(this).html( '<input style="width: 150px;" type="text" placeholder="Search '+title+'" />' );
-	        
-		 
+
 		        $( 'input', this ).on( 'keyup change', function () {
 		            if ( table.column(i).search() !== this.value ) {
 		                table
@@ -300,8 +310,6 @@ Test Details
 
 	    	table.columns.adjust().draw();
 		});
-
-
 
 		// Download the results table as csv
 		$('#download-results-table-csv').click(function(){
@@ -359,29 +367,52 @@ Test Details
 
 		cpuGraphsDivList = ['cpu-graphs-1', 'cpu-graphs-2', 'cpu-graphs-3', 'cpu-graphs-4']
 
-		function drawCPUUtilizationGraphs(){
+		function drawCPUUtilizationGraphs() {
 			// The first 5 cpu util graphs
 			for(i = 1; i < 6; i++){
 				Plotly.purge('cpu-graphs-'+i)
-			}
-			"{% if context.freq_dump_csv_exists %}"
-			for(i = 6; i < 9; i++){
-				Plotly.purge('cpu-graphs-'+i)
-			}
-			"{% endif %}"
 
-			"{% if context.ramstat_csv_exists %}"
-				"{% if context.freq_dump_csv_exists %}"
-					for(i = 9; i < 11; i++){
+				// Set html to loading circle
+				$('#cpu-graphs-'+i).html("<div class='loading-circle text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>")
+			}
+			{% set cpu_util_graphs_count = 5 %}
+
+			// 3 graphs of freq_dump.csv
+			{% if context.freq_dump_csv_exists %}
+
+				for(i = {{ cpu_util_graphs_count + 1 }}; i < {{ cpu_util_graphs_count + 4 }}; i++){
+					Plotly.purge('cpu-graphs-'+i)
+
+					// Set html to loading circle
+					$('#cpu-graphs-'+i).html("<div class='loading-circle text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>")
+				}
+
+			{% set cpu_util_graphs_count = cpu_util_graphs_count + 3 %}
+			{% endif %}
+
+			// 2 graphs of ramstat.csv
+			{% if context.ramstat_csv_exists %}
+				for(i = {{ cpu_util_graphs_count + 1 }}; i < {{ cpu_util_graphs_count + 3 }}; i++){
+					Plotly.purge('cpu-graphs-'+i)
+
+					// Set html to loading circle
+					$('#cpu-graphs-'+i).html("<div class='loading-circle text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>")
+				}
+
+			{% set cpu_util_graphs_count = cpu_util_graphs_count + 2 %}
+			{% endif %}
+
+			// 1 graph of iostat.csv
+			{% if context.iostat_csv_exists %}
+				for(i = {{ cpu_util_graphs_count + 1 }}; i < {{ cpu_util_graphs_count + 2 }}; i++){
 						Plotly.purge('cpu-graphs-'+i)
+
+						// Set html to loading circle
+						$('#cpu-graphs-'+i).html("<div class='loading-circle text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>")
 					}
-				"{% else %}"
-					for(i = 6; i < 8; i++){
-						Plotly.purge('cpu-graphs-'+i)
-					}				
-				"{% endif %}"
-				
-			"{% endif %}"
+			
+			{% set cpu_util_graphs_count = cpu_util_graphs_count + 1 %}
+			{% endif %}
 
 
 			ajaxData = {
@@ -397,6 +428,9 @@ Test Details
 				data: JSON.stringify(ajaxData),
 
 			}).done(function(response){
+				// Remove all the loading circles first
+				$('.loading-circle').remove()
+
 				console.log("DONEEEEEEE")
 				console.log(response)
 
