@@ -3255,7 +3255,6 @@ def parallel_test_report(testname, **kwargs):
 
     print("################################################################################")
     print("Processing Paralelly for {}".format(testname))
-    print("################################################################################")
 
     results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
@@ -3285,8 +3284,6 @@ def parallel_test_report(testname, **kwargs):
                     WHERE t.testname = \'""" + testname + \
                     "\'" + FINAL_CRITERIA + " AND r.isvalid = 1;"
 
-    print("FINAL QUERY = ", RESULTS_QUERY)
-
     results_dataframe = pd.read_sql(RESULTS_QUERY, db)
 
     if 'test_timestamp' in results_dataframe.columns:
@@ -3294,8 +3291,6 @@ def parallel_test_report(testname, **kwargs):
         results_dataframe.insert(2, 'test_date', [d.date() for d in results_dataframe['test_timestamp']])
         results_dataframe.drop('test_timestamp', axis=1, inplace=True)
 
-    print("PRINTING Kernel criteria_op for ", testname, "\'",kernel_criteria_op,"\'")
-    print("PRINTING Os criteria_op for ", testname, "\'", os_version_criteria_op, "\'")
     # Filter rows on kernel_criteria
     if kernel_criteria != '':
         if kernel_criteria_op == "greater than":
@@ -3360,6 +3355,10 @@ def generate_reports():
 
     print("Got request for generate reports")
 
+    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_parser = configparser.ConfigParser()
+    results_metadata_parser.read(results_metadata_file_path)
+
     sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
@@ -3372,6 +3371,19 @@ def generate_reports():
         skuids = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
         for skuid in skuids:
             skuid_cpu_map[skuid] = section
+
+    # Map from filter label -> testname_list Eg. ncar -> ['clubb', 'mg2', 'waccm', 'wrf']
+    label_testname_map = {}
+    for section in results_metadata_parser.sections():
+        labels = results_metadata_parser.get(section, 'label').replace('\"','').replace(' ', '').lower().split(',')
+
+        # Remove empty strings
+        labels = list(filter(None, labels))
+        for label in labels:
+            # If the list doesn't exist, create one
+            if label not in label_testname_map:
+                label_testname_map[label] = []
+            label_testname_map[label].append(section)
 
     # Metadata 
     parameter_map_for_display = {
@@ -3514,12 +3526,22 @@ def generate_reports():
     print(SELECT_PARAMS)
     print("PRINTING Final Criteria")
     print(FINAL_CRITERIA)
-    # print("\n\nPrinting Param List")
-    # print(param_list)
 
 
     # Retrieve data from the request object
-    selected_tests_list = ['tealeaf', 'cloverleaf', 'Laghos']
+    selected_tests_list = []
+    if request.form.get('filter-by-label-or-benchmark') == 'testname':
+        selected_tests_list = request.form.getlist('filter_testname_list')
+    else:
+        selected_labels_list = request.form.getlist('filter_labels_list')
+        print("Printing selected labels list", selected_labels_list)
+        for label in selected_labels_list:
+            selected_tests_list.extend(label_testname_map[label])
+
+        # For getting unique entries
+        selected_tests_list = list(set(selected_tests_list))
+
+    print("Printing final selected tests list", selected_tests_list)
     filename = request.form.get('filename')
 
     # Clear the temp_download_files directory
