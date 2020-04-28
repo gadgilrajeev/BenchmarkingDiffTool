@@ -51,8 +51,153 @@ Reports Generation
 		<h4>Specify what columns you want to see, and which records would qualify.</h4>
 	</div>
 
-	<!-- Hidden form for Generating report in xslx format -->
+	<!-- Form for Generating report in .xslx format -->
 	<form action="/generate_reports" method="POST" id="generate-reports-form">
+
+		<!-- Filter by Labels/Testname Block -->
+		<div class="container">
+
+			<div class="card text-center">
+				<div class="card-header" style="background: azure;">
+					<ul class="nav nav-pills mb-3" id="benchmark-filter-navbar" role="tablist">
+						<li class="nav-item">
+							<a class="nav-link active h5" id="filter-by-label-pill" data-toggle="pill" href="#filter-by-label-div" role="tab" aria-controls="filter-by-label-div" aria-selected="true">Filter Labels</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link h5" id="filter-by-testname-pill" data-toggle="pill" href="#filter-by-testname-div" role="tab" aria-controls="filter-by-testname-div" aria-selected="false">Filter Benchmarks</a>
+						</li>
+					</ul>
+				</div>
+				<div class="card-body" style="max-height:100vh; overflow-y: scroll;">
+
+					<!-- Filter labels tab -->
+					<div class="tab-content" id="pills-tabContent">
+						<div class="tab-pane fade show active" id="filter-by-label-div" role="tabpanel" aria-labelledby="filter-by-label-pill">
+							<h4 class="card-title">Filter by Label</h4>
+							<p class="card-text lead text-secondary">Select the labels whose corresponding benchmarks you want in the final report</p>
+							<hr>
+
+							<!-- Live search labels textbox -->
+							<input type="text" class="text-input form-control form-control-lg" id="live-search-labels-textbox" placeholder="Search Label" value="" />
+
+							<button type="button" class="btn btn-success mt-3" id="filter-labels-select-all-button">Select All</button>
+							<button type="button" class="btn btn-danger mt-3" id="filter-labels-clear-all-button">Clear All</button>
+							<div class="d-flex container-fluid flex-wrap">
+								{% for label in all_tests_data.filter_labels_list %}
+									<div class="col filter-labels-checkbox-div">
+										<div class="custom-control custom-checkbox">
+											<input type="checkbox" class="custom-control-input filter-labels-checkbox-checkbox" id="filter-labels-list-{{label}}" name="filter_labels_list" value="{{label}}">
+											<label class="custom-control-label filter-labels-checkbox-label" for="filter-labels-list-{{label}}">{{label}}</label>
+										</div>
+									</div>
+								{% endfor %}
+							</div>
+						</div>
+
+						<!-- Filter by testname tab -->
+						<div class="tab-pane fade" id="filter-by-testname-div" role="tabpanel" aria-labelledby="filter-by-testname-pill">
+							<h4 class="card-title">Filter by Benchmark Name</h4>
+							<p class="card-text lead text-secondary">Select the benchmarks you want in the final report</p>
+							<hr>
+
+							<!-- Live search benchmark textbox -->
+							<input type="text" class="text-input form-control form-control-lg" id="live-search-testname-textbox" placeholder="Search Benchmark Name" value="" />
+
+							<!-- HPC Benchmarks list -->
+							<h4 class="bg-info p-3 mt-3 mb-0 text-white font-weight-bold">HPC BENCHMARKS</h4>
+							<button type="button" class="btn btn-success mt-3" id="filter-testname-hpc-select-all-button">Select All</button>
+							<button type="button" class="btn btn-danger mt-3" id="filter-testname-hpc-clear-all-button">Clear All</button>
+							<div class="d-flex container-fluid flex-wrap">
+								{% for benchmark in all_tests_data.hpc_benchmarks_list %}
+									<div class="col filter-testname-checkbox-div">
+										<div class="custom-control custom-checkbox">
+											<input type="checkbox" class="custom-control-input filter-testname-checkbox-hpc-checkbox" id="filter-testname-list-{{benchmark}}" name="filter_testname_list" value="{{benchmark}}">
+											<label class="custom-control-label filter-testname-checkbox-label" for="filter-testname-list-{{benchmark}}">{{benchmark}}</label>
+										</div>
+									</div>
+								{% endfor %}
+							</div>
+
+							<!-- Cloud Benchmarks list -->
+							<h4 class="bg-info p-3 mt-3 mb-0 text-white font-weight-bold">CLOUD BENCHMARKS</h4>
+							<button type="button" class="btn btn-success mt-3" id="filter-testname-cloud-select-all-button">Select All</button>
+							<button type="button" class="btn btn-danger mt-3" id="filter-testname-cloud-clear-all-button">Clear All</button>
+							<div class="d-flex container-fluid flex-wrap">
+								{% for benchmark in all_tests_data.cloud_benchmarks_list %}
+									<div class="col filter-testname-checkbox-div">
+										<div class="custom-control custom-checkbox">
+											<input type="checkbox" class="custom-control-input filter-testname-checkbox-cloud-checkbox" id="filter-testname-list-{{benchmark}}" name="filter_testname_list" value="{{benchmark}}">
+											<label class="custom-control-label filter-testname-checkbox-label" for="filter-testname-list-{{benchmark}}">{{benchmark}}</label>
+										</div>
+									</div>
+								{% endfor %}
+
+							</div>
+
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Filter by Label OR Benchmark (hidden input field) -->
+			<input type="hidden" id="filter-by-label-or-benchmark" name="filter-by-label-or-benchmark" value="label">
+
+			<!-- Script which changes the value of hidden input field "filter-by-label-or-benchmark"
+				according to which tab is active -->
+			<script>
+				$('#filter-by-label-pill').click(function(){
+					console.log("Filtering by label")
+					$('#filter-by-label-or-benchmark').val("label")
+				})
+
+				$('#filter-by-testname-pill').click(function(){
+					console.log("Filtering by Testname")
+					$('#filter-by-label-or-benchmark').val("testname")
+				})
+
+				// On click Functions for all "Select all" buttons
+				$('#filter-labels-select-all-button').click(function() {
+					$('.filter-labels-checkbox-checkbox').each(function(){
+						$(this).prop("checked", true);
+					})
+				})
+
+				$('#filter-testname-hpc-select-all-button').click(function() {
+					$('.filter-testname-checkbox-hpc-checkbox').each(function(){
+						$(this).prop("checked", true);
+					})
+				})
+
+				$('#filter-testname-cloud-select-all-button').click(function() {
+					$('.filter-testname-checkbox-cloud-checkbox').each(function(){
+						$(this).prop("checked", true);
+					})
+				})
+
+				// On click Functions for all "Clear all" buttons
+				$('#filter-labels-clear-all-button').click(function() {
+					$('.filter-labels-checkbox-checkbox').each(function(){
+						$(this).prop("checked", false);
+					})
+				})
+
+				$('#filter-testname-hpc-clear-all-button').click(function() {
+					$('.filter-testname-checkbox-hpc-checkbox').each(function(){
+						$(this).prop("checked", false);
+					})
+				})
+
+				$('#filter-testname-cloud-clear-all-button').click(function() {
+					$('.filter-testname-checkbox-cloud-checkbox').each(function(){
+						$(this).prop("checked", false);
+					})
+				})
+
+			</script>
+
+		</div>
+
+		<!-- Other Specific filters block -->
 		<div class="container">
 			<div class="row px-1 align-items-center" style="background: azure;">
 					<div class="col-sm">
@@ -180,6 +325,49 @@ Reports Generation
             console.log("Reports generation page loaded")
 			$('#generate-reports-form')[0].reset()
         })
+
+        $("#live-search-labels-textbox").keyup(function(){
+			// Retrieve the input field text
+			var filter = $(this).val();
+
+			// Loop through the labels list
+			$(".filter-labels-checkbox-div .filter-labels-checkbox-label").each(function(){
+
+				// If the list item does not contain the text phrase fade it out
+				if ($(this).text().search(new RegExp(filter, "i")) < 0) {
+					$(this).fadeOut();
+					$(this).parent().parent().css("display", "none");
+
+				// Show the list item if the phrase matches
+				} else {
+					$(this).parent().parent().css("display", "");
+					$(this).show();
+
+				}
+			});
+		});
+
+        $("#live-search-testname-textbox").keyup(function(){
+			// Retrieve the input field text
+			var filter = $(this).val();
+
+			// Loop through the testnames list
+			$(".filter-testname-checkbox-div .filter-testname-checkbox-label").each(function(){
+
+				// If the list item does not contain the text phrase fade it out
+				if ($(this).text().search(new RegExp(filter, "i")) < 0) {
+					$(this).fadeOut();
+					$(this).parent().parent().css("display", "none");
+
+				// Show the list item if the phrase matches
+				} else {
+					$(this).parent().parent().css("display", "");
+					$(this).show();
+
+				}
+			});
+		});
+
 
 
         function generateReports(filename, data, $form){
