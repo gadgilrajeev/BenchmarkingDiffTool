@@ -770,6 +770,16 @@ def getTestDetailsData(originID, secret=False):
         else:
             freq_dump_csv_exists = False
 
+        try:
+            iostat_csv_file = nas_path +  '/' + dir_list[0] + '/iostat.csv'
+        except:
+            iostat_csv_file = ''
+        # Check if iostat.csv exists
+        if os.path.isfile(iostat_csv_file):
+            iostat_csv_exists = True
+        else:
+            iostat_csv_exists = False
+
         context = {
             'testname': test_name,
             'system_details': system_details_dataframe.to_dict(orient='list'),
@@ -786,6 +796,7 @@ def getTestDetailsData(originID, secret=False):
             'num_cpus_list' : num_cpus_list,
             'ramstat_csv_exists' : ramstat_csv_exists,
             'freq_dump_csv_exists' : freq_dump_csv_exists,
+            'iostat_csv_exists' : iostat_csv_exists,
         }
 
         # close the database connection
@@ -2566,7 +2577,16 @@ def parallel_compute_freq_dump_yll(param, **kwargs):
     col = param
 
     try:
-        return (list(range(df.shape[0])),df[col].tolist(), col)
+        return (list(range(df.shape[0])), df[col].tolist(), col)
+    except:
+        return None
+
+def parallel_compute_iostat_yll(device_type, **kwargs):
+    df = kwargs['df']
+    col = kwargs['col']
+
+    try:
+        return (list(range(df.loc[device_type, col].shape[0])), df.loc[device_type, col].tolist(), device_type)
     except:
         return None
 
@@ -2838,13 +2858,13 @@ def cpu_utilization_graphs():
     
     # Do NOT change key names.
     # Changing them will require changes in HTML code
-    cpu_ut_graphs_data = {
-            'A1) CPU %busy heatmap' : heatmap_data,
-            'A2) CPU %softirq heatmap': softirq_heatmap_data,
-            'A3) network_heatmap_data' : network_heatmap_data,
-            'A4) %CPU Utilization Multi-line Graph' : line_graph_data,
-            'A5) %CPU Utilization Stack graph' : stack_graph_data,
-    }
+    cpu_ut_graphs_data = OrderedDict()
+    
+    cpu_ut_graphs_data['A1) CPU %busy heatmap'] = heatmap_data
+    cpu_ut_graphs_data['A2) CPU %softirq heatmap'] = softirq_heatmap_data
+    cpu_ut_graphs_data['A3) network_heatmap_data'] = network_heatmap_data
+    cpu_ut_graphs_data['A4) %CPU Utilization Multi-line Graph'] = line_graph_data
+    cpu_ut_graphs_data['A5) %CPU Utilization Stack graph'] = stack_graph_data
     
 
     # Freq dump graphs
@@ -3042,7 +3062,7 @@ def cpu_utilization_graphs():
         # Add ram data in context dict
         if os.path.isfile(freq_dump_file):
             cpu_ut_graphs_data['A9) %RAM Utilization Heatmap'] = ram_heatmap_data
-            cpu_ut_graphs_data['B1) %RAM Utilization Line Graph'] = ram_line_graph_data
+            cpu_ut_graphs_data['A10) %RAM Utilization Line Graph'] = ram_line_graph_data
         else:
             cpu_ut_graphs_data['A6) %RAM Utilization Heatmap'] = ram_heatmap_data
             cpu_ut_graphs_data['A7) %RAM Utilization Line Graph'] = ram_line_graph_data
@@ -3050,6 +3070,72 @@ def cpu_utilization_graphs():
         print("Ram Graphs overall took {} seconds".format(time.time() - start_time17))
     else:
         print("File ramstat.csv does not exist. Skipping")
+
+    # RAM Graphs done
+
+    # Iostat Graphs
+    iostat_file = nas_path + '/iostat.csv'
+    # Check if iostat.csv file exists
+    if os.path.isfile(iostat_file):
+        print("IOSTAT file exists")
+        start_time18 = time.time()
+        iostat_df = pd.read_csv(iostat_file)
+
+        iostat_line_graph_data = {
+            'graph_type' : 'line',
+            'x_list_list' : [],
+            'y_list_list' : [],     #list_list because the JS function is written for multiple lines
+            'legend_list' : [],
+            'xParameter' : 'Timestamp',
+            'yParameter' : 'kB/s'
+        }
+
+        # Get device types list
+        device_types = iostat_df['Device'].unique().tolist()
+
+        # Set 'device' as index
+        iostat_df = iostat_df.set_index('Device')
+
+        # These columns are to be selected
+        column_list = ['kB_read/s', 'kB_wrtn/s']
+        for col in column_list:
+            pool = multiprocessing.Pool(num_processes)
+            try:
+                temp_data = pool.map(partial(parallel_compute_iostat_yll, df=iostat_df, col=col), device_types)
+                # Filter out NoneType elements
+                temp_data = list(filter(None, temp_data))
+
+                print("Printing temp data")
+                print(temp_data)
+                print(type(temp_data))
+
+                iostat_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
+                iostat_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
+                # Legend list is the list of columns
+                iostat_line_graph_data['legend_list'].extend([col+'-'+x[2] for x in temp_data])
+
+            finally:
+                pool.close()
+                pool.join()
+
+        # Add iostat data in context dict
+        if os.path.isfile(ram_file):
+            if os.path.isfile(freq_dump_file):
+                cpu_ut_graphs_data['A11) IOSTAT Line graph'] = iostat_line_graph_data
+            else:
+                cpu_ut_graphs_data['A8) IOSTAT Line graph'] = iostat_line_graph_data
+        else:
+            if os.path.isfile(freq_dump_file):
+                cpu_ut_graphs_data['A9) IOSTAT Line graph'] = iostat_line_graph_data
+            else:
+                cpu_ut_graphs_data['A6) IOSTAT Line graph'] = iostat_line_graph_data
+
+        print("IOSTAT Graphs overall took {} seconds".format(time.time() - start_time17))
+
+    else:
+        print("File iostat.csv does not exist. Skipping")
+
+    # iostat graphs DONE
 
     print("Time taken for CPU utilization graphs {}".format(time.time() - start_time))
 
