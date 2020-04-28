@@ -2860,11 +2860,11 @@ def cpu_utilization_graphs():
     # Changing them will require changes in HTML code
     cpu_ut_graphs_data = OrderedDict()
     
-    cpu_ut_graphs_data['A1) CPU %busy heatmap'] = heatmap_data
-    cpu_ut_graphs_data['A2) CPU %softirq heatmap'] = softirq_heatmap_data
-    cpu_ut_graphs_data['A3) network_heatmap_data'] = network_heatmap_data
-    cpu_ut_graphs_data['A4) %CPU Utilization Multi-line Graph'] = line_graph_data
-    cpu_ut_graphs_data['A5) %CPU Utilization Stack graph'] = stack_graph_data
+    cpu_ut_graphs_data['CPU %busy heatmap'] = heatmap_data
+    cpu_ut_graphs_data['CPU %softirq heatmap'] = softirq_heatmap_data
+    cpu_ut_graphs_data['network_heatmap_data'] = network_heatmap_data
+    cpu_ut_graphs_data['%CPU Utilization Multi-line Graph'] = line_graph_data
+    cpu_ut_graphs_data['%CPU Utilization Stack graph'] = stack_graph_data
     
 
     # Freq dump graphs
@@ -2995,9 +2995,9 @@ def cpu_utilization_graphs():
 
         freq_dump_df = freq_dump_df.reset_index()
         # Add freq_dump data in context dict
-        cpu_ut_graphs_data['A6) Memnet freq'] = memnet_freq_line_graph_data
-        cpu_ut_graphs_data['A7) Power & Voltage Consumption vs Timestamp'] = power_voltage_graph_data
-        cpu_ut_graphs_data['A8) Temperature'] = temperature_line_graph_data
+        cpu_ut_graphs_data['Memnet freq'] = memnet_freq_line_graph_data
+        cpu_ut_graphs_data['Power & Voltage Consumption vs Timestamp'] = power_voltage_graph_data
+        cpu_ut_graphs_data['Temperature'] = temperature_line_graph_data
 
         print("Freq dump Graphs overall took {} seconds".format(time.time() - start_time16))
     else:
@@ -3060,12 +3060,8 @@ def cpu_utilization_graphs():
         ram_line_graph_data['legend_list'] = ram_heatmap_data['y_list']
 
         # Add ram data in context dict
-        if os.path.isfile(freq_dump_file):
-            cpu_ut_graphs_data['A9) %RAM Utilization Heatmap'] = ram_heatmap_data
-            cpu_ut_graphs_data['A10) %RAM Utilization Line Graph'] = ram_line_graph_data
-        else:
-            cpu_ut_graphs_data['A6) %RAM Utilization Heatmap'] = ram_heatmap_data
-            cpu_ut_graphs_data['A7) %RAM Utilization Line Graph'] = ram_line_graph_data
+        cpu_ut_graphs_data['%RAM Utilization Heatmap'] = ram_heatmap_data
+        cpu_ut_graphs_data['%RAM Utilization Line Graph'] = ram_line_graph_data
             
         print("Ram Graphs overall took {} seconds".format(time.time() - start_time17))
     else:
@@ -3119,16 +3115,7 @@ def cpu_utilization_graphs():
                 pool.join()
 
         # Add iostat data in context dict
-        if os.path.isfile(ram_file):
-            if os.path.isfile(freq_dump_file):
-                cpu_ut_graphs_data['A11) IOSTAT Line graph'] = iostat_line_graph_data
-            else:
-                cpu_ut_graphs_data['A8) IOSTAT Line graph'] = iostat_line_graph_data
-        else:
-            if os.path.isfile(freq_dump_file):
-                cpu_ut_graphs_data['A9) IOSTAT Line graph'] = iostat_line_graph_data
-            else:
-                cpu_ut_graphs_data['A6) IOSTAT Line graph'] = iostat_line_graph_data
+        cpu_ut_graphs_data['IOSTAT Line graph'] = iostat_line_graph_data
 
         print("IOSTAT Graphs overall took {} seconds".format(time.time() - start_time17))
 
@@ -3139,7 +3126,7 @@ def cpu_utilization_graphs():
 
     print("Time taken for CPU utilization graphs {}".format(time.time() - start_time))
 
-    return cpu_ut_graphs_data
+    return json.dumps(cpu_ut_graphs_data)
 
 # API Endpoint for Scaling graphs
 @app.route('/scaling_graphs', methods=['POST'])
