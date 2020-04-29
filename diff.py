@@ -3535,6 +3535,7 @@ def generate_reports():
                         FINAL_CRITERIA += " AND s.resultype = " + get_key_from_value(d['criteria'].lower())
                 elif d['name'] == 'SKUID' and d['criteria'] != []:
                     all_skuidnames_criteria = []
+                    skuid_criteria_op = ""
                     for criteria in d['criteria']:
                         # Make list of lists for best_results_condition
                         # Since we have to get best results for each sku
