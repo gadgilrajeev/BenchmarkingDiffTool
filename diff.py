@@ -3235,13 +3235,13 @@ def reports_page():
 
     return render_template('reports.html', error=error, context=context, all_tests_data=all_tests_data)
 
-
+# Query the database paralelly for each 'testname'
 def parallel_test_report(testname, **kwargs):
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
-    print("################################################################################")
-    print("Processing Paralelly for {}".format(testname))
+    logging.debug("################################################################################")
+    logging.debug("Processing Paralelly for {}".format(testname))
 
     results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
@@ -3256,27 +3256,89 @@ def parallel_test_report(testname, **kwargs):
     kernel_criteria_op = kwargs['kernel_criteria_op']
     os_version_criteria_op = kwargs['os_version_criteria_op']
     skuid_cpu_map = kwargs['skuid_cpu_map']
+    all_skuidnames_criteria = kwargs['all_skuidnames_criteria']
+    skuid_criteria_op = kwargs['skuid_criteria_op']
+    best_results_condition = kwargs['best_results_condition']
 
-    RESULTS_QUERY = "SELECT t.testname, o.originID as originID, " + SELECT_PARAMS + \
-                    """s.description, r.number, disp.unit, disp.qualifier 
-                    FROM result r INNER JOIN subtest s ON s.subtestID=r.subtest_subtestID 
-                    INNER JOIN display disp ON disp.displayID=r.display_displayID 
-                    INNER JOIN origin o ON o.originID=r.origin_originID 
-                    INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
-                    INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID
-                    INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID
-                    INNER JOIN node n ON hw.node_nodeID = n.nodeID 
-                    INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID
-                    INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID
-                    WHERE t.testname = \'""" + testname + \
-                    "\'" + FINAL_CRITERIA + " AND r.isvalid = 1;"
+    # An empty dataframe
+    results_dataframe = pd.DataFrame()
 
-    results_dataframe = pd.read_sql(RESULTS_QUERY, db)
+    if best_results_condition:
+
+        # Get 'higher_is_better' value for the first "field" of testname
+        higher_is_better = results_metadata_parser.get(testname, 'higher_is_better').replace('\"', '').replace(' ','').split(',')[0]
+
+        # For each skuid_list
+        for skuid_list in all_skuidnames_criteria:
+            
+            # Make SKUID_CRITERIA string
+            if skuid_criteria_op == "matches":
+                SKUID_CRITERIA = " AND n.skuidname IN " + str(skuid_list).replace('[','(').replace(']',')')
+            else:
+                SKUID_CRITERIA = " AND n.skuidname NOT IN " + str(skuid_list).replace('[','(').replace(']',')')
+
+            # r.number and order by conditions according to higher_is_better
+            if higher_is_better == '0':
+                R_NUMBER = " MIN(r.number) as number, "
+                ORDER_BY_CONDITION = " order by r.number "
+            else:
+                R_NUMBER = " MAX(r.number) as number, "
+                ORDER_BY_CONDITION = " order by r.number DESC "
+
+            if best_results_condition == 'best-results':
+                LIMIT_CONDITION = " limit 1 "
+            elif best_results_condition == 'top-5':
+                LIMIT_CONDITION = " limit 5 "
+
+            GROUP_BY_CONDITION = " group by t.testname, o.originID, " + SELECT_PARAMS + \
+                                     " s.description, r.number, disp.unit, disp.qualifier "
+
+            RESULTS_QUERY = "SELECT t.testname, o.originID, " + SELECT_PARAMS + \
+                            "s.description," + R_NUMBER + """ disp.unit, disp.qualifier 
+                            FROM result r INNER JOIN subtest s ON s.subtestID=r.subtest_subtestID 
+                            INNER JOIN display disp ON disp.displayID=r.display_displayID 
+                            INNER JOIN origin o ON o.originID=r.origin_originID 
+                            INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                            INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID
+                            INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID
+                            INNER JOIN node n ON hw.node_nodeID = n.nodeID 
+                            INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID
+                            INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID
+                            WHERE t.testname = \'""" + testname + \
+                            "\'" + FINAL_CRITERIA + SKUID_CRITERIA + " AND r.isvalid = 1 " + \
+                            GROUP_BY_CONDITION + ORDER_BY_CONDITION + LIMIT_CONDITION + ";"
+
+            logging.debug("\nFINAL QUERY = {}".format(RESULTS_QUERY))
+
+            temp_df = pd.read_sql(RESULTS_QUERY, db)
+
+            # Append the dataframe below the current dataframe
+            results_dataframe = results_dataframe.append(temp_df, sort=False)
+
+        results_dataframe = results_dataframe.reset_index(drop=True)
+    else:
+        RESULTS_QUERY = "SELECT t.testname, o.originID, " + SELECT_PARAMS + \
+                        """s.description, r.number, disp.unit, disp.qualifier 
+                        FROM result r INNER JOIN subtest s ON s.subtestID=r.subtest_subtestID 
+                        INNER JOIN display disp ON disp.displayID=r.display_displayID 
+                        INNER JOIN origin o ON o.originID=r.origin_originID 
+                        INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                        INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID
+                        INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID
+                        INNER JOIN node n ON hw.node_nodeID = n.nodeID 
+                        INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID
+                        INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID
+                        WHERE t.testname = \'""" + testname + \
+                        "\'" + FINAL_CRITERIA + " AND r.isvalid = 1;"
+
+        logging.debug("\nFINAL QUERY = {}".format(RESULTS_QUERY))
+
+        results_dataframe = pd.read_sql(RESULTS_QUERY, db)
 
     if 'test_timestamp' in results_dataframe.columns:
-        results_dataframe.insert(2, 'test time', [d.time() for d in results_dataframe['test_timestamp']])
-        results_dataframe.insert(2, 'test_date', [d.date() for d in results_dataframe['test_timestamp']])
-        results_dataframe.drop('test_timestamp', axis=1, inplace=True)
+        results_dataframe.insert(2, 'Test Time', [d.time() for d in results_dataframe['testdate']])
+        results_dataframe.insert(2, 'Test Date', [d.date() for d in results_dataframe['testdate']])
+        results_dataframe.drop('testdate', axis=1, inplace=True)
 
     # Filter rows on kernel_criteria
     if kernel_criteria != '':
@@ -3332,7 +3394,6 @@ def parallel_test_report(testname, **kwargs):
     # Drop the 'description' column as we have now split it into various columns according to description_string
     del results_dataframe['description']
 
-
     return results_dataframe
     
 @app.route('/generate_reports', methods=['POST'])
@@ -3373,24 +3434,7 @@ def generate_reports():
             label_testname_map[label].append(section)
 
     # Metadata 
-    parameter_map_for_display = {
-        "Kernel Version": 'os.kernelname', 
-        'OS Version': 'os.osversion', 
-        'OS Name': 'os.osdistro as osname', 
-        "Firmware Version": 'hw.fwversion' , 
-        "ToolChain Name": 'tc.toolchainname', 
-        "ToolChain Version" : 'tc.toolchainversion', 
-        "Flags": 'tc.flags',
-        "SMT" : 'b.smt',
-        "Cores": 'b.cores',
-        "Corefreq": 'b.corefreq',
-        "DDRfreq": 'b.ddrfreq',
-        "SKUID": 'n.skuidname',
-        "Hostname": 'o.hostname',
-        "Scaling" : 's.resultype',
-        "Test Date" : 'o.testdate as test_timestamp',
-    }
-    parameter_map_for_criteria = {
+    parameter_map = {
         "Kernel Version": 'os.kernelname', 
         'OS Version': 'os.osversion', 
         'OS Name': 'os.osdistro', 
@@ -3447,11 +3491,14 @@ def generate_reports():
     SELECT_PARAMS = " "
     FINAL_CRITERIA = " "
 
+    # Get best_results_condition
+    best_results_condition = request.form.get('best-results-radio')
+
     for d in param_list:
         d['display'] = request.form.get('disp-'+d['name'])
         if d['name'] == 'SKUID':
             d['criteria'] = request.form.getlist('criteria-'+d['name'])
-            #Remove the empty string '' from the list
+            # Remove the empty string '' from the list
             if '' in d['criteria']:
                 d['criteria'].remove('')
         else:
@@ -3463,7 +3510,7 @@ def generate_reports():
 
         # Append to SELECT_PARAMS according to 'display' value
         if d['display'] == 'Yes':
-            SELECT_PARAMS += parameter_map_for_display[d['name']] + ', '
+            SELECT_PARAMS += parameter_map[d['name']] + ', '
 
         # Gives 'result type' number from result type string
         # Example if value="2 cores" then key=8
@@ -3481,36 +3528,40 @@ def generate_reports():
                 elif d['name'] == 'SKUID' and d['criteria'] != []:
                     all_skuidnames_criteria = []
                     for criteria in d['criteria']:
-                        all_skuidnames_criteria.extend(skuid_cpu_map[criteria])
+                        # Make list of lists for best_results_condition
+                        # Since we have to get best results for each sku
+                        if best_results_condition:
+                            all_skuidnames_criteria.append(skuid_cpu_map[criteria])
+                            skuid_criteria_op = d['criteria-op']
+                        else:
+                            all_skuidnames_criteria.extend(skuid_cpu_map[criteria])
+                            if d['criteria-op'] == 'matches':
+                                FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
+                            else:
+                                FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " NOT IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
+
                         print(all_skuidnames_criteria)
-                    if d['criteria-op'] == 'matches':
-                        FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
-                    else:
-                        FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " NOT IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
                 elif d['name'] != 'Kernel Version' and d['name'] != 'OS Version':
                     if d['criteria-op'] == 'matches':
-                        FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " LIKE \'%" + d['criteria'].strip() +"%\'"
+                        FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " LIKE \'%" + d['criteria'].strip() +"%\'"
                     else:
-                        FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " NOT LIKE \'%" + d['criteria'].strip() +"%\'"
+                        FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " NOT LIKE \'%" + d['criteria'].strip() +"%\'"
             elif d['data_type'] == 'numeric':
                 if d['criteria-op'] == 'less than':
-                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " < " + d['criteria'].strip()
+                    FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " < " + d['criteria'].strip()
                 elif d['criteria-op'] == 'equals':
-                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " = " + d['criteria'].strip()
+                    FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " = " + d['criteria'].strip()
                 elif d['criteria-op'] == 'greater than':
-                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " > " + d['criteria'].strip()
+                    FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " > " + d['criteria'].strip()
             elif d['data_type'] == 'date':
                 if d['criteria-op'] == 'before':
-                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " < \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
+                    FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " < \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
                 elif d['criteria-op'] == 'during':
-                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " LIKE \'%" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + "-" "%\'"
+                    FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " LIKE \'%" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + "-" "%\'"
                 elif d['criteria-op'] == 'since':
-                    FINAL_CRITERIA += " AND " + parameter_map_for_criteria[d['name']] + " > \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
+                    FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " > \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
 
 
-
-    print("PRINTING Select params")
-    print(SELECT_PARAMS)
     print("PRINTING Final Criteria")
     print(FINAL_CRITERIA)
 
@@ -3521,15 +3572,18 @@ def generate_reports():
         selected_tests_list = request.form.getlist('filter_testname_list')
     else:
         selected_labels_list = request.form.getlist('filter_labels_list')
-        print("Printing selected labels list", selected_labels_list)
         for label in selected_labels_list:
             selected_tests_list.extend(label_testname_map[label])
 
         # For getting unique entries
         selected_tests_list = list(set(selected_tests_list))
 
-    print("Printing final selected tests list", selected_tests_list)
+    # If none of the benchmarks is selected, put in all tests
+    if selected_tests_list == []:
+        selected_tests_list = results_metadata_parser.sections()
+
     filename = request.form.get('filename')
+
 
     # Clear the temp_download_files directory
     base_path = os.getcwd() + '/temp_download_files/'
@@ -3551,7 +3605,8 @@ def generate_reports():
         results_dataframe_list = pool.map(partial(parallel_test_report, SELECT_PARAMS=SELECT_PARAMS, FINAL_CRITERIA=FINAL_CRITERIA, \
                                 kernel_criteria=request.form.get('criteria-Kernel Version'), os_version_criteria=request.form.get('criteria-OS Version'), \
                                 os_version_criteria_op=request.form.get('criteria-op-OS Version'), kernel_criteria_op=request.form.get('criteria-op-Kernel Version'), \
-                                skuid_cpu_map=skuid_cpu_map, ), selected_tests_list)
+                                skuid_cpu_map=skuid_cpu_map, best_results_condition=best_results_condition, skuid_criteria_op=skuid_criteria_op, \
+                                all_skuidnames_criteria=all_skuidnames_criteria), selected_tests_list)
     finally:
         print("Closing Pool")
         pool.close()
@@ -3561,19 +3616,38 @@ def generate_reports():
 
     start_time2 = time.time()
 
-    # Write the first dataframe to create the excel file
-    with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
-        results_dataframe_list[0].to_excel(writer, sheet_name=selected_tests_list[0])
+    if best_results_condition:
+        # Write all results in a single excel file
+
+        final_results_dataframe = pd.DataFrame()
+
+        # Append all the dataframes from the list to final_results_dataframe
+        for results_dataframe in results_dataframe_list:
+            final_results_dataframe = final_results_dataframe.append(results_dataframe, sort=False)
+
+            # Append an empty row to the final_results_dataframe
+            final_results_dataframe = final_results_dataframe.append(pd.Series(), ignore_index=True, sort=False)
+
+        # Reset Index
+        final_results_dataframe = final_results_dataframe.reset_index(drop=True)
+
+        # Write the entire dataframe in a single sheet
+        with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
+            final_results_dataframe.to_excel(writer, sheet_name="Best results")
+
+    else:
+        # Write the first dataframe to create the excel file
+        with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
+            results_dataframe_list[0].to_excel(writer, sheet_name=selected_tests_list[0])
 
 
-    # Write rest of the dataframes with the excel file in "Append" mode
-    for results_dataframe, testname in zip(results_dataframe_list[1:], selected_tests_list[1:]):
-        with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
-            results_dataframe.to_excel(writer, sheet_name=testname)
+        # Write rest of the dataframes with the excel file in "Append" mode
+        for results_dataframe, testname in zip(results_dataframe_list[1:], selected_tests_list[1:]):
+            with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
+                results_dataframe.to_excel(writer, sheet_name=testname)
 
     print("Writing all excel files took {} seconds".format(time.time() - start_time2))
     
-  
     # Send the Excel file as response for download
     try:
         return send_file(absolute_file_path,
