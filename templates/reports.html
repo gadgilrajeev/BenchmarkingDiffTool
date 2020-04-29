@@ -47,10 +47,6 @@ Reports Generation
 		</div>
 	</div>
 
-	<div class="container-fluid my-3">
-		<h4>Specify what columns you want to see, and which records would qualify.</h4>
-	</div>
-
 	<!-- Form for Generating report in .xslx format -->
 	<form action="/generate_reports" method="POST" id="generate-reports-form">
 
@@ -142,168 +138,157 @@ Reports Generation
 			<!-- Filter by Label OR Benchmark (hidden input field) -->
 			<input type="hidden" id="filter-by-label-or-benchmark" name="filter-by-label-or-benchmark" value="label">
 
-			<!-- Script which changes the value of hidden input field "filter-by-label-or-benchmark"
-				according to which tab is active -->
-			<script>
-				$('#filter-by-label-pill').click(function(){
-					console.log("Filtering by label")
-					$('#filter-by-label-or-benchmark').val("label")
-				})
-
-				$('#filter-by-testname-pill').click(function(){
-					console.log("Filtering by Testname")
-					$('#filter-by-label-or-benchmark').val("testname")
-				})
-
-				// On click Functions for all "Select all" buttons
-				$('#filter-labels-select-all-button').click(function() {
-					$('.filter-labels-checkbox-checkbox').each(function(){
-						$(this).prop("checked", true);
-					})
-				})
-
-				$('#filter-testname-hpc-select-all-button').click(function() {
-					$('.filter-testname-checkbox-hpc-checkbox').each(function(){
-						$(this).prop("checked", true);
-					})
-				})
-
-				$('#filter-testname-cloud-select-all-button').click(function() {
-					$('.filter-testname-checkbox-cloud-checkbox').each(function(){
-						$(this).prop("checked", true);
-					})
-				})
-
-				// On click Functions for all "Clear all" buttons
-				$('#filter-labels-clear-all-button').click(function() {
-					$('.filter-labels-checkbox-checkbox').each(function(){
-						$(this).prop("checked", false);
-					})
-				})
-
-				$('#filter-testname-hpc-clear-all-button').click(function() {
-					$('.filter-testname-checkbox-hpc-checkbox').each(function(){
-						$(this).prop("checked", false);
-					})
-				})
-
-				$('#filter-testname-cloud-clear-all-button').click(function() {
-					$('.filter-testname-checkbox-cloud-checkbox').each(function(){
-						$(this).prop("checked", false);
-					})
-				})
-
-			</script>
-
 		</div>
 
-		<!-- Other Specific filters block -->
-		<div class="container">
-			<div class="row px-1 align-items-center" style="background: azure;">
-					<div class="col-sm">
-						<h5>Parameter</h5>
-					</div>
-					<div class="col-sm">
-						<h5>Display</h5>
-					</div>
-					<div class="col-sm">
-						<h5>Criteria-Option</h5>
-					</div>
-					<div class="col-sm">
-						<h5>Criteria</h5>
-					</div>
-             </div>
-             <div class="w-100 m-0 p-0" style="background: azure;">
-                 <hr class="m-0 p-0" style="color: black; background : black;" >
-             </div>
-			{% for param in context.param_list %}
-                {% if param.name == 'Kernel Version' or param.name == 'Firmware Version' or param.name == 'SMT' %}
-                    <div class="w-100 m-0 p-0" style="background: azure;">
-                        <hr class="m-0 p-0" style="color: black; background : black;" >
-                    </div>
-                {% endif %}
-				<div class="row px-1 align-items-center" style="background: azure;">
-					<div class="col-sm">
-						<h5>{{param.name}}</h5>
-					</div>
-					<!-- Display dropdown Yes/No -->
-					<div class="col-sm">
-						<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display this parameter's column in the final Excel Sheet (Yes/No)" id="disp-{{param.name}}" class="form-control " name="disp-{{param.name}}">
-							<option value="Yes" selected="selected">Yes</option>
-							<option value="No">No</option>
-						</select>
+		<!-- Filters for Best Results, Top 5, Best of Last quarter, etc. -->
+		<div class="card container mt-5">
+			<div class="card-body">
+				<h4 class="card-title">Best Results</h4>
+				<p class="card-text lead text-secondary" id="best-results-filter-description">Click the button if you want to see the best results of the selected labels</p>
+				<hr>
+
+				<div class="custom-control custom-radio custom-control-inline">
+					<input type="radio" id="best-results-radio1" name="best-results-radio" value="best-results" class="custom-control-input best-results-radio">
+					<label class="custom-control-label h5" for="best-results-radio1">Show Best Results</label>
+				</div>
+				<div class="custom-control custom-radio custom-control-inline">
+					<input type="radio" id="best-results-radio2" name="best-results-radio" value="top-5" class="custom-control-input best-results-radio">
+					<label class="custom-control-label h5" for="best-results-radio2">Show TOP 5 of each</label>
+				</div>
+			</div>
+			<div class="card-footer bg-transparent d-flex">
+				<button id='clear-best-results-filter-button' class='btn btn-secondary' type='button' disabled="true">Clear selection</button>
+			</div>	
+		</div>
+
+		<!-- Other Specific filters Card -->
+		<div id="advanced-search-options" class="card container mt-5">
+			<!-- Card Body -->
+			<div class="card-body">
+				<h4 class="card-title">Advanced Search Options</h4>
+				<p class="card-text lead text-secondary">Click the button if you want to apply more specific filters</p>
+				<hr>
+				<!-- The div which collapses -->
+				<div class="collapse" id="advanced-search-collapse">
+					<div class="container-fluid">
+						<h4 class="text-secondary">Specify what columns you want to see, and which records would qualify.</h4>
 					</div>
 
-					<!-- Criteria-op according to data_type -->
-					<div class="col-sm">
-						{% if param.data_type == "string" %}
-							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select option" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
-                                {% if 'criteria_op_list' in param %}
-                                    {% for i in range(param.criteria_op_list | length) %}
-                                        {% if i == 0 %}
-                                            <option value="{{ param.criteria_op_list[i] }}" selected="selected">{{ param.criteria_op_list[i] }}</option>
-                                        {% else %}
-                                            <option value="{{ param.criteria_op_list[i] }}">{{ param.criteria_op_list[i] }}</option>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% else %}
-								    <option value="matches" selected="selected">matches</option>
-								    <option value="does not match">does not match</option>
-                                {% endif %}
-							</select>
-						{% elif param.data_type == "numeric" %}
-							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select option" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
-								<option value="less than">less than</option>
-								<option value="equals" selected="selected">equals</option>
-								<option value="greater than">greater than</option>
-							</select>
-						{% elif param.data_type == "date" %}
-							<div class="d-flex m-0 p-0">
-								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select option" id="criteria-op-{{param.name}}" class="form-control w-50 px-2" name="criteria-op-{{param.name}}">
-									<option value="before">before</option>
-									<option value="during">during</option>
-									<option value="since" selected="selected">since</option>
-								</select>
-								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select month" id="criteria2-{{param.name}}" class="form-control w-50 px-2" name="criteria2-{{param.name}}">
-									<option value="Jan">Jan<option value="Feb">Feb<option value="Mar">Mar<option value="Apr">Apr
-									<option value="May">May<option value="Jun">Jun<option value="Jul">Jul<option value="Aug">Aug
-									<option value="Sep">Sep<option value="Oct">Oct<option value="Nov">Nov<option value="Dec">Dec
-								</select>
+					<div class="row px-1 align-items-center" style="background: azure;">
+							<div class="col-sm">
+								<h5>Parameter</h5>
+							</div>
+							<div class="col-sm">
+								<h5>Display</h5>
+							</div>
+							<div class="col-sm">
+								<h5>Criteria-Option</h5>
+							</div>
+							<div class="col-sm">
+								<h5>Criteria</h5>
+							</div>
+					</div>
+					<div class="w-100 m-0 p-0" style="background: azure;">
+						<hr class="m-0 p-0" style="color: black; background : black;" >
+					</div>
+					{% for param in context.param_list %}
+						{% if param.name == 'Kernel Version' or param.name == 'Firmware Version' or param.name == 'SMT' %}
+							<div class="w-100 m-0 p-0" style="background: azure;">
+								<hr class="m-0 p-0" style="color: black; background : black;" >
 							</div>
 						{% endif %}
-					</div>
-
-					<!-- Criteria according to input_type -->
-					{% if param.input_type == "dropdown" %}
-						<div class="col-sm">
-							<div class="d-flex m-0 p-0">
-								<label class="px-3" for="criteria-{{param.name}}">{{param.dropdown_label}}</label>
-								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select one" id="criteria-{{param.name}}" class="form-control w-50" name="criteria-{{param.name}}">
-									{% for item in param.dropdown_values_list %}
-										<option value="{{item}}">{{item}}</option>
-									{% endfor %}
+						<div class="row px-1 align-items-center" style="background: azure;">
+							<div class="col-sm">
+								<h5>{{param.name}}</h5>
+							</div>
+							<!-- Display dropdown Yes/No -->
+							<div class="col-sm">
+								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display this parameter's column in the final Excel Sheet (Yes/No)" id="disp-{{param.name}}" class="form-control " name="disp-{{param.name}}">
+									<option value="Yes" selected="selected">Yes</option>
+									<option value="No">No</option>
 								</select>
 							</div>
+
+							<!-- Criteria-op according to data_type -->
+							<div class="col-sm">
+								{% if param.data_type == "string" %}
+									<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select option" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
+										{% if 'criteria_op_list' in param %}
+											{% for i in range(param.criteria_op_list | length) %}
+												{% if i == 0 %}
+													<option value="{{ param.criteria_op_list[i] }}" selected="selected">{{ param.criteria_op_list[i] }}</option>
+												{% else %}
+													<option value="{{ param.criteria_op_list[i] }}">{{ param.criteria_op_list[i] }}</option>
+												{% endif %}
+											{% endfor %}
+										{% else %}
+											<option value="matches" selected="selected">matches</option>
+											<option value="does not match">does not match</option>
+										{% endif %}
+									</select>
+								{% elif param.data_type == "numeric" %}
+									<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select option" id="criteria-op-{{param.name}}" class="form-control " name="criteria-op-{{param.name}}">
+										<option value="less than">less than</option>
+										<option value="equals" selected="selected">equals</option>
+										<option value="greater than">greater than</option>
+									</select>
+								{% elif param.data_type == "date" %}
+									<div class="d-flex m-0 p-0">
+										<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select option" id="criteria-op-{{param.name}}" class="form-control w-50 px-2" name="criteria-op-{{param.name}}">
+											<option value="before">before</option>
+											<option value="during">during</option>
+											<option value="since" selected="selected">since</option>
+										</select>
+										<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select month" id="criteria2-{{param.name}}" class="form-control w-50 px-2" name="criteria2-{{param.name}}">
+											<option value="Jan">Jan<option value="Feb">Feb<option value="Mar">Mar<option value="Apr">Apr
+											<option value="May">May<option value="Jun">Jun<option value="Jul">Jul<option value="Aug">Aug
+											<option value="Sep">Sep<option value="Oct">Oct<option value="Nov">Nov<option value="Dec">Dec
+										</select>
+									</div>
+								{% endif %}
+							</div>
+
+							<!-- Criteria according to input_type -->
+							{% if param.input_type == "dropdown" %}
+								<div class="col-sm">
+									<div class="d-flex m-0 p-0">
+										<label class="px-3" for="criteria-{{param.name}}">{{param.dropdown_label}}</label>
+										<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Select one" id="criteria-{{param.name}}" class="form-control w-50" name="criteria-{{param.name}}">
+											{% for item in param.dropdown_values_list %}
+												<option value="{{item}}">{{item}}</option>
+											{% endfor %}
+										</select>
+									</div>
+								</div>
+							{% elif param.input_type == "dropdown multiple select" %}
+								<div class="col-sm py-0 m-0">
+									<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="CTRL + Click to select multiple" id="criteria-{{param.name}}" class="form-control" multiple="multiple" name="criteria-{{param.name}}" required>
+										{% for item in param.dropdown_values_list %}
+											{% if item == "" %}
+												<option value="{{item}}" selected>{{item}}</option>
+											{% else %}
+												<option value="{{item}}">{{item}}</option>
+											{% endif %}
+										{% endfor %}
+									</select>
+								</div>
+							{% elif param.input_type == "text" %}
+								<div class="col-sm py-0 m-0">
+									<input type="text"  data-toggle="tooltip" data-placement="bottom" data-container="body" title="" class="form-control" id="criteria-{{param.name}}" name="criteria-{{param.name}}" placeholder="Enter value (Optional)">
+								</div>
+							{% endif %}
 						</div>
-					{% elif param.input_type == "dropdown multiple select" %}
-						<div class="col-sm py-0 m-0">
-							<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="CTRL + Click to select multiple" id="criteria-{{param.name}}" class="form-control" multiple="multiple" name="criteria-{{param.name}}" required>
-								{% for item in param.dropdown_values_list %}
-                                    {% if item == "" %}
-                                        <option value="{{item}}" selected>{{item}}</option>
-                                    {% else %}
-                                        <option value="{{item}}">{{item}}</option>
-                                    {% endif %}
-								{% endfor %}
-							</select>
-						</div>
-					{% elif param.input_type == "text" %}
-						<div class="col-sm py-0 m-0">
-							<input type="text"  data-toggle="tooltip" data-placement="bottom" data-container="body" title="" class="form-control" id="criteria-{{param.name}}" name="criteria-{{param.name}}" placeholder="Enter value (Optional)">
-						</div>
-					{% endif %}
+					{% endfor %}
 				</div>
-			{% endfor %}
+			</div>
+
+			<!-- Card footer -->
+			<div class="card-footer bg-transparent border-light d-flex flex-row-reverse">
+				<!-- Button which triggers the collapse -->
+				<button class="btn btn-primary font-weight-bold" type="button" data-toggle="collapse" data-target="#advanced-search-collapse" aria-expanded="false" aria-controls="advanced-search-collapse">
+					Click here to view Advanced Filters
+				</button>
+			</div>
 
 		</div>
 
@@ -311,8 +296,8 @@ Reports Generation
 		<input type="hidden" id="filename" name="filename" value="Sample Filename">
 
 		<!-- Generate reports (Submit form) button -->
-		<div>
-			<button type="submit" id="generate-reports-button" class="btn btn-primary font-weight-bold float-right mr-5">Generate Reports</button>
+		<div class="text-center">
+			<button type="submit" id="generate-reports-button" class="btn btn-lg btn-success font-weight-bold mr-5 my-5">Generate Reports</button>
 		</div>
 
 	</form>
@@ -368,7 +353,68 @@ Reports Generation
 			});
 		});
 
+		// Functions which change the value of hidden input field "filter-by-label-or-benchmark"
+		// And "best-results-filter-description"
+		// according to which tab is active 
+		$('#filter-by-label-pill').click(function(){
+			console.log("Filtering by label")
+			$('#filter-by-label-or-benchmark').val("label")
+			$('#best-results-filter-description').html("Click the button if you want to see the best results of the selected labels")
+		})
 
+		$('#filter-by-testname-pill').click(function(){
+			console.log("Filtering by Testname")
+			$('#filter-by-label-or-benchmark').val("testname")
+			$('#best-results-filter-description').html("Click the button if you want to see the best results of the selected benchmarks")
+		})
+
+		// On click Functions for all "Select all" buttons
+		$('#filter-labels-select-all-button').click(function() {
+			$('.filter-labels-checkbox-checkbox').each(function(){
+				$(this).prop("checked", true);
+			})
+		})
+
+		$('#filter-testname-hpc-select-all-button').click(function() {
+			$('.filter-testname-checkbox-hpc-checkbox').each(function(){
+				$(this).prop("checked", true);
+			})
+		})
+
+		$('#filter-testname-cloud-select-all-button').click(function() {
+			$('.filter-testname-checkbox-cloud-checkbox').each(function(){
+				$(this).prop("checked", true);
+			})
+		})
+
+		// On click Functions for all "Clear all" buttons
+		$('#filter-labels-clear-all-button').click(function() {
+			$('.filter-labels-checkbox-checkbox').each(function(){
+				$(this).prop("checked", false);
+			})
+		})
+
+		$('#filter-testname-hpc-clear-all-button').click(function() {
+			$('.filter-testname-checkbox-hpc-checkbox').each(function(){
+				$(this).prop("checked", false);
+			})
+		})
+
+		$('#filter-testname-cloud-clear-all-button').click(function() {
+			$('.filter-testname-checkbox-cloud-checkbox').each(function(){
+				$(this).prop("checked", false);
+			})
+		})
+
+		$('.best-results-radio').click(function() {
+			$('#clear-best-results-filter-button').prop("disabled", false)
+
+		})
+
+		$('#clear-best-results-filter-button').click(function() {
+			$('.best-results-radio').prop("checked", false)
+			$('#clear-best-results-filter-button').prop("disabled", true)
+		})
 
         function generateReports(filename, data, $form){
             data_string = JSON.stringify({ 'data': data, 'filename': filename})
