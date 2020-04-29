@@ -3371,6 +3371,14 @@ def parallel_test_report(testname, **kwargs):
     if 'skuidname' in results_dataframe.columns:
         results_dataframe.insert(1, 'SKUID', [skuid_cpu_map.get(skuidname.strip(), "Unkown SKUID") for skuidname in results_dataframe['skuidname']])
 
+    # Convert resultype column into corresponding entry of result_type_map
+    if 'resultype' in results_dataframe.columns:
+        index = list(results_dataframe.columns).index('resultype')
+        results_dataframe.insert(index, 'Result Type', [result_type_map.get(result_type, "Unkown resultype") for result_type in results_dataframe['resultype']])
+
+        # Drop the resultype column as it is no longer needed
+        del results_dataframe['resultype']
+
     # SPLIT the description string
     # Add Columns corresponding to the description_string
     description_list = description_string.split(',')
@@ -3560,10 +3568,6 @@ def generate_reports():
                     FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " LIKE \'%" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + "-" "%\'"
                 elif d['criteria-op'] == 'since':
                     FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " > \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
-
-
-    print("PRINTING Final Criteria")
-    print(FINAL_CRITERIA)
 
 
     # Retrieve data from the request object
