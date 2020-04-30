@@ -166,7 +166,11 @@ Reports Generation
 				</div>
 				<div class="custom-control custom-radio custom-control-inline">
 					<input type="radio" id="best-results-radio2" name="best-results-radio" value="top-5" class="custom-control-input best-results-radio">
-					<label class="custom-control-label h5" for="best-results-radio2">TOP 5 of each</label>
+					<label class="custom-control-label h5" for="best-results-radio2">TOP 5</label>
+				</div>
+				<div class="custom-control custom-radio custom-control-inline">
+					<input type="radio" id="best-results-radio3" name="best-results-radio" value="" class="custom-control-input best-results-radio">
+					<label class="custom-control-label h5" for="best-results-radio3">All Results</label>
 				</div>
 			</div>
 			<div class="card-footer bg-transparent d-flex">
@@ -217,8 +221,13 @@ Reports Generation
 							<!-- Display dropdown Yes/No -->
 							<div class="col-sm">
 								<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="Display this parameter's column in the final Excel Sheet (Yes/No)" id="disp-{{param.name}}" class="form-control " name="disp-{{param.name}}">
-									<option value="Yes" selected="selected">Yes</option>
-									<option value="No">No</option>
+									{% if param.display_by_default == "Yes" %}
+                                        <option value="Yes" selected="selected">Yes</option>
+									    <option value="No">No</option>
+                                    {% else %}
+                                        <option value="Yes">Yes</option>
+                                        <option value="No" selected="selected">No</option>
+                                    {% endif %}
 								</select>
 							</div>
 
@@ -258,6 +267,10 @@ Reports Generation
 											<option value="Sep">Sep<option value="Oct">Oct<option value="Nov">Nov<option value="Dec">Dec
 										</select>
 									</div>
+								{% elif param.input_type == "hidden" %}
+									<div class="col-sm py-0 m-0">
+										<input type="hidden"  title="" class="form-control" id="criteria-op-{{param.name}}" name="criteria-op-{{param.name}}" value="">
+									</div>
 								{% endif %}
 							</div>
 
@@ -288,6 +301,10 @@ Reports Generation
 							{% elif param.input_type == "text" %}
 								<div class="col-sm py-0 m-0">
 									<input type="text"  data-toggle="tooltip" data-placement="bottom" data-container="body" title="" class="form-control" id="criteria-{{param.name}}" name="criteria-{{param.name}}" placeholder="Enter value (Optional)">
+								</div>
+							{% elif param.input_type == "hidden" %}
+								<div class="col-sm py-0 m-0">
+									<input type="hidden"  title="" class="form-control" id="criteria-{{param.name}}" name="criteria-{{param.name}}" value="">
 								</div>
 							{% endif %}
 						</div>
