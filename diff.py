@@ -3203,31 +3203,38 @@ def reports_page():
 
     param_list = [
         {
-            'name' : 'SKUID', 'data_type' : 'string', 'input_type' : 'dropdown multiple select', 'dropdown_label' : '', 
+            'name' : 'SKUID', 'data_type' : 'string', 'input_type' : 'dropdown multiple select', 'dropdown_label' : '', 'display_by_default' : 'Yes',
             'dropdown_values_list' : [""] + all_tests_data['reference_list']
         },
         {
-            'name' : 'Test Date', 'data_type' : 'date', 'input_type' : 'dropdown', 'dropdown_label' : 'Year',
+            'name' : 'Test Date', 'data_type' : 'date', 'input_type' : 'dropdown', 'dropdown_label' : 'Year', 'display_by_default' : 'Yes',
             'dropdown_values_list' : ["", "2020", "2019", "2018"]
         
         },
         {
-            'name' : 'Scaling', 'data_type' : 'string', 'input_type' : 'dropdown', 'dropdown_label' : 'Scaling Type',
+            'name' : 'Scaling', 'data_type' : 'string', 'input_type' : 'dropdown', 'dropdown_label' : 'Scaling Type', 'display_by_default' : 'Yes',
             'dropdown_values_list' : [
                 "", "Single Thread", "Single Socket", "Dual Socket", 
                 "1/2 Socket", "1/4 Socket", "1/8 Socket", "Single core", "2 Cores",
             ]
         },
-        {'name' : 'Hostname', 'data_type' : 'string', 'input_type' : 'text'},
-        {'name' : 'Kernel Version', 'data_type' : 'string', 'input_type' : 'text', 'criteria_op_list' : ['greater than', 'equals', 'less than']},
-        {'name' : 'OS Version', 'data_type' : 'string', 'input_type' : 'text', 'criteria_op_list' : ['greater than', 'equals', 'less than']},
-        {'name' : 'OS Name', 'data_type' : 'string', 'input_type' : 'text'},
-        {'name' : 'Firmware Version', 'data_type' : 'string', 'input_type' : 'text'},
-        {'name' : 'ToolChain Name', 'data_type' : 'string', 'input_type' : 'text'},
-        {'name' : 'ToolChain Version', 'data_type' : 'string', 'input_type' : 'text'},
-        {'name' : 'SMT', 'data_type' : 'numeric', 'input_type' : 'text'},
-        {'name' : 'Cores', 'data_type' : 'numeric', 'input_type' : 'text'},
-        {'name' : 'DDRfreq', 'data_type' : 'numeric', 'input_type' : 'text'},
+        {'name' : 'Hostname', 'data_type' : 'string', 'input_type' : 'text', 'display_by_default' : 'No'},
+        {
+            'name' : 'Kernel Version', 'data_type' : 'string', 'input_type' : 'text', 'display_by_default' : 'Yes',
+            'criteria_op_list' : ['greater than', 'equals', 'less than']
+        },
+        {
+            'name' : 'OS Version', 'data_type' : 'string', 'input_type' : 'text', 'display_by_default' : 'Yes',
+            'criteria_op_list' : ['greater than', 'equals', 'less than']
+        },
+        {'name' : 'OS Name', 'data_type' : 'string', 'input_type' : 'text', 'display_by_default' : 'Yes'},
+        {'name' : 'Firmware Version', 'data_type' : 'string', 'input_type' : 'text', 'display_by_default' : 'No'},
+        {'name' : 'ToolChain Name', 'data_type' : 'string', 'input_type' : 'text', 'display_by_default' : 'No'},
+        {'name' : 'ToolChain Version', 'data_type' : 'string', 'input_type' : 'text', 'display_by_default' : 'Yes'},
+        {'name' : 'SMT', 'data_type' : 'numeric', 'input_type' : 'text', 'display_by_default' : 'No'},
+        {'name' : 'Cores', 'data_type' : 'numeric', 'input_type' : 'text', 'display_by_default' : 'No'},
+        {'name' : 'DDRfreq', 'data_type' : 'numeric', 'input_type' : 'text', 'display_by_default' : 'No'},
+        {'name' : 'Notes', 'data_type' : 'hidden', 'input_type' : 'hidden', 'display_by_default' : 'Yes'},
     ]
 
     context = {'param_list':param_list}
@@ -3266,6 +3273,7 @@ def parallel_test_report(testname, **kwargs):
     if best_results_condition:
 
         # Get 'higher_is_better' value for the first "field" of testname
+        qualifier = results_metadata_parser.get(testname, 'fields').replace('\"', '').replace(' ','').split(',')[0]
         higher_is_better = results_metadata_parser.get(testname, 'higher_is_better').replace('\"', '').replace(' ','').split(',')[0]
 
         # For each skuid_list
@@ -3335,7 +3343,7 @@ def parallel_test_report(testname, **kwargs):
 
         results_dataframe = pd.read_sql(RESULTS_QUERY, db)
 
-    if 'test_timestamp' in results_dataframe.columns:
+    if 'testdate' in results_dataframe.columns:
         results_dataframe.insert(2, 'Test Time', [d.time() for d in results_dataframe['testdate']])
         results_dataframe.insert(2, 'Test Date', [d.date() for d in results_dataframe['testdate']])
         results_dataframe.drop('testdate', axis=1, inplace=True)
@@ -3379,28 +3387,40 @@ def parallel_test_report(testname, **kwargs):
         # Drop the resultype column as it is no longer needed
         del results_dataframe['resultype']
 
-    # SPLIT the description string
-    # Add Columns corresponding to the description_string
-    description_list = description_string.split(',')
-    description_list = list(map(lambda x: x.strip(), description_list))
-    for col in reversed(description_list):
-        results_dataframe.insert(len(results_dataframe.columns)-4, col, 'default value')
+    if best_results_condition:
+        # Do NOT split the description column
+        # Since it causes a LOT of columns to be displayed in the final Excel Sheet
 
-    # Function which splits the description string into various parameters 
-    # according to 'description' field of the '.ini' file
-    def split_description(index, description):
-        try:
-            return description.split(',')[index]
-        except Exception as error_message:
-            logging.debug("Error = {}".format(error_message))
-            return np.nan
+        # Rename 'description' to 'Input file Description'
+        results_dataframe = results_dataframe.rename(columns = {'description':'Input File Description'})
+        pass
+    else:
+        # SPLIT the description string
+        # Add Columns corresponding to the description_string
+        description_list = description_string.split(',')
+        description_list = list(map(lambda x: x.strip(), description_list))
+        for col in reversed(description_list):
+            results_dataframe.insert(len(results_dataframe.columns)-4, col, 'default value')
 
-    # For all the rows in the dataframe, set the description_list values    
-    for j in range(len(description_list)):
-        results_dataframe[description_list[j]] = results_dataframe['description'].apply(lambda x: split_description(j, x))
+        # Function which splits the description string into various parameters 
+        # according to 'description' field of the '.ini' file
+        def split_description(index, description):
+            try:
+                return description.split(',')[index]
+            except Exception as error_message:
+                logging.debug("Error = {}".format(error_message))
+                return np.nan
 
-    # Drop the 'description' column as we have now split it into various columns according to description_string
-    del results_dataframe['description']
+        # For all the rows in the dataframe, set the description_list values    
+        for j in range(len(description_list)):
+            results_dataframe[description_list[j]] = results_dataframe['description'].apply(lambda x: split_description(j, x))
+
+        # Drop the 'description' column as we have now split it into various columns according to description_string
+        del results_dataframe['description']
+
+    # Add "FACTS Link" column at the end
+    index = len(results_dataframe.columns)
+    results_dataframe.insert(index, "FACTS Link", ['http://gbt-2s-02:5000/test-details/' + str(originID) for originID in results_dataframe['originID']])
 
     return results_dataframe
     
@@ -3458,6 +3478,7 @@ def generate_reports():
         "Hostname": 'o.hostname',
         "Scaling" : 's.resultype',
         "Test Date" : 'o.testdate',
+        "Notes" : 'o.notes',
     }
 
     # Required for date criteria
@@ -3491,6 +3512,7 @@ def generate_reports():
         {'name' : 'Hostname', 'data_type' : 'string', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
         {'name' : 'Scaling', 'data_type' : 'string', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
         {'name' : 'Test Date', 'data_type' : 'date', 'display' : '', 'criteria' : '', 'criteria2' : '', 'criteria-op' : '', 'query_condition' : ''},
+        {'name' : 'Notes', 'data_type' : 'hidden', 'display' : '', 'criteria' : '', 'criteria-op' : '', 'query_condition' : ''},
     ]
 
     # Fill 'param_list' with the request params
@@ -3501,6 +3523,7 @@ def generate_reports():
 
     # Get best_results_condition
     best_results_condition = request.form.get('best-results-radio')
+    print("GOT best results condition = {}".format(best_results_condition))
 
     for d in param_list:
         d['display'] = request.form.get('disp-'+d['name'])
@@ -3525,6 +3548,8 @@ def generate_reports():
         def get_key_from_value(value):
             return str(list(result_type_map.keys())[list(result_type_map.values()).index(value)])
 
+        skuid_criteria_op = ""
+        all_skuidnames_criteria = []
         # Append FINAL_CRITERIA
         if d['criteria']:
             if d['data_type'] == 'string':
@@ -3534,8 +3559,6 @@ def generate_reports():
                     else:
                         FINAL_CRITERIA += " AND s.resultype = " + get_key_from_value(d['criteria'].lower())
                 elif d['name'] == 'SKUID' and d['criteria'] != []:
-                    all_skuidnames_criteria = []
-                    skuid_criteria_op = ""
                     for criteria in d['criteria']:
                         # Make list of lists for best_results_condition
                         # Since we have to get best results for each sku
@@ -3570,6 +3593,11 @@ def generate_reports():
                 elif d['criteria-op'] == 'since':
                     FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " > \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
 
+    # Handle the condition where best_results_condition exists AND 'all_skuidnames_criteria' is empty []
+    if best_results_condition and all_skuidnames_criteria == []:
+        for criteria in sku_parser.sections():
+            all_skuidnames_criteria.append(skuid_cpu_map[criteria])
+        skuid_criteria_op = request.form.get('criteria-op-SKUID')
 
     # Retrieve data from the request object
     selected_tests_list = []
@@ -3587,6 +3615,7 @@ def generate_reports():
     if selected_tests_list == []:
         selected_tests_list = results_metadata_parser.sections()
 
+    print("GOT Final selected tests lists = {}".format(selected_tests_list))
     filename = request.form.get('filename')
 
 
@@ -3602,6 +3631,9 @@ def generate_reports():
     absolute_file_path = base_path + filename + '.xlsx'
 
     parallel_start_time = time.time()
+
+    print("All skuidnames criteria = {}".format(all_skuidnames_criteria))
+    print("SKUID Criteria op = {}".format(skuid_criteria_op))
 
     # Parallel excecution 
     results_dataframe_list = []
@@ -3622,6 +3654,7 @@ def generate_reports():
     start_time2 = time.time()
 
     if best_results_condition:
+        print("Best results. Writing excel sheets")
         # Write all results in a single excel file
 
         final_results_dataframe = pd.DataFrame()
@@ -3641,11 +3674,13 @@ def generate_reports():
             final_results_dataframe.to_excel(writer, sheet_name="Best results")
 
     else:
+        print("Normal results. Writing excel sheets")
         # Write the first dataframe to create the excel file
         with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
             results_dataframe_list[0].to_excel(writer, sheet_name=selected_tests_list[0])
 
-
+        print("Wrote first excel sheet")
+        
         # Write rest of the dataframes with the excel file in "Append" mode
         for results_dataframe, testname in zip(results_dataframe_list[1:], selected_tests_list[1:]):
             with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
