@@ -242,13 +242,10 @@ def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
     return compare_lists
 
 # Returns INPUT_FILTER_CONDITION from 'test_name' and 'input_filters_list'
-def get_input_filter_condition(test_name, input_filters_list, wiki_description_file=""):
+def get_input_filter_condition(test_name, input_filters_list, wiki_description_file='./config/wiki_description.ini'):
     INPUT_FILTER_CONDITION = ""
 
-    if wiki_description_file == "":
-        results_metadata_file_path = './config/wiki_description.ini'
-    else:
-        results_metadata_file_path = wiki_description_file
+    results_metadata_file_path = wiki_description_file
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -282,10 +279,9 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 # Get all-tests data
-def get_all_tests_data():
+def get_all_tests_data(wiki_description_file='./config/wiki_description.ini'):
     parser = configparser.ConfigParser()
-    wiki_metadata_file_path = './config/wiki_description.ini'
-    parser.read(wiki_metadata_file_path)
+    parser.read(wiki_description_file)
 
     # Reference for best_of_all_graph
     sku_file_path = './config/sku_definition.ini'
@@ -3199,7 +3195,7 @@ def download_as_csv():
 def reports_page():
 
     # For 'Go To Benchmark' Dropdown
-    all_tests_data = get_all_tests_data()
+    all_tests_data = get_all_tests_data(wiki_description_file='./config/best_of_all_graph.ini')
 
     param_list = [
         {
@@ -3243,12 +3239,16 @@ def reports_page():
     return render_template('reports.html', error=error, context=context, all_tests_data=all_tests_data)
 
 # Query the database paralelly for each 'testname'
-def parallel_test_report(testname, **kwargs):
+def parallel_test_report(params, **kwargs):
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
-    logging.debug("################################################################################")
-    logging.debug("Processing Paralelly for {}".format(testname))
+    # Unpack the params here
+    testname, INPUT_FILTER_CONDITION = params
+
+    print("################################################################################")
+    print("Processing Paralelly for {}".format(testname))
+    print("Input filter condition = {}".format(INPUT_FILTER_CONDITION))
 
     results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
@@ -3298,6 +3298,8 @@ def parallel_test_report(testname, **kwargs):
             elif best_results_condition == 'top-5':
                 LIMIT_CONDITION = " limit 5 "
 
+            QUALIFIER_CONDITION = "  AND disp.qualifier LIKE \'%" + qualifier + '%\''
+
             GROUP_BY_CONDITION = " group by t.testname, o.originID, " + SELECT_PARAMS + \
                                      " s.description, r.number, disp.unit, disp.qualifier "
 
@@ -3313,8 +3315,8 @@ def parallel_test_report(testname, **kwargs):
                             INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID
                             INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID
                             WHERE t.testname = \'""" + testname + \
-                            "\'" + FINAL_CRITERIA + SKUID_CRITERIA + " AND r.isvalid = 1 " + \
-                            GROUP_BY_CONDITION + ORDER_BY_CONDITION + LIMIT_CONDITION + ";"
+                            "\'" + INPUT_FILTER_CONDITION + FINAL_CRITERIA + SKUID_CRITERIA + " AND r.isvalid = 1 " + \
+                            + QUALIFIER_CONDITION + GROUP_BY_CONDITION + ORDER_BY_CONDITION + LIMIT_CONDITION + ";"
 
             logging.debug("\nFINAL QUERY = {}".format(RESULTS_QUERY))
 
@@ -3337,7 +3339,7 @@ def parallel_test_report(testname, **kwargs):
                         INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID
                         INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID
                         WHERE t.testname = \'""" + testname + \
-                        "\'" + FINAL_CRITERIA + " AND r.isvalid = 1;"
+                        "\'" + INPUT_FILTER_CONDITION + FINAL_CRITERIA + " AND r.isvalid = 1;"
 
         logging.debug("\nFINAL QUERY = {}".format(RESULTS_QUERY))
 
@@ -3431,7 +3433,7 @@ def generate_reports():
 
     print("Got request for generate reports")
 
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path = './config/best_of_all_graph.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -3615,7 +3617,23 @@ def generate_reports():
     if selected_tests_list == []:
         selected_tests_list = results_metadata_parser.sections()
 
+    # Sort the selected_tests_list alphabetically
+    selected_tests_list.sort()
+    # Get the INPUT_FILTER_CONDITION for each selected test
+    input_filters_list_list = [results_metadata_parser.get(test_section, 'default_input') \
+                                .replace('\"', '').split(',') for test_section in selected_tests_list]
+    INPUT_FILTER_CONDITION_LIST = [get_input_filter_condition(test_section, input_filters_list, \
+                                    wiki_description_file="./config/best_of_all_graph.ini") \
+                                    for test_section, input_filters_list in zip(selected_tests_list, input_filters_list_list)]
+
+    # After we get INPUT_FILTER_CONDITION_LIST, change selected_tests_list
+    # to a list having actual 'testnames' and not sections from best_of_all_graph.ini
+    # Read all test names from .ini file
+    selected_tests_list = [results_metadata_parser.get(section, 'testname').strip() for section in selected_tests_list] 
+
     print("GOT Final selected tests lists = {}".format(selected_tests_list))
+    print(len(selected_tests_list))
+    print(len(results_metadata_parser.sections()))
     filename = request.form.get('filename')
 
 
@@ -3637,13 +3655,13 @@ def generate_reports():
 
     # Parallel excecution 
     results_dataframe_list = []
-    pool = multiprocessing.Pool(10)
+    pool = multiprocessing.Pool(num_processes)
     try:
         results_dataframe_list = pool.map(partial(parallel_test_report, SELECT_PARAMS=SELECT_PARAMS, FINAL_CRITERIA=FINAL_CRITERIA, \
                                 kernel_criteria=request.form.get('criteria-Kernel Version'), os_version_criteria=request.form.get('criteria-OS Version'), \
                                 os_version_criteria_op=request.form.get('criteria-op-OS Version'), kernel_criteria_op=request.form.get('criteria-op-Kernel Version'), \
                                 skuid_cpu_map=skuid_cpu_map, best_results_condition=best_results_condition, skuid_criteria_op=skuid_criteria_op, \
-                                all_skuidnames_criteria=all_skuidnames_criteria), selected_tests_list)
+                                all_skuidnames_criteria=all_skuidnames_criteria), zip(selected_tests_list, INPUT_FILTER_CONDITION_LIST))
     finally:
         print("Closing Pool")
         pool.close()
