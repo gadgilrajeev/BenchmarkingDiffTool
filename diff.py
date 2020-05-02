@@ -1,5 +1,5 @@
 from pprint import pprint
-import time     
+import time
 import logging
 import os, shutil
 from joblib import Parallel, delayed    #For parallel processing
@@ -3244,7 +3244,7 @@ def parallel_test_report(params, **kwargs):
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     # Unpack the params here
-    testname, INPUT_FILTER_CONDITION = params
+    test_section, testname, INPUT_FILTER_CONDITION = params
 
     print("################################################################################")
     print("Processing Paralelly for {}".format(testname))
@@ -3273,7 +3273,7 @@ def parallel_test_report(params, **kwargs):
     if best_results_condition:
 
         # Get 'higher_is_better' value for the first "field" of testname
-        qualifier = results_metadata_parser.get(testname, 'fields').replace('\"', '').replace(' ','').split(',')[0]
+        qualifier = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')[0]
         higher_is_better = results_metadata_parser.get(testname, 'higher_is_better').replace('\"', '').replace(' ','').split(',')[0]
 
         # For each skuid_list
@@ -3303,6 +3303,8 @@ def parallel_test_report(params, **kwargs):
             GROUP_BY_CONDITION = " group by t.testname, o.originID, " + SELECT_PARAMS + \
                                      " s.description, r.number, disp.unit, disp.qualifier "
 
+            start_time = time.time()
+
             RESULTS_QUERY = "SELECT t.testname, o.originID, " + SELECT_PARAMS + \
                             "s.description," + R_NUMBER + """ disp.unit, disp.qualifier 
                             FROM result r INNER JOIN subtest s ON s.subtestID=r.subtest_subtestID 
@@ -3316,15 +3318,23 @@ def parallel_test_report(params, **kwargs):
                             INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID
                             WHERE t.testname = \'""" + testname + \
                             "\'" + INPUT_FILTER_CONDITION + FINAL_CRITERIA + SKUID_CRITERIA + " AND r.isvalid = 1 " + \
-                            + QUALIFIER_CONDITION + GROUP_BY_CONDITION + ORDER_BY_CONDITION + LIMIT_CONDITION + ";"
+                            QUALIFIER_CONDITION + GROUP_BY_CONDITION + ORDER_BY_CONDITION + LIMIT_CONDITION + ";"
 
             logging.debug("\nFINAL QUERY = {}".format(RESULTS_QUERY))
 
+            # ['nyx', 'coremark', 'phloem-bandwidth', 'namd']
+            if test_section == 'nyx':
+                print("Got nyx bro {}\n".format(RESULTS_QUERY))
+
             temp_df = pd.read_sql(RESULTS_QUERY, db)
+
+            query_excecution_time = time.time() - start_time
+            print("Query excecution took {} seconds".format(query_excecution_time))
 
             # Append the dataframe below the current dataframe
             results_dataframe = results_dataframe.append(temp_df, sort=False)
 
+        # Replace testname with 'test_section' name
         results_dataframe = results_dataframe.reset_index(drop=True)
     else:
         RESULTS_QUERY = "SELECT t.testname, o.originID, " + SELECT_PARAMS + \
@@ -3344,6 +3354,11 @@ def parallel_test_report(params, **kwargs):
         logging.debug("\nFINAL QUERY = {}".format(RESULTS_QUERY))
 
         results_dataframe = pd.read_sql(RESULTS_QUERY, db)
+
+    if 'testname' in results_dataframe:
+        results_dataframe.insert(0, "Test name", [test_section for item in results_dataframe['testname']])
+        del results_dataframe['testname']
+
 
     if 'testdate' in results_dataframe.columns:
         results_dataframe.insert(2, 'Test Time', [d.time() for d in results_dataframe['testdate']])
@@ -3602,40 +3617,38 @@ def generate_reports():
         skuid_criteria_op = request.form.get('criteria-op-SKUID')
 
     # Retrieve data from the request object
-    selected_tests_list = []
+    selected_sections_list = []
     if request.form.get('filter-by-label-or-benchmark') == 'testname':
-        selected_tests_list = request.form.getlist('filter_testname_list')
+        selected_sections_list = request.form.getlist('filter_testname_list')
     else:
         selected_labels_list = request.form.getlist('filter_labels_list')
+        print("PRint selected_labels_list = {}".format(selected_labels_list))
         for label in selected_labels_list:
-            selected_tests_list.extend(label_testname_map[label])
+            selected_sections_list.extend(label_testname_map[label])
 
         # For getting unique entries
-        selected_tests_list = list(set(selected_tests_list))
+        selected_sections_list = list(set(selected_sections_list))
 
     # If none of the benchmarks is selected, put in all tests
-    if selected_tests_list == []:
-        selected_tests_list = results_metadata_parser.sections()
+    if selected_sections_list == []:
+        selected_sections_list = results_metadata_parser.sections()
 
     # Sort the selected_tests_list alphabetically
-    selected_tests_list.sort()
+    selected_sections_list.sort()
     # Get the INPUT_FILTER_CONDITION for each selected test
     input_filters_list_list = [results_metadata_parser.get(test_section, 'default_input') \
-                                .replace('\"', '').split(',') for test_section in selected_tests_list]
+                                .replace('\"', '').split(',') for test_section in selected_sections_list]
     INPUT_FILTER_CONDITION_LIST = [get_input_filter_condition(test_section, input_filters_list, \
                                     wiki_description_file="./config/best_of_all_graph.ini") \
-                                    for test_section, input_filters_list in zip(selected_tests_list, input_filters_list_list)]
+                                    for test_section, input_filters_list in zip(selected_sections_list, input_filters_list_list)]
 
-    # After we get INPUT_FILTER_CONDITION_LIST, change selected_tests_list
-    # to a list having actual 'testnames' and not sections from best_of_all_graph.ini
-    # Read all test names from .ini file
-    selected_tests_list = [results_metadata_parser.get(section, 'testname').strip() for section in selected_tests_list] 
+    # Read all test names each section of best_of_all_graph.ini file
+    selected_tests_list = [results_metadata_parser.get(section, 'testname').strip() for section in selected_sections_list] 
 
-    print("GOT Final selected tests lists = {}".format(selected_tests_list))
-    print(len(selected_tests_list))
-    print(len(results_metadata_parser.sections()))
+    print("Selected sections list = {} {}".format(selected_sections_list, len(selected_sections_list)))
+    print("SElected tests list = {} {}".format(selected_tests_list, len(selected_tests_list)))
+
     filename = request.form.get('filename')
-
 
     # Clear the temp_download_files directory
     base_path = os.getcwd() + '/temp_download_files/'
@@ -3661,14 +3674,14 @@ def generate_reports():
                                 kernel_criteria=request.form.get('criteria-Kernel Version'), os_version_criteria=request.form.get('criteria-OS Version'), \
                                 os_version_criteria_op=request.form.get('criteria-op-OS Version'), kernel_criteria_op=request.form.get('criteria-op-Kernel Version'), \
                                 skuid_cpu_map=skuid_cpu_map, best_results_condition=best_results_condition, skuid_criteria_op=skuid_criteria_op, \
-                                all_skuidnames_criteria=all_skuidnames_criteria), zip(selected_tests_list, INPUT_FILTER_CONDITION_LIST))
+                                all_skuidnames_criteria=all_skuidnames_criteria), zip(selected_sections_list, selected_tests_list, INPUT_FILTER_CONDITION_LIST))
     finally:
         print("Closing Pool")
         pool.close()
         pool.join()
 
     print("Parallelism took {} seconds".format(time.time() - parallel_start_time))
-
+    print("{}".format(len(results_dataframe_list)))
     start_time2 = time.time()
 
     if best_results_condition:
@@ -3678,7 +3691,9 @@ def generate_reports():
         final_results_dataframe = pd.DataFrame()
 
         # Append all the dataframes from the list to final_results_dataframe
+        i = 0
         for results_dataframe in results_dataframe_list:
+            i += 1
             final_results_dataframe = final_results_dataframe.append(results_dataframe, sort=False)
 
             # Append an empty row to the final_results_dataframe
@@ -3686,6 +3701,8 @@ def generate_reports():
 
         # Reset Index
         final_results_dataframe = final_results_dataframe.reset_index(drop=True)
+
+        print("final results dataframe = {}".format(i))
 
         # Write the entire dataframe in a single sheet
         with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
@@ -3695,12 +3712,12 @@ def generate_reports():
         print("Normal results. Writing excel sheets")
         # Write the first dataframe to create the excel file
         with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
-            results_dataframe_list[0].to_excel(writer, sheet_name=selected_tests_list[0])
+            results_dataframe_list[0].to_excel(writer, sheet_name=selected_sections_list[0])
 
         print("Wrote first excel sheet")
         
         # Write rest of the dataframes with the excel file in "Append" mode
-        for results_dataframe, testname in zip(results_dataframe_list[1:], selected_tests_list[1:]):
+        for results_dataframe, testname in zip(results_dataframe_list[1:], selected_sections_list[1:]):
             with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
                 results_dataframe.to_excel(writer, sheet_name=testname)
 
