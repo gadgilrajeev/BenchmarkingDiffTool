@@ -104,6 +104,7 @@ venv.bak/
 
 # exclude everything inside the folder
 temp_download_files/*
+cached_results/*
 
 # exception to the rule
 temp_downlaod_files/.gitkeep 
