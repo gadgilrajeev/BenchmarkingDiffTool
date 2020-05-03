@@ -324,6 +324,9 @@ Reports Generation
 
 		<!-- Filename (hidden input field) -->
 		<input type="hidden" id="filename" name="filename" value="Sample Filename">
+		<!-- Timestamp (hidden input field) -->
+		<input type="hidden" id="local-timestamp" name="local-timestamp" value="">
+
 
 		<!-- Generate reports (Submit form) button -->
 		<div class="text-center">
@@ -337,6 +340,9 @@ Reports Generation
         $(document).ready(function() {
             console.log("Reports generation page loaded")
 			$('#generate-reports-form')[0].reset()
+
+			localTimestamp = new Date()
+			$('#local-timestamp').val(localTimestamp.toLocaleString())
         })
 
         $("#live-search-labels-textbox").keyup(function(){
