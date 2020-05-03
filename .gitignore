@@ -106,5 +106,3 @@ venv.bak/
 temp_download_files/*
 cached_results/*
 
-# exception to the rule
-temp_downlaod_files/.gitkeep 
