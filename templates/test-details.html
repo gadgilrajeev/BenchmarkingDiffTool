@@ -56,13 +56,15 @@ Test Details
 
 				<tr>
 					{% for key in context.system_details %}
-						{% if loop.index0 < 3 %}
-							{% if loop.index0 == 2 %}
+						{% if loop.index0 < 4 %}
+							{% if loop.index0 == 3 %}
 								<td> <a class="btn btn-lg btn-success font-weight-bold" href="/environment-details/{{ context.system_details[key][0] }}">Details</a></td>
+							{% elif loop.index0 == 2 %}
+								<td style="width: 150px; word-wrap: break-word; display: inline-block; border-right: hidden;"> {{ context.system_details[key][0] }}</td>
 							{% else %}
 								<td> {{ context.system_details[key][0] }}</td>
 							{% endif %}
-						{% elif loop.index0 == 3 %}
+						{% elif loop.index0 == 4 %}
 						<td> <a class="btn btn-lg btn-success font-weight-bold" href="{{ context.system_details[key][0] }}" target="_blank">NAS Link</a>  </td>
 						{% else %}
 						<td> <a class="btn btn-lg btn-success font-weight-bold" href="{{ context.system_details[key][0] }}" target="_blank">Jenkins Link</a>  </td>
