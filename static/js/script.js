@@ -101,8 +101,10 @@ function drawBestOfAllGraph(normalizedWRT){
 		'to_date_filter' : $toDate,
 	}
 
-	// Show "Loading..." message before the graph loads 
-	$("#best-of-all-graph").html("Loading Graph...");
+	Plotly.purge('best-of-all-graph')
+
+	// Set html to loading circle
+	$("#best-of-all-graph").html(("<div class='loading-circle text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>"));
 
 	$.ajax({
     	url: '/best_of_all_graph',
@@ -111,6 +113,8 @@ function drawBestOfAllGraph(normalizedWRT){
 		contentType: "application/json",
 		data: JSON.stringify(data),
 	}).done(function(response){
+		$('.loading-circle').remove()
+
 		console.log("DONEEEEEEE BEST OF ALL")
 		console.log(response)
 
@@ -178,6 +182,14 @@ function sendAjaxRequest(ajaxData, url) {
 		'/best_sku_graph_normalized' : 'best-sku-graph',
 	}
 
+	graphID = url_graph_map[url]
+
+	Plotly.purge(graphID)
+
+	// Set html to loading circle
+	$('#'+graphID).html("<div class='loading-circle text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>")
+
+
 	$.ajax({
     	url: url,
 		method: "POST",
@@ -186,17 +198,21 @@ function sendAjaxRequest(ajaxData, url) {
 		data: JSON.stringify(ajaxData),
 
 	}).done(function(response){
+		// Remove all the loading circles first
+		$('.loading-circle').remove()
+
+
 		console.log("DONEEEEEEE")
 		console.log(response)
 
 		if(url == '/get_data_for_graph'){
 			console.log("CALLING DRAW CLUSTERED GERAPH")
 			console.log(response)
-			drawClusteredGraph(response, graphID = url_graph_map[url])
+			drawClusteredGraph(response, graphID = graphID)
 		}
 		else{
 			console.log("CALLING DRAW OTHER GRAPH")
-			drawComparisonGraph(response, graphID = url_graph_map[url])
+			drawComparisonGraph(response, graphID = graphID)
 		}
 
 		// Fill the dropdown after the graph data is available
