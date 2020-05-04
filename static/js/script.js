@@ -182,12 +182,10 @@ function sendAjaxRequest(ajaxData, url) {
 		'/best_sku_graph_normalized' : 'best-sku-graph',
 	}
 
-	graphID = url_graph_map[url]
-
-	Plotly.purge(graphID)
+	Plotly.purge(url_graph_map[url])
 
 	// Set html to loading circle
-	$('#'+graphID).html("<div class='loading-circle text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>")
+	$('#'+url_graph_map[url]).html("<div class='loading-circle text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>")
 
 
 	$.ajax({
@@ -208,11 +206,11 @@ function sendAjaxRequest(ajaxData, url) {
 		if(url == '/get_data_for_graph'){
 			console.log("CALLING DRAW CLUSTERED GERAPH")
 			console.log(response)
-			drawClusteredGraph(response, graphID = graphID)
+			drawClusteredGraph(response, graphID = url_graph_map[url])
 		}
 		else{
 			console.log("CALLING DRAW OTHER GRAPH")
-			drawComparisonGraph(response, graphID = graphID)
+			drawComparisonGraph(response, graphID = url_graph_map[url])
 		}
 
 		// Fill the dropdown after the graph data is available
