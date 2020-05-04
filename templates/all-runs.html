@@ -65,6 +65,8 @@ All Runs of {{ context.testname }}
 	</div>
 	
 	<div class="card" id="outer-graph-div" style="background: #B7E9F7;">
+
+		<!-- All Input filters div -->
 		<div class="card-header bg-transparent p-0" id="input-filter-div">
 			<h2>Input Filters</h2>
 				{% for column in context.input_details %}
@@ -88,6 +90,7 @@ All Runs of {{ context.testname }}
 				{% endfor %}
 		</div>
 
+		<!-- SKU Comparison graph - For engineering team -->
 		<div class="card bg-light border-info" id="engineering-graph-div">
 			<div class="card-header bg-success text-white text-center" id="engineering-team-title"><h2 class="font-weight-bold">For Engineering Team</h2></div>
 			<div id="clustered-graph"></div>
@@ -104,7 +107,8 @@ All Runs of {{ context.testname }}
 			</select>
 			<p>vs</p>
 			<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="X - Parameter" id="xParameter" class="form-control form-control-lg" name="xParameter">
-				<option value="Kernel Version" selected="selected">Kernel Version</option>
+				<option value="Scaling" selected="selected">Scaling</option>
+				<option value="Kernel Version">Kernel Version</option>
 				<option value="OS Version">OS Version</option>
 				<option value="OS Name">OS Name</option>
 				<option value="Firmware Version">Firmware Version</option>
@@ -116,7 +120,6 @@ All Runs of {{ context.testname }}
 				<option value="DDRfreq">DDRfreq</option>
 				<option value="SKUID">SKUID</option>
 				<option value="Hostname">Hostname</option>
-				<option value="Scaling">Scaling</option>
 				<!-- <option value="Flags">Flags</option> -->
 			</select>
 
@@ -124,6 +127,7 @@ All Runs of {{ context.testname }}
 			
 		</div>
 
+		<!-- BEST SKU Comparison graph - For Marketing and communications team -->
 		<div class="card bg-light border-info" id="marketing-graph-div">
 			<div class="card-header bg-success text-white text-center" id="marketing-team-title"><h2 class="font-weight-bold">For Marketing and Communication Team</h2></div>
 			<div id="best-sku-graph"></div>
