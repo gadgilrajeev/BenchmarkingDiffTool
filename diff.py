@@ -648,7 +648,7 @@ def getTestDetailsData(originID, secret=False):
         del results_dataframe['isvalid']
 
         # Get some System details
-        SYSTEM_DETAILS_QUERY = """SELECT DISTINCT O.hostname, O.testdate, O.originID as 'Environment Details',  S.resultype 
+        SYSTEM_DETAILS_QUERY = """SELECT DISTINCT O.hostname, O.testdate, O.notes, O.originID as 'Environment Details',  S.resultype 
                                 FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID 
                                 INNER JOIN origin O ON O.originID=R.origin_originID 
                                 WHERE O.originID=""" + originID + ";"
@@ -1272,45 +1272,46 @@ def parallel_excecute_y_query(x_param, **kwargs):
     xParameter = kwargs['xParameter']
     parameter_map = kwargs['parameter_map']
     skus = kwargs['skus']
-    table_map = kwargs['table_map']
     join_on_map = kwargs['join_on_map']
     testname = kwargs['testname']
 
+    start_time = time.time() 
+
     # max or min
     if min_or_max_list[index] == '0':
-        Y_LIST_QUERY = """SELECT MIN(r.number) as number, o.originID as originID, n.skuidname as skuidname 
-                            FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
-                            " INNER JOIN result r ON o.originID = r.origin_originID " +\
-                            """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+        Y_LIST_QUERY = """SELECT r.number, o.originID, n.skuidname FROM origin o 
+                            INNER JOIN result r ON o.originID = r.origin_originID 
+                            INNER JOIN display disp ON  r.display_displayID = disp.displayID 
                             INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
-                            INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
-                            INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
-                            INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
-                            WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
-                            " and " + parameter_map[xParameter] + " = \'" + x_param + \
+                            INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID 
+                            INNER JOIN node n ON hw.node_nodeID = n.nodeID 
+                            INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID """ + join_on_map[xParameter] + \
+                            " WHERE n.skuidname in " + str(skus).replace('[', '(').replace(']', ')') + \
+                            " and " + parameter_map[xParameter] + " = \'" + str(x_param) + \
                             "\' and t.testname = \'" + testname + \
                             "\' AND r.number > 0 AND r.isvalid = 1 AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
                             INPUT_FILTER_CONDITION + \
                             " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number limit 1;"
     else:
-        Y_LIST_QUERY = """SELECT MAX(r.number) as number, o.originID as originID, n.skuidname as skuidname 
-                            FROM """ + table_map[xParameter] + " " + join_on_map[xParameter] + \
-                            " INNER JOIN result r ON o.originID = r.origin_originID " +\
-                            """ INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+        Y_LIST_QUERY = """SELECT r.number, o.originID, n.skuidname FROM origin o 
+                            INNER JOIN result r ON o.originID = r.origin_originID
+                            INNER JOIN display disp ON  r.display_displayID = disp.displayID 
                             INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID  
-                            INNER JOIN hwdetails hw1 ON o.hwdetails_hwdetailsID = hw1.hwdetailsID
-                            INNER JOIN node n ON hw1.node_nodeID = n.nodeID 
-                            INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
-                            WHERE n.skuidname in """ + str(skus).replace('[', '(').replace(']', ')') + \
-                            " and " + parameter_map[xParameter] + " = \'" + x_param + \
+                            INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID
+                            INNER JOIN node n ON hw.node_nodeID = n.nodeID 
+                            INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID """ + join_on_map[xParameter] + \
+                            " WHERE n.skuidname in " + str(skus).replace('[', '(').replace(']', ')') + \
+                            " and " + parameter_map[xParameter] + " = \'" + str(x_param) + \
                             "\' and t.testname = \'" + testname + "\' AND r.isvalid = 1 " + \
                             " AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
                             INPUT_FILTER_CONDITION + \
                             " group by " + parameter_map[xParameter]  + ", o.originID, n.skuidname, r.number order by r.number DESC limit 1;"
 
-    logging.debug("EXCECUTING Y QUERY")
+    logging.debug("YQUERY = {}".format(Y_LIST_QUERY))
+
     y_df = pd.read_sql(Y_LIST_QUERY, db)
-    logging.debug("EXCECUTED Y QUERY?")
+
+    logging.debug("Y QUERY for get_d_f_g took {} seconds".format(time.time() - start_time))
 
     # # Close database connection
     # try:
@@ -1353,7 +1354,7 @@ def parallel_sku_compare(section, **kwargs):
                     "\' from " + table_map[xParameter] + " " + \
                     join_on_map[xParameter] + """ INNER JOIN result r ON o.originID = r.origin_originID 
                     INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID 
-                    WHERE t.testname=\'""" + testname + "\'" + SCALING_CONDITION + ";"
+                    WHERE t.testname=\'""" + testname + "\'" + INPUT_FILTER_CONDITION + ";"
 
     x_df = pd.read_sql(X_LIST_QUERY, db)
     x_list = sorted(x_df[parameter_map[xParameter]].to_list())
@@ -1539,47 +1540,67 @@ def get_data_for_graph():
         "Cores": 'b.cores',
         "Corefreq": 'b.corefreq',
         "DDRfreq": 'b.ddrfreq',
-        "SKUID": 'n1.skuidname',
-        "Hostname": 'o1.hostname',
-        "Scaling" : 'S.resultype',
+        "SKUID": 'n.skuidname',
+        "Hostname": 'o.hostname',
+        "Scaling" : 's.resultype',
     }
-    table_map = {
-        "Kernel Version": 'ostunings os', 
-        'OS Version': 'ostunings os', 
-        'OS Name': 'ostunings os', 
-        "Firmware Version": 'hwdetails hw', 
-        "ToolChain Name": 'toolchain tc', 
-        "ToolChain Version" : 'toolchain tc', 
-        "Flags": 'toolchain tc',
-        "SMT" : 'bootenv b',
-        "Cores": 'bootenv b',
-        "Corefreq": 'bootenv b',
-        "DDRfreq": 'bootenv b',
-        "SKUID": 'node n1',
-        "Hostname": 'origin o1',
-        "Scaling" : 'subtest S',
+    join_on_map_for_x_query = {
+        'Kernel Version': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        'OS Version': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        'OS Name': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        "Firmware Version": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID', 
+        "ToolChain Name": 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "ToolChain Version" : 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "Flags": 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "SMT" : 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "Cores": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "Corefreq": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "DDRfreq": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "SKUID": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN node n ON hw.node_nodeID = n.nodeID',
+        "Hostname" : ' ',
+        "Scaling" : ' ',
     }
     join_on_map = {
-        'Kernel Version': 'INNER JOIN origin o ON o.ostunings_ostuningsID = os.ostuningsID', 
-        'OS Version': 'INNER JOIN origin o ON o.ostunings_ostuningsID = os.ostuningsID', 
-        'OS Name': 'INNER JOIN origin o ON o.ostunings_ostuningsID = os.ostuningsID',
-        "Firmware Version": 'INNER JOIN origin o ON o.hwdetails_hwdetailsID = hw.hwdetailsID', 
-        "ToolChain Name": 'INNER JOIN origin o ON o.toolchain_toolchainID = tc.toolchainID', 
-        "ToolChain Version" : 'INNER JOIN origin o ON o.toolchain_toolchainID = tc.toolchainID', 
-        "Flags": 'INNER JOIN origin o ON o.toolchain_toolchainID = tc.toolchainID',
-        "SMT" : 'INNER JOIN origin o ON o.hwdetails_bootenv_bootenvID = b.bootenvID',
-        "Cores": 'INNER JOIN origin o ON o.hwdetails_bootenv_bootenvID = b.bootenvID',
-        "Corefreq": 'INNER JOIN origin o ON o.hwdetails_bootenv_bootenvID = b.bootenvID',
-        "DDRfreq": 'INNER JOIN origin o ON o.hwdetails_bootenv_bootenvID = b.bootenvID',
-        "SKUID": 'INNER JOIN origin o ON o.hwdetails_node_nodeID = n1.nodeID',
-        "Hostname" : 'INNER JOIN origin o ON o1.originID = o.originID',
-        "Scaling" : 'INNER JOIN result r1 on r1.subtest_subtestID=S.subtestID INNER JOIN origin o ON o.originID=r1.origin_originID',
+        'Kernel Version': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        'OS Version': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        'OS Name': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        "Firmware Version": ' ',
+        "ToolChain Name": 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "ToolChain Version" : 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "Flags": 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "SMT" : 'INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "Cores": 'INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "Corefreq": 'INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "DDRfreq": 'INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "SKUID": ' ',
+        "Hostname" : ' ',
+        "Scaling" : ' ',
     }
 
-    if(xParameter == "Scaling"):
-        SCALING_CONDITION = " AND S.resultype <= 8 "
-    else:
-        SCALING_CONDITION = " "
+
+    # Conditions for filtering x_list
+    filter_x_list_map = {
+        "Kernel Version": 'not empty string', 
+        'OS Version': 'not empty string',
+        'OS Name': 'not empty string',
+        "Firmware Version": 'not empty string',
+        "ToolChain Name": 'not empty string',
+        "ToolChain Version" : 'not empty string',
+        "Flags": 'not empty string',
+        "SMT" : 'greater than zero',
+        "Cores": 'greater than zero',
+        "Corefreq": 'greater than zero',
+        "DDRfreq": 'greater than zero',
+        "SKUID": 'not empty string',
+        "Hostname": 'not empty string',
+        "Scaling" : 'greater than zero',
+    }
+
+
+    # if xParameter == "Scaling":
+    #     SCALING_CONDITION = " AND s.resultype <= 8 "
+    # else:
+    #     SCALING_CONDITION = " "
 
     server_cpu_list = []
 
@@ -1589,25 +1610,42 @@ def get_data_for_graph():
     y_list_list = []
     originID_list_list = []
 
+    if xParameter == "Scaling":
+        # [dual socket, single socket, 1/2 socket, 1/4th socket, 1/8th  socket, 2 cores, single core]
+        initial_x_list = [3, 2, 7, 6, 5, 8, 1]
+    else:
+        # Get initial_x_list by excecuting the query
+        X_LIST_QUERY = "SELECT DISTINCT " + parameter_map[xParameter] + " as \'" + parameter_map[xParameter] + \
+                        """\' FROM origin o INNER JOIN result r ON o.originID = r.origin_originID 
+                        INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID
+                        INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+                        INNER JOIN display disp ON  r.display_displayID = disp.displayID """ + \
+                        join_on_map_for_x_query[xParameter] + \
+                        " WHERE t.testname=\'""" + testname + "\'" + INPUT_FILTER_CONDITION + ";"
+
+        logging.debug("Printing XLIST QUERY")
+        logging.debug(X_LIST_QUERY)
+
+        x_df = pd.read_sql(X_LIST_QUERY, db)
+        logging.debug("X_Dataframe = {}".format(x_df))
+        initial_x_list = sorted(x_df[parameter_map[xParameter]].to_list())
+        logging.debug("X_LIST = {}".format(initial_x_list))
+
+    if filter_x_list_map[xParameter] == 'not empty string':
+        # Convert each element to type "str"
+        initial_x_list = list(map(lambda x: str(x).strip(), initial_x_list))
+        
+        # Remove ALL the entries which are '' in the list 
+        initial_x_list = list(filter(lambda x: x != '', initial_x_list))
+    elif filter_x_list_map[xParameter] == 'greater than zero':
+        initial_x_list = list(filter(lambda x: x > 0, initial_x_list))
+
+
     # # For each cpu manufacturer
     for section in sku_parser.sections():
         skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
 
-        X_LIST_QUERY = "SELECT DISTINCT " + parameter_map[xParameter] + " as \'" + parameter_map[xParameter] + \
-                        "\' from " + table_map[xParameter] + " " + \
-                        join_on_map[xParameter] + """ INNER JOIN result r ON o.originID = r.origin_originID 
-                        INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID 
-                        WHERE t.testname=\'""" + testname + "\'" + SCALING_CONDITION + ";"
-
-        x_df = pd.read_sql(X_LIST_QUERY, db)
-        x_list = sorted(x_df[parameter_map[xParameter]].to_list())
-        
-        # Convert each element to type "str"
-        x_list = list(map(lambda x: str(x), x_list))
-
-        
-        # Remove ALL the entries which are '' in the list 
-        x_list = list(filter(lambda x: x!='',x_list))
+        x_list = initial_x_list
 
         logging.debug("\nAFTER REMOVING wrong entries \n")
         logging.debug("\nPRINTING X LIST  = {}".format(x_list))
@@ -1618,8 +1656,8 @@ def get_data_for_graph():
 
         # For removing 'not found' entries from x_list
         x_list_rm = []
-        
-        print("Length of x_list = {}".format(len(x_list)))
+
+        logging.debug("Length of x_list = {}".format(len(x_list)))
     #     # def read_y_list(x_param):
     #     #     db1 = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
     #     #                      passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
@@ -1724,37 +1762,33 @@ def get_data_for_graph():
         #         skuid_list.extend(y_df['skuidname'].to_list())
         #         skuid_list[-1] = skuid_list[-1].strip()
 
+        logging.debug("Order in which X_LIST is going = {}".format(x_list))
         # Parallel excecution for "y" query
         pool = multiprocessing.Pool(30)
         try:
             data_lists = pool.map(partial(parallel_excecute_y_query, min_or_max_list=min_or_max_list, \
                     qualifier_list=qualifier_list, INPUT_FILTER_CONDITION=INPUT_FILTER_CONDITION, \
                     index=index, xParameter=xParameter, parameter_map=parameter_map, skus=skus, \
-                    table_map=table_map, join_on_map=join_on_map, testname=testname ), x_list)
+                    join_on_map=join_on_map, testname=testname ), x_list)
         finally:
             print("Closing pool")
             pool.close()
             pool.join()
 
-        print("Got Data list")
-        print(len(data_lists), type(data_lists))
-        print(data_lists[0])
+        logging.debug("Got Data list")
+        logging.debug(len(data_lists), type(data_lists))
+        logging.debug(data_lists[0])
 
         x_list_rm.extend([l[0] for l in data_lists if l[0] != None])
         y_list.extend([l[1] for l in data_lists if l[1] != None])
         originID_list.extend([l[2] for l in data_lists if l[2] != None])
         # Filter on '' simultaneously
         skuid_list.extend([skuidname.strip() for skuidname in [l[3] for l in data_lists if l[3] != None]])
-        print("X rm list = {}".format(x_list_rm))
-        print("Y list = {}".format(y_list))
-        print("OriginID list = {}".format(originID_list))
-        print("SKUID list = {}".format(skuid_list))
+        logging.debug("X rm list = {}".format(x_list_rm))
+        logging.debug("Y list = {}".format(y_list))
+        logging.debug("OriginID list = {}".format(originID_list))
+        logging.debug("SKUID list = {}".format(skuid_list))
         # Done 
-
-
-        logging.debug("PRINTING Y LIST = {}".format(y_list))
-        logging.debug("PRINTING ORIGIN LIST= {}".format(originID_list))
-        logging.debug("PRINTING SKUID LIST = {}".format(skuid_list))
 
         # Remove all the entries where skuid = ''
         while True:
@@ -1773,8 +1807,11 @@ def get_data_for_graph():
         logging.debug("PRINTING SKUID LIST = {}".format(skuid_list))
 
         #Remove everything that has an empty set returned
-        x_list = [x for x in x_list if x not in x_list_rm]
-    
+        x_list = [str(x) for x in x_list if x not in x_list_rm]
+
+        # If X Parameter is Scaling, then change resultype into actual string values from result_type_map
+        if xParameter == 'Scaling':
+            x_list = [result_type_map[int(x)] for x in x_list]
 
         # Do not append Empty Lists
         if(x_list):
@@ -2247,7 +2284,7 @@ def parallel_get_section_results(params, **kwargs):
         
         pass
         # logging.debug("######################RESULT {} DOES NOT EXIST in REFERENCE".format(test_section))
-            
+
 
 @app.route('/best_of_all_graph', methods=['POST'])
 def best_of_all_graph():
@@ -2256,7 +2293,7 @@ def best_of_all_graph():
 
     wiki_metadata_file_path = './config/best_of_all_graph.ini'
     results_metadata_parser = configparser.ConfigParser()
-    results_metadata_parser.read(wiki_metadata_file_path)    
+    results_metadata_parser.read(wiki_metadata_file_path)
 
     all_test_sections = results_metadata_parser.sections()
 
