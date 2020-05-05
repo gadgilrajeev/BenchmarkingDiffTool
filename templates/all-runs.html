@@ -321,7 +321,7 @@ All Runs of {{ context.testname }}
 		$(function(){
 			$("#normalized-dropdown").change(function(){
 
-				drawNormalizedGraph('best-sku-graph', "{{ context.testname }}", inverseApplied = true)
+				drawNormalizedGraph('best-sku-graph', "{{ context.testname }}", alreadyNormalized = true)
 			})
 		});
 

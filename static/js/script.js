@@ -486,7 +486,7 @@ function drawClusteredGraph(response, graphID) {
 	graphDiv.on('plotly_click', openTestDetailsPage)
 }
 
-function drawNormalizedGraph(graphID, testname) {
+function drawNormalizedGraph(graphID, testname, alreadyNormalized=false) {
 	console.log("DRAWING NORMALIZED GRAPH")
 
 	var gd = document.getElementById(graphID)
@@ -519,14 +519,16 @@ function drawNormalizedGraph(graphID, testname) {
 	higherIsBetter = data[0].higherIsBetter
 	console.log("Higher is better : " + higherIsBetter)
 
-	// If lower is better, Inverse all the values
-	if(higherIsBetter == '0'){
-		// map applies the function passed to each element of the list
-		yList.map((value, index) => {
-  			yList[index] = 1/yList[index]
-  		})
+	if(alreadyNormalized == false) {
+		// If lower is better, Inverse all the values
+		if(higherIsBetter == '0'){
+			// map applies the function passed to each element of the list
+			yList.map((value, index) => {
+				yList[index] = 1/yList[index]
+			})
+		}
 	}
-
+	
 	data = {
 		"xList" : xList,
 		"yList" : yList,
