@@ -323,14 +323,11 @@ Reports Generation
 		</div>
 
 		<!-- Filename (hidden input field) -->
-		<input type="hidden" id="filename" name="filename" value="Sample Filename">
-		<!-- Timestamp (hidden input field) -->
-		<input type="hidden" id="local-timestamp" name="local-timestamp" value="">
-
+		<input type="hidden" id="filename" name="filename" value="">
 
 		<!-- Generate reports (Submit form) button -->
 		<div class="text-center">
-			<button type="submit" id="generate-reports-button" class="btn btn-lg btn-success font-weight-bold mr-5 my-5">Generate Reports</button>
+			<button type="button" id="generate-reports-button" class="btn btn-lg btn-success font-weight-bold mr-5 my-5">Generate Reports</button>
 		</div>
 
 	</form>
@@ -341,8 +338,6 @@ Reports Generation
             console.log("Reports generation page loaded")
 			$('#generate-reports-form')[0].reset()
 
-			localTimestamp = new Date()
-			$('#local-timestamp').val(localTimestamp.toLocaleString())
         })
 
         $("#live-search-labels-textbox").keyup(function(){
@@ -456,28 +451,18 @@ Reports Generation
 			$('#clear-best-results-filter-button').prop("disabled", true)
 		})
 
-        function generateReports(filename, data, $form){
-            data_string = JSON.stringify({ 'data': data, 'filename': filename})
-            $form.append($("<input name= 'data' type= 'text' value = '" + data_string + "'/>"))
 
-            console.log($form)
+		// Set filename to Reports + Current local timestamp and submit the form
+        $('#generate-reports-button').click(function(){
+
+            $form = $('#generate-reports-form')
+
+			localTimestamp = new Date()
+			$('#filename').val("Reports - " + localTimestamp.toString())
+
             $form.submit()
 
-            // Clear the contents of the form
-            $form.empty()
-        }
-
-        // $('#generate-reports-button').click(function(){
-        //     console.log("Sending request for reports generation")
-
-        //     $form = $('#generate-reports-form')
-        //     filename = 'Sample Excel Report'
-
-        //     data = {'Somekey': 'Somevalue'}
-
-        //     generateReports(filename, data, $form)
-
-        // })
+        })
     </script>	
 
 {% endblock %}
