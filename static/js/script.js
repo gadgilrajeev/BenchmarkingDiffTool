@@ -147,8 +147,9 @@ function testDetails(tableCell){
 }
 
 function downloadAsPng(filename, graphID){
-	console.log("DOWNLOADING THE GRAPH?")
+	console.log("DOWNLOADING THE GRAPH")
 	graphDiv = document.getElementById(graphID);
+
 
 	if(graphID == "best-sku-graph")
 		filename = "Best " + filename;
@@ -701,6 +702,11 @@ function drawHeatmap(response, graphID) {
 	zListList = response.z_list_list
 	xParameter = response.xParameter
 	yParameter = response.yParameter
+	graphTitle = response.graphTitle
+
+	if (graphTitle == "" || !graphTitle) {
+		graphTitle = "Heatmap"
+	}
 
 	var data = [{
 		x : response.x_list,
@@ -723,7 +729,7 @@ function drawHeatmap(response, graphID) {
 		yaxis: {
 			title: yParameter,
 		},
-		title: 'Heatmap',
+		title: graphTitle,
 	};
 
 
