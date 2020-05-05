@@ -45,7 +45,7 @@ result_type_map = {0: "single thread", 1: 'single core',
 # from datetime import datetime
 app = Flask(__name__)
 
-print("Flask server restarted")
+logging.debug("Flask server restarted")
 
 # Just a random secret key. Created by md5 hashing the string 'secretactividad'
 app.secret_key = "05ec4a13767ac57407c4000e55bdc32c"
@@ -409,7 +409,7 @@ def getAllRunsData(testname, secret=False):
                                 ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
                                 ON o.originID = r.origin_originID INNER JOIN subtest s
                                 ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\';" #RRG
-        print(INPUT_FILE_QUERY)
+        logging.debug(INPUT_FILE_QUERY)
         try:
             input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
         finally:
@@ -590,7 +590,7 @@ def getTestDetailsData(originID, secret=False):
     else:
         description_string = 'Description'
 
-    print("BEFORE GETTING DATAFRAME")
+    logging.debug("BEFORE GETTING DATAFRAME")
 
     # RESULTS TABLE
     RESULTS_QUERY = """SELECT R.resultID, S.description, R.number, disp.unit, disp.qualifier, R.isvalid
@@ -600,8 +600,8 @@ def getTestDetailsData(originID, secret=False):
                         RESULTS_VALIDITY_CONDITION + ";"
     results_dataframe = pd.read_sql(RESULTS_QUERY, db)
 
-    print("GOT RESULTS DATAFRAME")
-    # print("{}".format(results_dataframe))
+    logging.debug("GOT RESULTS DATAFRAME")
+    # logging.debug("{}".format(results_dataframe))
 
     for col in reversed(description_string.split(',')):
         results_dataframe.insert(1, col, 'default value')
@@ -643,7 +643,7 @@ def getTestDetailsData(originID, secret=False):
         return secret_context
     # Else render test-details.html
     else:
-        print("SECRET WAS FALSE")
+        logging.debug("SECRET WAS FALSE")
         del results_dataframe['resultID']
         del results_dataframe['isvalid']
 
@@ -669,12 +669,12 @@ def getTestDetailsData(originID, secret=False):
 
         # Get Num_CPUs list if result_type is 'perf'
         #if result_type == "perf":
-        #print('NUM CPUS START')
+        #logging.debug('NUM CPUS START')
         #try:
             # Calls unique_list function on list of unique 'Num_CPUs'
             #num_cpus_list = unique_list((results_dataframe['Num_CPUs']), reverse=True)
         #    raw_dir = '/mnt/nas/dbresults/' + jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]) + '/results'
-        #    print(raw_dir)
+        #    logging.debug(raw_dir)
         #    raw_num_cpus_list = [d for d in os.listdir(raw_dir) if os.path.isdir(os.path.join(raw_dir, d))]
         #    num_cpus_list = []
         #    for one_by_one in raw_num_cpus_list:
@@ -690,7 +690,7 @@ def getTestDetailsData(originID, secret=False):
         #else:
         #    num_cpus_list = []
 
-        print("Result Type = {}".format(result_type))
+        logging.debug("Result Type = {}".format(result_type))
         system_details_dataframe = system_details_dataframe.head(1)
 
         # Get the rest of the system details from jenkins table
@@ -698,13 +698,13 @@ def getTestDetailsData(originID, secret=False):
                             ON O.jenkins_jenkinsID=J.jenkinsID AND O.originID=""" + originID + ";"
         jenkins_details = pd.read_sql(JENKINS_QUERY, db)
 
-        print('NUM CPUS START')
+        logging.debug('NUM CPUS START')
         num_cpus_list = []
         try:
             # Calls unique_list function on list of unique 'Num_CPUs'
             #num_cpus_list = unique_list((results_dataframe['Num_CPUs']), reverse=True)
             raw_dir = '/mnt/nas/dbresults/' + jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]) + '/results'
-            print(raw_dir)
+            logging.debug(raw_dir)
             raw_num_cpus_list = [d for d in os.listdir(raw_dir) if os.path.isdir(os.path.join(raw_dir, d))]
             num_cpus_list = []
             for one_by_one in raw_num_cpus_list:
@@ -797,7 +797,7 @@ def getTestDetailsData(originID, secret=False):
 
         # close the database connection
         try:
-            print("CLOSING CONNECTION FOR OriginID = {}".format(originID))
+            logging.debug("CLOSING CONNECTION FOR OriginID = {}".format(originID))
             db.close()
         except:
             pass
@@ -811,12 +811,12 @@ def showTestDetailsOld(originID):
 
 @app.route('/test-details/<originID>', methods=['GET'])
 def showTestDetails(originID):
-    print("INSIDE TEST DETAILS FUNCTION = {}".format(originID))
+    logging.debug("INSIDE TEST DETAILS FUNCTION = {}".format(originID))
     try:
         context = getTestDetailsData(originID)
         error = None
     except Exception as error_message:
-        print("Printing error == {}".format(error_message))
+        logging.debug("Printing error == {}".format(error_message))
         context = None
         error = error_message
 
@@ -989,7 +989,7 @@ def showEnvDetails(originID):
             logging.warning("Couldn't add 'GB' to RAM SIZE")
             pass
     except Exception as e:
-        print("Error: ", e)
+        logging.debug("Error: ", e)
         ram_dataframe = pd.DataFrame()
 
     # Read disk dataframe
@@ -997,14 +997,14 @@ def showEnvDetails(originID):
         disk_dataframe = pd.read_csv(results_file_path + '/disk.csv', header=None,
                                  names=parameter_lists['disk_details_param_list'])
     except Exception as e:
-        print("Error: ", e)
+        logging.debug("Error: ", e)
         disk_dataframe = pd.DataFrame()
     
     try:
         nic_dataframe = pd.read_csv(results_file_path + '/nic.csv', header=None,
                                 names=parameter_lists['nic_details_param_list'])
     except Exception as e:
-        print("Error: ", e)
+        logging.debug("Error: ", e)
         nic_dataframe = pd.DataFrame()
 
 
@@ -1038,8 +1038,8 @@ def diffTests():
         db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                              passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
-        print(request)
-        print("REQUEST ARGS = {}".format(request.args))
+        logging.debug(request)
+        logging.debug("REQUEST ARGS = {}".format(request.args))
 
         # take checked rows from table
         originID_compare_list = [value for key, value in request.args.items() if "diff-checkbox" in key]
@@ -1315,10 +1315,10 @@ def parallel_excecute_y_query(x_param, **kwargs):
 
     # # Close database connection
     # try:
-    #     print("Trying closing the db conn")
+    #     logging.debug("Trying closing the db conn")
     #     db.close()
     # except:
-    #     print("EXCEPTION!!!!!!!!!!!!!!! While closing the DB Connection")
+    #     logging.debug("EXCEPTION!!!!!!!!!!!!!!! While closing the DB Connection")
     #     pass
 
     if y_df.empty is True:
@@ -1331,7 +1331,7 @@ def parallel_excecute_y_query(x_param, **kwargs):
 
 # Parallel compute data for get_data_for_graph()
 def parallel_sku_compare(section, **kwargs):
-    print("Excecuting {} parallely".format(section))
+    logging.debug("Excecuting {} parallely".format(section))
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
             
@@ -1375,7 +1375,7 @@ def parallel_sku_compare(section, **kwargs):
     # For removing 'not found' entries from x_list
     x_list_rm = []
 
-    print("Length of x_list = {}".format(len(x_list)))
+    logging.debug("Length of x_list = {}".format(len(x_list)))
 
     # for x_param in x_list:
     #     # max or min
@@ -1420,9 +1420,9 @@ def parallel_sku_compare(section, **kwargs):
     #         y_list.extend(y_df['number'].to_list())
     #         originID_list.extend(y_df['originID'].to_list())
     #         skuid_list.extend(y_df['skuidname'].to_list())
-    #         print("SKUID LIST BEFORE = {}".format(skuid_list))
+    #         logging.debug("SKUID LIST BEFORE = {}".format(skuid_list))
     #         skuid_list[-1] = skuid_list[-1].strip()
-    #         print("SKUID LIST AFTER = {}".format(skuid_list))
+    #         logging.debug("SKUID LIST AFTER = {}".format(skuid_list))
 
     # Parallel excecution for "y" query
     pool = multiprocessing.Pool(num_processes)
@@ -1432,13 +1432,13 @@ def parallel_sku_compare(section, **kwargs):
                 index=index, xParameter=xParameter, parameter_map=parameter_map, \
                 table_map=table_map, join_on_map=join_on_map, testname=testname ), x_list)
     finally:
-        print("Closing Pool")
+        logging.debug("Closing Pool")
         pool.close()
         pool.join()
     # Done 
-    print("Got Data list")
-    print(len(data_lists), type(data_lists))
-    print(data_lists[0])
+    logging.debug("Got Data list")
+    logging.debug(len(data_lists), type(data_lists))
+    logging.debug(data_lists[0])
 
     x_list_rm = [l[0] for l in data_lists]
     y_list.extend = [l[1] for l in data_lists]
@@ -1469,7 +1469,7 @@ def parallel_sku_compare(section, **kwargs):
     #Remove everything that has an empty set returned
     x_list = [x for x in x_list if x not in x_list_rm]
 
-    print("Done Excecuting {}. returning values".format(section))
+    logging.debug("Done Excecuting {}. returning values".format(section))
 
     # Close database connection
     try:
@@ -1485,7 +1485,7 @@ def parallel_sku_compare(section, **kwargs):
 # JS then draws the graph using this data
 @app.route('/get_data_for_graph', methods=['POST'])
 def get_data_for_graph():
-    print("GOT THE REQUEST FOR GET DATA FOR GRAPH")
+    logging.debug("GOT THE REQUEST FOR GET DATA FOR GRAPH")
 
     start_time = time.time()
 
@@ -1523,7 +1523,7 @@ def get_data_for_graph():
     # Fill the sku_cpu_map with all "sku->section" mapping entries
     for section in sku_parser.sections():
         skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
-        print("For section", section, "SKUS = ", len(skus))
+        logging.debug("For section", section, "SKUS = ", len(skus))
         for sku in skus:
             skuid_cpu_map[sku] = section
 
@@ -1708,7 +1708,7 @@ def get_data_for_graph():
 
     #     #     # close the database connection
     #     #     try:
-    #     #         print("CLOSING PARALLEL CONNECTION FOR get_data_for_graph {}".format(testname))
+    #     #         logging.debug("CLOSING PARALLEL CONNECTION FOR get_data_for_graph {}".format(testname))
     #     #         db1.close()
     #     #     except:
     #     #         pass
@@ -1771,7 +1771,7 @@ def get_data_for_graph():
                     index=index, xParameter=xParameter, parameter_map=parameter_map, skus=skus, \
                     join_on_map=join_on_map, testname=testname ), x_list)
         finally:
-            print("Closing pool")
+            logging.debug("Closing pool")
             pool.close()
             pool.join()
 
@@ -1835,23 +1835,23 @@ def get_data_for_graph():
     #                 index=index, qualifier_list=qualifier_list, SCALING_CONDITION=SCALING_CONDITION, \
     #                 INPUT_FILTER_CONDITION=INPUT_FILTER_CONDITION), sections_list)
     # finally:
-    #   print("Closing pool")
+    #   logging.debug("Closing pool")
     #   pool.close()
     #   pool.join()
 
-    # print("Parallelism took {} seconds".format(time.time() - parallel_start_time))
+    # logging.debug("Parallelism took {} seconds".format(time.time() - parallel_start_time))
 
     # # Remove all the 'None' values from the list
     # compare_lists = list(filter(None, compare_lists))
 
-    # print("Compare lists len")
-    # print(len(compare_lists), type(compare_lists))
-    # print(compare_lists)
+    # logging.debug("Compare lists len")
+    # logging.debug(len(compare_lists), type(compare_lists))
+    # logging.debug(compare_lists)
 
-    # print("Original lists")
-    # print(x_list_list)
-    # print(y_list_list)
-    # print(originID_list_list)
+    # logging.debug("Original lists")
+    # logging.debug(x_list_list)
+    # logging.debug(y_list_list)
+    # logging.debug(originID_list_list)
         
 
     # for i in range(len(compare_lists)):    
@@ -1901,12 +1901,12 @@ def get_data_for_graph():
 
     # close the database connection
     try:
-        print("CLOSING CONNECTION FOR get_data_for_graph {}".format(testname))
+        logging.debug("CLOSING CONNECTION FOR get_data_for_graph {}".format(testname))
         db.close()
     except:
         pass
 
-    print("get_data_for_graph took {} seconds".format(time.time() - start_time))
+    logging.debug("get_data_for_graph took {} seconds".format(time.time() - start_time))
 
     return response
 
@@ -2034,7 +2034,7 @@ def best_sku_graph():
     except:
         pass
 
-    print("best_sku_graph took {} seconds".format(time.time() - start_time))
+    logging.debug("best_sku_graph took {} seconds".format(time.time() - start_time))
 
     return response
 
@@ -2308,19 +2308,19 @@ def best_of_all_graph():
     # Apply DATE - FILTERS
     from_date = data['from_date_filter']
     to_date = data['to_date_filter']
-    print(" = {}".format(from_date))
-    print(" = {}".format(to_date))
+    logging.debug(" = {}".format(from_date))
+    logging.debug(" = {}".format(to_date))
 
     if from_date:
         FROM_DATE_FILTER = " and o.testdate > \'" + from_date + " 00:00:00\' "
     else:
-        print("empty")
+        logging.debug("empty")
         FROM_DATE_FILTER = " "
 
     if to_date:
         TO_DATE_FILTER = " and o.testdate < \'" + to_date + " 23:59:59\' "
     else:
-        print("empty")
+        logging.debug("empty")
         TO_DATE_FILTER = " "
 
     normalized_wrt = data['normalizedWRT']
@@ -2343,9 +2343,9 @@ def best_of_all_graph():
     # This is a necessary step since we have multiple sections for the same 'testname'
     test_name_list = sorted([results_metadata_parser.get(section, 'testname') for section in test_sections_list])
 
-    print("LENGTH of sections i.e. no of benchmarks = ", len(all_test_sections))
-    print("Printing selected testnames list", test_name_list, len(test_name_list))
-    print("\n\nPrinting corresponding sections list", test_sections_list, len(test_sections_list))
+    logging.debug("LENGTH of sections i.e. no of benchmarks = ", len(all_test_sections))
+    logging.debug("Printing selected testnames list", test_name_list, len(test_name_list))
+    logging.debug("\n\nPrinting corresponding sections list", test_sections_list, len(test_sections_list))
 
     # The list of the first qualifier for all tests
     # and the corresponding higher_is_better
@@ -2385,7 +2385,7 @@ def best_of_all_graph():
                                 zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list)) 
 
     finally:
-        print("Closing pool")
+        logging.debug("Closing pool")
         pool.close()
         pool.join()
 
@@ -2397,8 +2397,8 @@ def best_of_all_graph():
     # Build a map from the list of tuples
     reference_results_map = {k : v for k, v in reference_results_list}
 
-    print("Reference KEYS = ", reference_results_map.keys(), len(reference_results_map.keys()))
-    print("The Parallel Function (for Reference CPU Manufacturer) took {} seconds!!!".format(time.time() - start_time2))
+    logging.debug("Reference KEYS = ", reference_results_map.keys(), len(reference_results_map.keys()))
+    logging.debug("The Parallel Function (for Reference CPU Manufacturer) took {} seconds!!!".format(time.time() - start_time2))
     # logging.debug("Reference results map = {}".format(reference_results_map))
 
 
@@ -2412,7 +2412,7 @@ def best_of_all_graph():
     # Start querying the database for best of each CPU MANUFACTURER
     for section in sku_parser.sections():
         start_time_section = time.time()
-        print("section = ", section)
+        logging.debug("section = ", section)
         # Only for sections other than selected 'reference'
         if section != normalized_wrt:
             # logging.debug("SECTION DID NOT MATCH. Proceeding with queries {} : {}  ".format(section, normalized_wrt))
@@ -2428,7 +2428,7 @@ def best_of_all_graph():
 
             # Shut down multiprocessing gracefully
             finally:
-                print("Closing pool")
+                logging.debug("Closing pool")
                 pool.close()
                 pool.join()
 
@@ -2454,7 +2454,7 @@ def best_of_all_graph():
         else:
             logging.debug("SECTION MATCHED {} .\tSkipping".format(section))
 
-        print("section {} over. Time taken = {}".format(section, time.time() - start_time_section))
+        logging.debug("section {} over. Time taken = {}".format(section, time.time() - start_time_section))
 
 
     response = {
@@ -2470,7 +2470,7 @@ def best_of_all_graph():
         'normalized_wrt' : normalized_wrt,
     }
 
-    print("Best of All Graph took {} seconds".format(time.time() - start_time))    
+    logging.debug("Best of All Graph took {} seconds".format(time.time() - start_time))    
 
     return response
 
@@ -2491,8 +2491,8 @@ def secret_all_tests():
 
     all_tests = context['hpc_benchmarks_list'] + context['cloud_benchmarks_list']
     for testname in all_tests:
-        print("#",testname)
-    print(len(all_tests))
+        logging.debug("#",testname)
+    logging.debug(len(all_tests))
     # Dropdowns for input file
     # for testname in  context['hpc_benchmarks_list'].extend(context['cloud_benchmarks_list'])
     #     input_parameters = results_metadata_parser.get(testname, 'description') \
@@ -2502,7 +2502,7 @@ def secret_all_tests():
     #                             ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
     #                             ON o.originID = r.origin_originID INNER JOIN subtest s
     #                             ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\';" #RRG
-    #     print(INPUT_FILE_QUERY)
+    #     logging.debug(INPUT_FILE_QUERY)
     #     try:
     #         input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
     #     finally:
@@ -2552,7 +2552,7 @@ def secret_all_tests():
 def generate_custom_data():
     # ProTip: For completing this function
     # Refer to 'download_as_csv'
-    print("Generating Custom Data")
+    logging.debug("Generating Custom Data")
 
     response = {
 
@@ -2581,8 +2581,8 @@ def counter_graphs():
     logging.debug("COUNTERS HISTOGRAM DATA")
     logging.debug(counter_graphs_data['dmc_histogram_data_' + numCPUs])
 
-    print("HELLOOOOOOOOOOOOOOOOOOOOOOOOOO")
-    print("IT took {} seconds for counter graph".format(time.time() - start_time))
+    logging.debug("HELLOOOOOOOOOOOOOOOOOOOOOOOOOO")
+    logging.debug("IT took {} seconds for counter graph".format(time.time() - start_time))
 
     return counter_graphs_data
 
@@ -2626,11 +2626,11 @@ def parallel_compute_iostat_yll(device_type, **kwargs):
 # API Endpoint for CPU Utilization graphs
 @app.route('/cpu_utilization_graphs', methods=['POST'])
 def cpu_utilization_graphs():
-    print("Got request for heatmap")
+    logging.debug("Got request for heatmap")
     start_time = time.time()
 
     data = request.get_json()
-    print("DATA = {}".format(data))
+    logging.debug("DATA = {}".format(data))
     numCPUs = data['numCPUs']
 
     # Generate nas_path from received data
@@ -2644,7 +2644,7 @@ def cpu_utilization_graphs():
     network_file = nas_path + '/ethperc.csv'
     network_utilization_df = pd.read_csv(network_file,usecols=['Time','Interface','NW_UTIL'])
 
-    print("Reading CPU and N/W CSV files took {} seconds".format(time.time() - start_time2))
+    logging.debug("Reading CPU and N/W CSV files took {} seconds".format(time.time() - start_time2))
 
     start_time3 = time.time()
     try:
@@ -2679,14 +2679,14 @@ def cpu_utilization_graphs():
         # Reset index
         cpu_utilization_df = cpu_utilization_df.reset_index()
 
-    print("Stack graph took {} seconds".format(time.time() - start_time3))
+    logging.debug("Stack graph took {} seconds".format(time.time() - start_time3))
 
     start_time4 = time.time()
     # Calculate %busy by 100-%idle
     cpu_utilization_df['%busy'] = cpu_utilization_df['%idle'].apply(lambda x: 100 - x)
     cpu_utilization_df.pop('%idle')
 
-    print("Busy Column generation took {} seconds".format(time.time() - start_time4))
+    logging.debug("Busy Column generation took {} seconds".format(time.time() - start_time4))
 
     start_time5 = time.time()
     # Set 'CPU' as index
@@ -2698,7 +2698,7 @@ def cpu_utilization_graphs():
     # Reset index
     cpu_utilization_df = cpu_utilization_df.reset_index()
 
-    print("Deleting 'all' cores columns took {} seconds".format(time.time() - start_time5))
+    logging.debug("Deleting 'all' cores columns took {} seconds".format(time.time() - start_time5))
 
     network_heatmap_data = {
         'graph_type' : 'heatmap',
@@ -2727,8 +2727,8 @@ def cpu_utilization_graphs():
         'yParameter' : 'Cores'          
     }
 
-    print("PRINTING CPU Utilization DF")
-    print(cpu_utilization_df.columns)
+    logging.debug("PRINTING CPU Utilization DF")
+    logging.debug(cpu_utilization_df.columns)
 
     start_time6 = time.time()
     heatmap_data['x_list'] = cpu_utilization_df['timestamp'].unique().tolist()
@@ -2745,11 +2745,11 @@ def cpu_utilization_graphs():
         heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='cpu_heatmap'), \
                     np.array_split(cpu_utilization_df, (cpu_utilization_df.shape[0]/len(heatmap_data['y_list']))))
     finally:
-        print("Closing pool")
+        logging.debug("Closing pool")
         pool.close()
         pool.join()
 
-    print("Z LIST LIST took {} seconds".format(time.time() - start_time7))        
+    logging.debug("Z LIST LIST took {} seconds".format(time.time() - start_time7))        
 
     start_time8 = time.time()
     # Take transpose of the list_list
@@ -2760,9 +2760,9 @@ def cpu_utilization_graphs():
     # Length of each list = unique timestamps = len(heatmap_data['x_list'])
     heatmap_data['z_list_list'] = np.array(heatmap_data['z_list_list']).T.tolist()
 
-    print("TRANSPOSE of Z list list took {} seconds".format(time.time() - start_time8))
+    logging.debug("TRANSPOSE of Z list list took {} seconds".format(time.time() - start_time8))
 
-    print("CPU UTIL HEATMAP overall took {} seconds".format(time.time() - start_time6))
+    logging.debug("CPU UTIL HEATMAP overall took {} seconds".format(time.time() - start_time6))
     # CPU Util Heatmap is done
 
     start_time9 = time.time()
@@ -2778,17 +2778,17 @@ def cpu_utilization_graphs():
                                                 np.array_split(network_utilization_df, (network_utilization_df.shape[0]/len(network_heatmap_data['y_list']))))
 
     finally:
-        print("Closing pool")
+        logging.debug("Closing pool")
         pool.close()
         pool.join()
 
-    print("Z LIST LIST took {} seconds".format(time.time() - start_time10))
+    logging.debug("Z LIST LIST took {} seconds".format(time.time() - start_time10))
 
     start_time11 = time.time()
     network_heatmap_data['z_list_list'] = np.array(network_heatmap_data['z_list_list']).T.tolist()
-    print("TRANSPOSE Z list list took {} seconds".format(time.time() - start_time11))
+    logging.debug("TRANSPOSE Z list list took {} seconds".format(time.time() - start_time11))
 
-    print("Network Heatmap overall took {} seconds".format(time.time() - start_time9))
+    logging.debug("Network Heatmap overall took {} seconds".format(time.time() - start_time9))
     #Network heatmap is done
 
     start_time12 = time.time()
@@ -2803,18 +2803,18 @@ def cpu_utilization_graphs():
         softirq_heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='softirq_heatmap'), \
                     np.array_split(cpu_utilization_df, (cpu_utilization_df.shape[0]/len(softirq_heatmap_data['y_list']))))
     finally:
-        print("Closing pool")
+        logging.debug("Closing pool")
         pool.close()
         pool.join()
 
 
-    print("Z LIST LIST took {} seconds".format(time.time() - start_time13))
+    logging.debug("Z LIST LIST took {} seconds".format(time.time() - start_time13))
     # Take transpose of the list_list 
     start_time14 = time.time()
     softirq_heatmap_data['z_list_list'] = np.array(softirq_heatmap_data['z_list_list']).T.tolist()
-    print("TRANSPOSE Z list list took {} seconds".format(time.time() - start_time14))
+    logging.debug("TRANSPOSE Z list list took {} seconds".format(time.time() - start_time14))
 
-    print("SoftIRQ Heatmap overall took {} seconds".format(time.time() - start_time12))
+    logging.debug("SoftIRQ Heatmap overall took {} seconds".format(time.time() - start_time12))
     #SoftIRQ heatmap is done
 
     start_time15 = time.time()
@@ -2829,8 +2829,8 @@ def cpu_utilization_graphs():
     }
     
     #for intface in network_utilization_df['Interface'].unique().tolist():
-    #    #print(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
-    #    print(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
+    #    #logging.debug(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
+    #    logging.debug(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
 
     line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
     line_graph_data['y_list_list'].append(all_cores_df['%busy'].tolist())
@@ -2880,13 +2880,13 @@ def cpu_utilization_graphs():
 
     #line_graph_data['x_list_list'].append(network_utilization_df['Time'].unique().tolist())
     for intface in network_utilization_df['Interface'].unique().tolist():
-        #print(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
+        #logging.debug(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
         line_graph_data['x_list_list'].append(network_utilization_df['Time'].unique().tolist())
         line_graph_data['y_list_list'].append(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
         nw_util_str = intface
         line_graph_data['legend_list'].append(nw_util_str)
-        #print(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
-    print("Line Graph overall took {} seconds".format(time.time() - start_time15))
+        #logging.debug(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
+    logging.debug("Line Graph overall took {} seconds".format(time.time() - start_time15))
     # Line graph data is done
     
     # Do NOT change key names.
@@ -2967,11 +2967,11 @@ def cpu_utilization_graphs():
 
         freq_dump_df = freq_dump_df.set_index('Node')
 
-        print("NO OF NODES = ", no_of_nodes, type(no_of_nodes[0]))
+        logging.debug("NO OF NODES = ", no_of_nodes, type(no_of_nodes[0]))
 
         for node in no_of_nodes:
             pool = multiprocessing.Pool(num_processes)
-            print("PRINTING NODE = ", node)
+            logging.debug("PRINTING NODE = ", node)
             df = freq_dump_df.loc[int(node)]
             
             try:
@@ -3016,7 +3016,7 @@ def cpu_utilization_graphs():
                 temperature_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+x[2] for x in temp_data])
 
             finally:
-                print("Closing pool")
+                logging.debug("Closing pool")
                 pool.close()
                 pool.join()
 
@@ -3032,9 +3032,9 @@ def cpu_utilization_graphs():
         cpu_ut_graphs_data['Power & Voltage Consumption vs Timestamp'] = power_voltage_graph_data
         cpu_ut_graphs_data['Temperature'] = temperature_line_graph_data
 
-        print("Freq dump Graphs overall took {} seconds".format(time.time() - start_time16))
+        logging.debug("Freq dump Graphs overall took {} seconds".format(time.time() - start_time16))
     else:
-        print("File freq_dump.csv does not exist. Skipping")
+        logging.debug("File freq_dump.csv does not exist. Skipping")
 
     # Freq dump graphs DONE
 
@@ -3068,7 +3068,7 @@ def cpu_utilization_graphs():
                         graph_name='ram_heatmap', ramstat_df=ramstat_df), \
                         ram_heatmap_data['y_list'])
         finally:
-            print("Closing pool")
+            logging.debug("Closing pool")
             pool.close()
             pool.join()
         # Ram util heatmap done
@@ -3096,9 +3096,9 @@ def cpu_utilization_graphs():
         cpu_ut_graphs_data['%RAM Utilization Heatmap'] = ram_heatmap_data
         cpu_ut_graphs_data['%RAM Utilization Line Graph'] = ram_line_graph_data
             
-        print("Ram Graphs overall took {} seconds".format(time.time() - start_time17))
+        logging.debug("Ram Graphs overall took {} seconds".format(time.time() - start_time17))
     else:
-        print("File ramstat.csv does not exist. Skipping")
+        logging.debug("File ramstat.csv does not exist. Skipping")
 
     # RAM Graphs done
 
@@ -3106,7 +3106,7 @@ def cpu_utilization_graphs():
     iostat_file = nas_path + '/iostat.csv'
     # Check if iostat.csv file exists
     if os.path.isfile(iostat_file):
-        print("IOSTAT file exists")
+        logging.debug("IOSTAT file exists")
         start_time18 = time.time()
         iostat_df = pd.read_csv(iostat_file)
 
@@ -3134,9 +3134,9 @@ def cpu_utilization_graphs():
                 # Filter out NoneType elements
                 temp_data = list(filter(None, temp_data))
 
-                print("Printing temp data")
-                print(temp_data)
-                print(type(temp_data))
+                logging.debug("Printing temp data")
+                logging.debug(temp_data)
+                logging.debug(type(temp_data))
 
                 iostat_line_graph_data['x_list_list'].extend([x[0] for x in temp_data])
                 iostat_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
@@ -3150,25 +3150,25 @@ def cpu_utilization_graphs():
         # Add iostat data in context dict
         cpu_ut_graphs_data['IOSTAT Line graph'] = iostat_line_graph_data
 
-        print("IOSTAT Graphs overall took {} seconds".format(time.time() - start_time17))
+        logging.debug("IOSTAT Graphs overall took {} seconds".format(time.time() - start_time17))
 
     else:
-        print("File iostat.csv does not exist. Skipping")
+        logging.debug("File iostat.csv does not exist. Skipping")
 
     # iostat graphs DONE
 
-    print("Time taken for CPU utilization graphs {}".format(time.time() - start_time))
+    logging.debug("Time taken for CPU utilization graphs {}".format(time.time() - start_time))
 
     return json.dumps(cpu_ut_graphs_data)
 
 # API Endpoint for Scaling graphs
 @app.route('/scaling_graphs', methods=['POST'])
 def scaling_graphs():
-    print("Got request for Scaling Graphs")
+    logging.debug("Got request for Scaling Graphs")
     start_time = time.time()
 
     data = request.get_json()
-    print("DATA = {}".format(data))
+    logging.debug("DATA = {}".format(data))
 
     scaling_graph_data = {
 
@@ -3283,9 +3283,9 @@ def parallel_test_report(params, **kwargs):
     # Unpack the params here
     test_section, testname, INPUT_FILTER_CONDITION = params
 
-    print("################################################################################")
-    print("Processing Paralelly for {}".format(testname))
-    print("Input filter condition = {}".format(INPUT_FILTER_CONDITION))
+    logging.debug("################################################################################")
+    logging.debug("Processing Paralelly for {}".format(testname))
+    logging.debug("Input filter condition = {}".format(INPUT_FILTER_CONDITION))
 
     results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
@@ -3361,12 +3361,12 @@ def parallel_test_report(params, **kwargs):
 
             # ['nyx', 'coremark', 'phloem-bandwidth', 'namd']
             if test_section == 'nyx':
-                print("Got nyx bro {}\n".format(RESULTS_QUERY))
+                logging.debug("Got nyx bro {}\n".format(RESULTS_QUERY))
 
             temp_df = pd.read_sql(RESULTS_QUERY, db)
 
             query_excecution_time = time.time() - start_time
-            print("Query excecution took {} seconds".format(query_excecution_time))
+            logging.debug("Query excecution took {} seconds".format(query_excecution_time))
 
             # Append the dataframe below the current dataframe
             results_dataframe = results_dataframe.append(temp_df, sort=False)
@@ -3405,26 +3405,26 @@ def parallel_test_report(params, **kwargs):
     # Filter rows on kernel_criteria
     if kernel_criteria != '':
         if kernel_criteria_op == "greater than":
-            print("greater than selected for ", testname, " Kernel version")
+            logging.debug("greater than selected for ", testname, " Kernel version")
             results_dataframe = results_dataframe[results_dataframe['kernelname'].apply(lambda x: LegacyVersion(x) > LegacyVersion(kernel_criteria))]
         elif kernel_criteria_op == "equals":
-            print("Equals selected  for ", testname, " Kernel version")
+            logging.debug("Equals selected  for ", testname, " Kernel version")
             results_dataframe = results_dataframe[results_dataframe['kernelname'].apply(lambda x: LegacyVersion(x) == LegacyVersion(kernel_criteria))]
         else:
-            print("Less than selected!  for ", testname, " Kernel version")
+            logging.debug("Less than selected!  for ", testname, " Kernel version")
             results_dataframe = results_dataframe[results_dataframe['kernelname'].apply(lambda x: LegacyVersion(x) < LegacyVersion(kernel_criteria))]
 
 
     # Filter rows on os_version_criteria
     if os_version_criteria != '':
         if os_version_criteria_op == "greater than":
-            print("greater than selected for ", testname, " OS version")
+            logging.debug("greater than selected for ", testname, " OS version")
             results_dataframe = results_dataframe[results_dataframe['osversion'].apply(lambda x: LegacyVersion(x) > LegacyVersion(os_version_criteria))]
         elif kernel_criteria_op == "equals":
-            print("Equals selected for ", testname, " OS version")
+            logging.debug("Equals selected for ", testname, " OS version")
             results_dataframe = results_dataframe[results_dataframe['osversion'].apply(lambda x: LegacyVersion(x) == LegacyVersion(os_version_criteria))]
         else:
-            print("Less than selected again!? for ", testname, " OS version")
+            logging.debug("Less than selected again!? for ", testname, " OS version")
             results_dataframe = results_dataframe[results_dataframe['osversion'].apply(lambda x: LegacyVersion(x) < LegacyVersion(os_version_criteria))]
 
 
@@ -3483,7 +3483,7 @@ def generate_reports():
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
-    print("Got request for generate reports")
+    logging.debug("Got request for generate reports")
 
     results_metadata_file_path = './config/best_of_all_graph.ini'
     results_metadata_parser = configparser.ConfigParser()
@@ -3575,9 +3575,20 @@ def generate_reports():
     SELECT_PARAMS = " "
     FINAL_CRITERIA = " "
 
+    # The criteria (key) which is used to check if excel file already exists in cached_results
+    all_criteria_string = "reports-"
+
     # Get best_results_condition
     best_results_condition = request.form.get('best-results-radio')
-    print("GOT best results condition = {}".format(best_results_condition))
+    if not best_results_condition:
+        # Empty string if value == None
+        best_results_condition = ''
+    logging.debug("GOT best results condition = \'{}\'".format(best_results_condition))
+
+    all_criteria_string += best_results_condition + '-'
+
+    # Append all criteria to the key
+    all_criteria_string += "criteria-"
 
     for d in param_list:
         d['display'] = request.form.get('disp-'+d['name'])
@@ -3590,8 +3601,12 @@ def generate_reports():
             d['criteria'] = request.form.get('criteria-'+d['name'])
         d['criteria-op'] = request.form.get('criteria-op-'+d['name'])
 
+        # Append the key, values from current dictionary to all_criteria_string
+        all_criteria_string += d['name'] + ":" + d['display'] + ":" + d['criteria-op'] + ":" + str(d['criteria']) + ":"
+
         if d['name'] == 'Test Date':
             d['criteria2'] = request.form.get('criteria2-'+d['name'])
+            all_criteria_string += d['criteria2'] + ":"
 
         # Append to SELECT_PARAMS according to 'display' value
         if d['display'] == 'Yes':
@@ -3626,7 +3641,6 @@ def generate_reports():
                             else:
                                 FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " NOT IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
 
-                        print(all_skuidnames_criteria)
                 elif d['name'] != 'Kernel Version' and d['name'] != 'OS Version':
                     if d['criteria-op'] == 'matches':
                         FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " LIKE \'%" + d['criteria'].strip() +"%\'"
@@ -3647,6 +3661,8 @@ def generate_reports():
                 elif d['criteria-op'] == 'since':
                     FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " > \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
 
+
+
     # Handle the condition where best_results_condition exists AND 'all_skuidnames_criteria' is empty []
     if best_results_condition and all_skuidnames_criteria == []:
         for criteria in sku_parser.sections():
@@ -3659,7 +3675,7 @@ def generate_reports():
         selected_sections_list = request.form.getlist('filter_testname_list')
     else:
         selected_labels_list = request.form.getlist('filter_labels_list')
-        print("PRint selected_labels_list = {}".format(selected_labels_list))
+        logging.debug("PRint selected_labels_list = {}".format(selected_labels_list))
         for label in selected_labels_list:
             selected_sections_list.extend(label_testname_map[label])
 
@@ -3682,85 +3698,128 @@ def generate_reports():
     # Read all test names each section of best_of_all_graph.ini file
     selected_tests_list = [results_metadata_parser.get(section, 'testname').strip() for section in selected_sections_list] 
 
-    print("Selected sections list = {} {}".format(selected_sections_list, len(selected_sections_list)))
-    print("SElected tests list = {} {}".format(selected_tests_list, len(selected_tests_list)))
+    all_criteria_string += "selected-sections-" + ":".join(selected_sections_list)
+    # DONE! We got the all_criteria_string key 
 
     filename = request.form.get('filename')
 
-    # Clear the temp_download_files directory
-    base_path = os.getcwd() + '/temp_download_files/'
-    try:
-        shutil.rmtree(base_path)    #this removes the directory too
-    except:
-        pass
-    os.mkdir(base_path)         #So create it again
+    # The directory where cached excel files will be stored
+    base_path = os.getcwd() + '/cached_results/'
+    # If directory doesn't exist, create it
+    if not os.path.exists(base_path):
+        os.mkdir(base_path)         
 
-    # Filename .xlsx
-    absolute_file_path = base_path + filename + '.xlsx'
-
-    parallel_start_time = time.time()
-
-    print("All skuidnames criteria = {}".format(all_skuidnames_criteria))
-    print("SKUID Criteria op = {}".format(skuid_criteria_op))
-
-    # Parallel excecution 
-    results_dataframe_list = []
-    pool = multiprocessing.Pool(num_processes)
-    try:
-        results_dataframe_list = pool.map(partial(parallel_test_report, SELECT_PARAMS=SELECT_PARAMS, FINAL_CRITERIA=FINAL_CRITERIA, \
-                                kernel_criteria=request.form.get('criteria-Kernel Version'), os_version_criteria=request.form.get('criteria-OS Version'), \
-                                os_version_criteria_op=request.form.get('criteria-op-OS Version'), kernel_criteria_op=request.form.get('criteria-op-Kernel Version'), \
-                                skuid_cpu_map=skuid_cpu_map, best_results_condition=best_results_condition, skuid_criteria_op=skuid_criteria_op, \
-                                all_skuidnames_criteria=all_skuidnames_criteria), zip(selected_sections_list, selected_tests_list, INPUT_FILTER_CONDITION_LIST))
-    finally:
-        print("Closing Pool")
-        pool.close()
-        pool.join()
-
-    print("Parallelism took {} seconds".format(time.time() - parallel_start_time))
-    print("{}".format(len(results_dataframe_list)))
-    start_time2 = time.time()
-
+    # cache_directory according to best-results variable
     if best_results_condition:
-        print("Best results. Writing excel sheets")
-        # Write all results in a single excel file
-
-        final_results_dataframe = pd.DataFrame()
-
-        # Append all the dataframes from the list to final_results_dataframe
-        i = 0
-        for results_dataframe in results_dataframe_list:
-            i += 1
-            final_results_dataframe = final_results_dataframe.append(results_dataframe, sort=False)
-
-            # Append an empty row to the final_results_dataframe
-            final_results_dataframe = final_results_dataframe.append(pd.Series(), ignore_index=True, sort=False)
-
-        # Reset Index
-        final_results_dataframe = final_results_dataframe.reset_index(drop=True)
-
-        print("final results dataframe = {}".format(i))
-
-        # Write the entire dataframe in a single sheet
-        with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
-            final_results_dataframe.to_excel(writer, sheet_name="Best results")
-
+        cache_directory = base_path + 'reports_best_results/'
     else:
-        print("Normal results. Writing excel sheets")
-        # Write the first dataframe to create the excel file
-        with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
-            results_dataframe_list[0].to_excel(writer, sheet_name=selected_sections_list[0])
+        cache_directory = base_path + 'reports_normal_results/'
 
-        print("Wrote first excel sheet")
-        
-        # Write rest of the dataframes with the excel file in "Append" mode
-        with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
-            for results_dataframe, testname in zip(results_dataframe_list[1:], selected_sections_list[1:]):
-                print("Writing excel sheet of {}".format(testname))
-                results_dataframe.to_excel(writer, sheet_name=testname)
+    if not os.path.exists(cache_directory):
+        os.mkdir(cache_directory)
 
-    print("Writing all excel files took {} seconds".format(time.time() - start_time2))
+    # Check if the excel file path for the current request exists in the map_file
+    reports_cache_map_file = base_path + 'reports_cache_map.txt'
+
+    # If reports_cache_map.txt doesn't exist, create it again
+    if not os.path.isfile(reports_cache_map_file):
+        os.system("touch " + reports_cache_map_file)
     
+    # The actual dictionary. Fill it by using json.loads()
+    reports_cache_map = {}
+    with open(reports_cache_map_file, 'r') as f:
+        try:
+            reports_cache_map = json.loads(f.read())
+        except:
+            # In case the file is empty, ignore
+            pass
+
+    absolute_file_path = ""
+
+    # Check if all_criteria_string exists in reports_cache_map's keys
+    if all_criteria_string in reports_cache_map:
+        absolute_file_path = reports_cache_map[all_criteria_string]
+    else:
+        reports_cache_map[all_criteria_string] = cache_directory + filename + '.xlsx'
+
+    # If the file exists, then return it
+    if os.path.exists(absolute_file_path):
+        logging.debug("Found cached file. Returning")
+        pass
+    else:
+        reports_cache_map[all_criteria_string] = cache_directory + filename + '.xlsx'
+
+        # Filename .xlsx
+        absolute_file_path = cache_directory + filename + '.xlsx'
+
+        parallel_start_time = time.time()
+
+        logging.debug("All skuidnames criteria = {}".format(all_skuidnames_criteria))
+        logging.debug("SKUID Criteria op = {}".format(skuid_criteria_op))
+
+        # Parallel excecution 
+        results_dataframe_list = []
+        pool = multiprocessing.Pool(num_processes)
+        try:
+            results_dataframe_list = pool.map(partial(parallel_test_report, SELECT_PARAMS=SELECT_PARAMS, FINAL_CRITERIA=FINAL_CRITERIA, \
+                                    kernel_criteria=request.form.get('criteria-Kernel Version'), os_version_criteria=request.form.get('criteria-OS Version'), \
+                                    os_version_criteria_op=request.form.get('criteria-op-OS Version'), kernel_criteria_op=request.form.get('criteria-op-Kernel Version'), \
+                                    skuid_cpu_map=skuid_cpu_map, best_results_condition=best_results_condition, skuid_criteria_op=skuid_criteria_op, \
+                                    all_skuidnames_criteria=all_skuidnames_criteria), zip(selected_sections_list, selected_tests_list, INPUT_FILTER_CONDITION_LIST))
+        finally:
+            logging.debug("Closing Pool")
+            pool.close()
+            pool.join()
+
+        logging.debug("Parallelism took {} seconds".format(time.time() - parallel_start_time))
+        logging.debug("{}".format(len(results_dataframe_list)))
+        start_time2 = time.time()
+
+        if best_results_condition:
+            logging.debug("Best results. Writing excel sheets")
+            # Write all results in a single excel file
+
+            final_results_dataframe = pd.DataFrame()
+
+            # Append all the dataframes from the list to final_results_dataframe
+            i = 0
+            for results_dataframe in results_dataframe_list:
+                i += 1
+                final_results_dataframe = final_results_dataframe.append(results_dataframe, sort=False)
+
+                # Append an empty row to the final_results_dataframe
+                final_results_dataframe = final_results_dataframe.append(pd.Series(), ignore_index=True, sort=False)
+
+            # Reset Index
+            final_results_dataframe = final_results_dataframe.reset_index(drop=True)
+
+            logging.debug("final results dataframe = {}".format(i))
+
+            # Write the entire dataframe in a single sheet
+            with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
+                final_results_dataframe.to_excel(writer, sheet_name="Best results")
+
+        else:
+            logging.debug("Normal results. Writing excel sheets")
+            # Write the first dataframe to create the excel file
+            with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
+                results_dataframe_list[0].to_excel(writer, sheet_name=selected_sections_list[0])
+
+            logging.debug("Wrote first excel sheet")
+            
+            # Write rest of the dataframes with the excel file in "Append" mode
+            with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
+                for results_dataframe, testname in zip(results_dataframe_list[1:], selected_sections_list[1:]):
+                    logging.debug("Writing excel sheet of {}".format(testname))
+                    results_dataframe.to_excel(writer, sheet_name=testname)
+
+        logging.debug("Writing all excel files took {} seconds".format(time.time() - start_time2))
+    
+
+    # Write the updated reports_cache_map_file back to the file
+    with open(reports_cache_map_file, 'w') as f:
+        f.write(json.dumps(reports_cache_map))
+
     # Send the Excel file as response for download
     try:
         return send_file(absolute_file_path,
