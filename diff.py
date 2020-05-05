@@ -3754,8 +3754,9 @@ def generate_reports():
         print("Wrote first excel sheet")
         
         # Write rest of the dataframes with the excel file in "Append" mode
-        for results_dataframe, testname in zip(results_dataframe_list[1:], selected_sections_list[1:]):
-            with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
+        with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
+            for results_dataframe, testname in zip(results_dataframe_list[1:], selected_sections_list[1:]):
+                print("Writing excel sheet of {}".format(testname))
                 results_dataframe.to_excel(writer, sheet_name=testname)
 
     print("Writing all excel files took {} seconds".format(time.time() - start_time2))
