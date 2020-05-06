@@ -111,7 +111,7 @@ Reports Generation
 									<button type="button" class="btn btn-success mt-3" id="filter-testname-hpc-select-all-button">Select All</button>
 									<button type="button" class="btn btn-danger mt-3" id="filter-testname-hpc-clear-all-button">Clear All</button>
 									<div class="d-flex container-fluid flex-wrap">
-										{% for benchmark in all_tests_data.hpc_benchmarks_list %}
+										{% for benchmark in all_tests_data.hpc_sections_list %}
 											<div class="col filter-testname-checkbox-div">
 												<div class="custom-control custom-checkbox">
 													<input type="checkbox" class="custom-control-input filter-testname-checkbox-hpc-checkbox" id="filter-testname-list-{{benchmark}}" name="filter_testname_list" value="{{benchmark}}">
@@ -126,7 +126,7 @@ Reports Generation
 									<button type="button" class="btn btn-success mt-3" id="filter-testname-cloud-select-all-button">Select All</button>
 									<button type="button" class="btn btn-danger mt-3" id="filter-testname-cloud-clear-all-button">Clear All</button>
 									<div class="d-flex container-fluid flex-wrap">
-										{% for benchmark in all_tests_data.cloud_benchmarks_list %}
+										{% for benchmark in all_tests_data.cloud_sections_list %}
 											<div class="col filter-testname-checkbox-div">
 												<div class="custom-control custom-checkbox">
 													<input type="checkbox" class="custom-control-input filter-testname-checkbox-cloud-checkbox" id="filter-testname-list-{{benchmark}}" name="filter_testname_list" value="{{benchmark}}">

@@ -317,12 +317,28 @@ def get_all_tests_data(wiki_description_file='./config/wiki_description.ini'):
     cloud_benchmarks_list = sorted(cloud_benchmarks_list, key=str.lower)
     filter_labels_list = sorted(filter_labels_list, key=str.lower)
 
+    # If wiki_description_file = best_of_all_graph.ini, then benchmark list is actually sections list
+    # Give its value to sections_list and update benchmarks_list
+
+    hpc_sections_list = []
+    cloud_sections_list = []
+    if wiki_description_file == './config/best_of_all_graph.ini':
+        hpc_sections_list, cloud_sections_list = hpc_benchmarks_list, cloud_benchmarks_list
+        hpc_benchmarks_list = [parser.get(section, 'testname').strip() for section in hpc_sections_list]
+        cloud_benchmarks_list = [parser.get(section, 'testname').strip() for section in cloud_sections_list]
+
+        # Unique entries only 
+        hpc_benchmarks_list = sorted(list(set(hpc_benchmarks_list)), key=str.lower)
+        cloud_benchmarks_list = sorted(list(set(cloud_benchmarks_list)), key=str.lower)
+
     context = {
         'hpc_benchmarks_list': hpc_benchmarks_list,
         'cloud_benchmarks_list': cloud_benchmarks_list,
         'filter_labels_list': filter_labels_list,
         'filter_labels_dict': filter_labels_dict,
         'reference_list': reference_list,
+        'hpc_sections_list' : hpc_sections_list,
+        'cloud_sections_list' : cloud_sections_list,
     }
 
     return context
@@ -408,7 +424,7 @@ def getAllRunsData(testname, secret=False):
         INPUT_FILE_QUERY = """SELECT DISTINCT s.description FROM origin o INNER JOIN testdescriptor t
                                 ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
                                 ON o.originID = r.origin_originID INNER JOIN subtest s
-                                ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\';" #RRG
+                                ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\' and r.isvalid=1;" #RRG
         logging.debug(INPUT_FILE_QUERY)
         try:
             input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
@@ -517,8 +533,11 @@ def showAllRunsSecret(testname):
         logging.debug(' = {}'.format(session))
 
         context = context = getAllRunsData(testname, secret=True)
-        
-        return render_template('secret-all-runs.html', success=success, error=error, keyerror=keyerror, context=context)
+
+        # For 'Go To Benchmark' Dropdown
+        all_tests_data = get_all_tests_data()
+
+        return render_template('secret-all-runs.html', success=success, error=error, keyerror=keyerror, context=context, all_tests_data=all_tests_data)
 
 @app.route('/mark-origin-id-invalid', methods=['POST'])
 def markOriginIDInvalid():
@@ -857,8 +876,11 @@ def showTestDetailsSecret(originID):
         logging.debug(' = {}'.format(session))
 
         context = getTestDetailsData(originID, secret=True)
-        
-        return render_template('secret-test-details.html', success=success, error=error, keyerror=keyerror, context=context)
+
+        # For 'Go To Benchmark' Dropdown
+        all_tests_data = get_all_tests_data()
+
+        return render_template('secret-test-details.html', success=success, error=error, keyerror=keyerror, context=context, all_tests_data=all_tests_data)
 
 # Marks a single 'result' invalid
 @app.route('/mark-result-id-invalid', methods=['POST'])
@@ -3234,6 +3256,9 @@ def reports_page():
     # For 'Go To Benchmark' Dropdown
     all_tests_data = get_all_tests_data(wiki_description_file='./config/best_of_all_graph.ini')
 
+    print(all_tests_data.keys())
+    print(all_tests_data['filter_labels_list'])
+
     param_list = [
         {
             'name' : 'SKUID', 'data_type' : 'string', 'input_type' : 'dropdown multiple select', 'dropdown_label' : '', 'display_by_default' : 'Yes',
@@ -3359,10 +3384,6 @@ def parallel_test_report(params, **kwargs):
 
             logging.debug("\nFINAL QUERY = {}".format(RESULTS_QUERY))
 
-            # ['nyx', 'coremark', 'phloem-bandwidth', 'namd']
-            if test_section == 'nyx':
-                logging.debug("Got nyx bro {}\n".format(RESULTS_QUERY))
-
             temp_df = pd.read_sql(RESULTS_QUERY, db)
 
             query_excecution_time = time.time() - start_time
@@ -3477,7 +3498,7 @@ def parallel_test_report(params, **kwargs):
     results_dataframe.insert(index, "FACTS Link", ['http://gbt-2s-02:5000/test-details/' + str(originID) for originID in results_dataframe['originID']])
 
     return results_dataframe
-    
+
 @app.route('/generate_reports', methods=['POST'])
 def generate_reports():
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
@@ -3590,6 +3611,9 @@ def generate_reports():
     # Append all criteria to the key
     all_criteria_string += "criteria-"
 
+    skuid_criteria_op = ""
+    all_skuidnames_criteria = []
+
     for d in param_list:
         d['display'] = request.form.get('disp-'+d['name'])
         if d['name'] == 'SKUID':
@@ -3600,6 +3624,9 @@ def generate_reports():
         else:
             d['criteria'] = request.form.get('criteria-'+d['name'])
         d['criteria-op'] = request.form.get('criteria-op-'+d['name'])
+
+        if d['criteria']:
+            d['display'] = "Yes"
 
         # Append the key, values from current dictionary to all_criteria_string
         all_criteria_string += d['name'] + ":" + d['display'] + ":" + d['criteria-op'] + ":" + str(d['criteria']) + ":"
@@ -3617,8 +3644,6 @@ def generate_reports():
         def get_key_from_value(value):
             return str(list(result_type_map.keys())[list(result_type_map.values()).index(value)])
 
-        skuid_criteria_op = ""
-        all_skuidnames_criteria = []
         # Append FINAL_CRITERIA
         if d['criteria']:
             if d['data_type'] == 'string':
@@ -3636,10 +3661,13 @@ def generate_reports():
                             skuid_criteria_op = d['criteria-op']
                         else:
                             all_skuidnames_criteria.extend(skuid_cpu_map[criteria])
-                            if d['criteria-op'] == 'matches':
-                                FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
-                            else:
-                                FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " NOT IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
+
+                    # If not best_results_condition, append the criteria for skuidnames
+                    if not best_results_condition:
+                        if d['criteria-op'] == 'matches':
+                            FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
+                        else:
+                            FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " NOT IN " + str(all_skuidnames_criteria).replace('[','(').replace(']',')')
 
                 elif d['name'] != 'Kernel Version' and d['name'] != 'OS Version':
                     if d['criteria-op'] == 'matches':
@@ -3662,6 +3690,9 @@ def generate_reports():
                     FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " > \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
 
 
+    print(all_criteria_string)
+    print(SELECT_PARAMS)
+    logging.debug("ALL SKUIDNAMES = ", all_skuidnames_criteria)
 
     # Handle the condition where best_results_condition exists AND 'all_skuidnames_criteria' is empty []
     if best_results_condition and all_skuidnames_criteria == []:
@@ -3738,8 +3769,10 @@ def generate_reports():
 
     # Check if all_criteria_string exists in reports_cache_map's keys
     if all_criteria_string in reports_cache_map:
+        logging.debug("Query entry found in Cache DICTIONARY")
         absolute_file_path = reports_cache_map[all_criteria_string]
     else:
+        logging.debug("Query entry found in Cache DICTIONARY")
         reports_cache_map[all_criteria_string] = cache_directory + filename + '.xlsx'
 
     # If the file exists, then return it
@@ -3747,6 +3780,7 @@ def generate_reports():
         logging.debug("Found cached file. Returning")
         pass
     else:
+        logging.debug("File not found. Excecuting queries again")
         reports_cache_map[all_criteria_string] = cache_directory + filename + '.xlsx'
 
         # Filename .xlsx
@@ -3754,7 +3788,7 @@ def generate_reports():
 
         parallel_start_time = time.time()
 
-        logging.debug("All skuidnames criteria = {}".format(all_skuidnames_criteria))
+        logging.debug("\n\nFilnalAll skuidnames criteria = {}".format(all_skuidnames_criteria))
         logging.debug("SKUID Criteria op = {}".format(skuid_criteria_op))
 
         # Parallel excecution 
@@ -3818,7 +3852,7 @@ def generate_reports():
 
     # Write the updated reports_cache_map_file back to the file
     with open(reports_cache_map_file, 'w') as f:
-        f.write(json.dumps(reports_cache_map))
+        f.write(json.dumps(reports_cache_map, indent=4))
 
     # Send the Excel file as response for download
     try:
