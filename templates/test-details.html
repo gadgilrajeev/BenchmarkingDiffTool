@@ -207,7 +207,7 @@ Test Details
 								{% if i <= 4 %}
 								<button id="redraw-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold" onclick="updateRangeOfCPUUtilGraphs('cpu-graphs-{{i}}')">Redraw ALL</button>
 								{% endif %}
-								<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng(getCPUGraphName(i) + ' - ' + (new Date()).toString(), 'cpu-graphs-{{i}}')">Download as PNG</button>
+								<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('{{context.originID}} - ' + getCPUGraphName(i) + ' - ' + (new Date()).toString(), 'cpu-graphs-{{i}}')">Download as PNG</button>
 							</div>
 						</div>
 						{% endfor %}
@@ -225,7 +225,7 @@ Test Details
 									<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
 								</div>
 								<div class="card-footer">
-									<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng(getCPUGraphName(i) + ' - ' + (new Date()).toString(), 'cpu-graphs-{{i}}')">Download as PNG</button>
+									<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('{{context.originID}} - ' + getCPUGraphName(i) + ' - ' + (new Date()).toString(), 'cpu-graphs-{{i}}')">Download as PNG</button>
 								</div>
 							</div>
 							{% endfor %}
@@ -245,7 +245,7 @@ Test Details
 										<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
 									</div>
 									<div class="card-footer">
-										<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng(getCPUGraphName(i) + ' - ' + (new Date()).toString(), 'cpu-graphs-{{i}}')">Download as PNG</button>
+										<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('{{context.originID}} - ' + getCPUGraphName(i) + ' - ' + (new Date()).toString(), 'cpu-graphs-{{i}}')">Download as PNG</button>
 									</div>
 								</div>
 								{% endfor %}
@@ -265,7 +265,7 @@ Test Details
 										<div id="cpu-graphs-{{i}}" class="m-0 pt-3 pb-0" style="height: 450px;"></div>
 									</div>
 									<div class="card-footer">
-										<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng(getCPUGraphName(i) + ' - ' + (new Date()).toString(), 'cpu-graphs-{{i}}')">Download as PNG</button>
+										<button id="download-cpu-graphs-{{i}}" class="btn btn-primary font-weight-bold float-right" onclick="downloadAsPng('{{context.originID}} - ' + getCPUGraphName(i) + ' - ' + (new Date()).toString(), 'cpu-graphs-{{i}}')">Download as PNG</button>
 									</div>
 								</div>
 								{% endfor %}
@@ -514,7 +514,7 @@ Test Details
 
 			// Download all graphs one by one
 			for(i = 0; i < {{ cpu_util_graphs_count }}; i++) {
-				downloadFilename = getCPUGraphName(i) + " - " + (new Date()).toString()
+				downloadFilename = '{{context.originID}} - ' + getCPUGraphName(i) + " - " + (new Date()).toString()
 				downloadAsPng(downloadFilename, 'cpu-graphs-'+(i+1))
 			}
 		})
