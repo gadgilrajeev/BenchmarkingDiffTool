@@ -12,7 +12,8 @@ import configparser
 from flask import Flask, render_template, request, redirect, send_file, url_for, session, send_from_directory
 from collections import OrderedDict
 import csv
-import openpyxl
+from openpyxl import load_workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
 from packaging.version import LegacyVersion
 import json
 import counter_graphs_module
@@ -3256,9 +3257,6 @@ def reports_page():
     # For 'Go To Benchmark' Dropdown
     all_tests_data = get_all_tests_data(wiki_description_file='./config/best_of_all_graph.ini')
 
-    print(all_tests_data.keys())
-    print(all_tests_data['filter_labels_list'])
-
     param_list = [
         {
             'name' : 'SKUID', 'data_type' : 'string', 'input_type' : 'dropdown multiple select', 'dropdown_label' : '', 'display_by_default' : 'Yes',
@@ -3614,6 +3612,22 @@ def generate_reports():
     skuid_criteria_op = ""
     all_skuidnames_criteria = []
 
+    filename = request.form.get('filename')
+
+    # Compute the metadata sheet parameters
+    reports_metadata = {
+        'Parameter' : ['Date Created'],
+        'Option' : [''],
+        'Value' : [filename[filename.find('-') + 2 : ]],
+    }
+
+    reports_metadata['Parameter'].append('Best Results')
+    reports_metadata['Option'].append('')
+    if best_results_condition:
+        reports_metadata['Value'].append(best_results_condition)
+    else:
+        reports_metadata['Value'].append("No")
+
     for d in param_list:
         d['display'] = request.form.get('disp-'+d['name'])
         if d['name'] == 'SKUID':
@@ -3646,6 +3660,10 @@ def generate_reports():
 
         # Append FINAL_CRITERIA
         if d['criteria']:
+            reports_metadata['Parameter'].append(d['name'])
+            reports_metadata['Option'].append(str(d['criteria-op']))
+            reports_metadata['Value'].append(str(d['criteria']))
+
             if d['data_type'] == 'string':
                 if d['name'] == 'Scaling':
                     if d['criteria-op'] == 'matches':
@@ -3706,6 +3724,13 @@ def generate_reports():
         selected_sections_list = request.form.getlist('filter_testname_list')
     else:
         selected_labels_list = request.form.getlist('filter_labels_list')
+
+        if selected_labels_list:
+            reports_metadata['Parameter'].append("Selected Labels")
+            reports_metadata['Option'].append('')
+            reports_metadata['Value'].append(str(selected_labels_list))
+            
+
         logging.debug("PRint selected_labels_list = {}".format(selected_labels_list))
         for label in selected_labels_list:
             selected_sections_list.extend(label_testname_map[label])
@@ -3718,7 +3743,15 @@ def generate_reports():
         selected_sections_list = results_metadata_parser.sections()
 
     # Sort the selected_tests_list alphabetically
-    selected_sections_list.sort()
+    selected_sections_list.sort(key=str.lower)
+
+    reports_metadata['Parameter'].append("Selected Benchmarks")
+    reports_metadata['Option'].append('')
+    reports_metadata['Value'].append(str(selected_sections_list))
+
+    metadata_df = pd.DataFrame(reports_metadata)
+    # Metadata dataframe is ready. Write it to the "Metadata" sheet while saving the file
+
     # Get the INPUT_FILTER_CONDITION for each selected test
     input_filters_list_list = [results_metadata_parser.get(test_section, 'default_input') \
                                 .replace('\"', '').split(',') for test_section in selected_sections_list]
@@ -3731,9 +3764,7 @@ def generate_reports():
 
     all_criteria_string += "selected-sections-" + ":".join(selected_sections_list)
     # DONE! We got the all_criteria_string key 
-
-    filename = request.form.get('filename')
-
+    
     # The directory where cached excel files will be stored
     base_path = os.getcwd() + '/cached_results/'
     # If directory doesn't exist, create it
@@ -3777,6 +3808,20 @@ def generate_reports():
 
     # If the file exists, then return it
     if os.path.exists(absolute_file_path):
+        # Update the Metadata sheet
+        wb = load_workbook(absolute_file_path)
+        if 'Metadata' in wb.sheetnames:
+            del wb['Metadata']
+
+        # Create a new sheet. Insert at first position
+        ws = wb.create_sheet("Metadata", 0)
+
+        # Write the metadata dataframe to the "Metadata" sheet
+        for r in dataframe_to_rows(metadata_df, index=True, header=True):
+            ws.append(r)
+
+        # Save the file, ready to return
+        wb.save(absolute_file_path)
         logging.debug("Found cached file. Returning")
         pass
     else:
@@ -3829,21 +3874,25 @@ def generate_reports():
 
             logging.debug("final results dataframe = {}".format(i))
 
-            # Write the entire dataframe in a single sheet
+            # Write the metadata dataframe to create the excel file
             with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
+                metadata_df.to_excel(writer, sheet_name="Metadata")
+
+            # Write the entire dataframe in a single sheet in append mode
+            with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
                 final_results_dataframe.to_excel(writer, sheet_name="Best results")
 
         else:
             logging.debug("Normal results. Writing excel sheets")
-            # Write the first dataframe to create the excel file
+            # Write the metadata dataframe to create the excel file
             with pd.ExcelWriter(absolute_file_path, engine='openpyxl') as writer:
-                results_dataframe_list[0].to_excel(writer, sheet_name=selected_sections_list[0])
+                metadata_df.to_excel(writer, sheet_name="Metadata")
 
             logging.debug("Wrote first excel sheet")
             
             # Write rest of the dataframes with the excel file in "Append" mode
             with pd.ExcelWriter(absolute_file_path, engine='openpyxl', mode='a') as writer:
-                for results_dataframe, testname in zip(results_dataframe_list[1:], selected_sections_list[1:]):
+                for results_dataframe, testname in zip(results_dataframe_list, selected_sections_list):
                     logging.debug("Writing excel sheet of {}".format(testname))
                     results_dataframe.to_excel(writer, sheet_name=testname)
 
