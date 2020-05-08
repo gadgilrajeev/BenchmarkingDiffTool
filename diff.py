@@ -508,7 +508,10 @@ def showAllRuns(testname):
 @app.route('/allruns/secret/<testname>', methods=['GET', 'POST'])
 def showAllRunsSecret(testname):
     if request.method == 'GET':
-        return render_template('secret-all-runs.html', testname={'name':testname}, context={})
+        # For 'Go To Benchmark' Dropdown
+        all_tests_data = get_all_tests_data()
+
+        return render_template('secret-all-runs.html', testname={'name':testname}, context={}, all_tests_data=all_tests_data)
     else:
         success = {}
         error = {}
@@ -851,7 +854,10 @@ def showTestDetails(originID):
 @app.route('/test-details/secret/<originID>', methods=['GET', 'POST'])
 def showTestDetailsSecret(originID):
     if request.method == 'GET':
-        return render_template('secret-test-details.html', originID={'ID':originID}, context={})
+        # For 'Go To Benchmark' Dropdown
+        all_tests_data = get_all_tests_data()
+
+        return render_template('secret-test-details.html', originID={'ID':originID}, context={}, all_tests_data=all_tests_data)
     else:
         success = {}
         error = {}
@@ -3708,8 +3714,8 @@ def generate_reports():
                     FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " > \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
 
 
-    print(all_criteria_string)
-    print(SELECT_PARAMS)
+    logging.debug(all_criteria_string)
+    logging.debug(SELECT_PARAMS)
     logging.debug("ALL SKUIDNAMES = ", all_skuidnames_criteria)
 
     # Handle the condition where best_results_condition exists AND 'all_skuidnames_criteria' is empty []
