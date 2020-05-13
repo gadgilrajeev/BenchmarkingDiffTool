@@ -273,12 +273,6 @@ def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-# Error 404 custom page not found
-@app.errorhandler(404)
-def page_not_found(e):
-    # note that we set the 404 status explicitly
-    return render_template('404.html'), 404
-
 # Get all-tests data
 def get_all_tests_data(wiki_description_file='./config/wiki_description.ini'):
     parser = configparser.ConfigParser()
@@ -344,6 +338,15 @@ def get_all_tests_data(wiki_description_file='./config/wiki_description.ini'):
 
     return context
 
+# Error 404 custom page not found
+@app.errorhandler(404)
+def page_not_found(e):
+    # For 'Go To Benchmark' Dropdown
+    all_tests_data = get_all_tests_data()
+    
+    # note that we set the 404 status explicitly
+    return render_template('404.html', all_tests_data=all_tests_data), 404
+
 # ALL TESTS PAGE
 @app.route('/')
 def home_page():
@@ -357,7 +360,6 @@ def about_page():
     all_tests_data = get_all_tests_data()
 
     return render_template('about.html', context = {}, all_tests_data=all_tests_data)
-
 
 # Get data for All runs of the test 'testname' from database
 def getAllRunsData(testname, secret=False):
@@ -2321,7 +2323,6 @@ def parallel_get_section_results(params, **kwargs):
         
         pass
         # logging.debug("######################RESULT {} DOES NOT EXIST in REFERENCE".format(test_section))
-
 
 @app.route('/best_of_all_graph', methods=['POST'])
 def best_of_all_graph():
