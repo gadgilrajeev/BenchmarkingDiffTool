@@ -3648,12 +3648,8 @@ def generate_reports():
         if d['criteria']:
             d['display'] = "Yes"
 
-        # Append the key, values from current dictionary to all_criteria_string
-        all_criteria_string += d['name'] + ":" + d['display'] + ":" + d['criteria-op'] + ":" + str(d['criteria']) + ":"
-
         if d['name'] == 'Test Date':
             d['criteria2'] = request.form.get('criteria2-'+d['name'])
-            all_criteria_string += d['criteria2'] + ":"
 
         # Append to SELECT_PARAMS according to 'display' value
         if d['display'] == 'Yes':
@@ -3714,6 +3710,9 @@ def generate_reports():
                     FINAL_CRITERIA += " AND " + parameter_map[d['name']] + " > \'" + d['criteria'].strip() + '-' + month_name_number_map[d['criteria2']] + '-' + '01' + "\'"
 
 
+    all_criteria_string += json.dumps(param_list)
+
+
     logging.debug(all_criteria_string)
     logging.debug(SELECT_PARAMS)
     logging.debug("ALL SKUIDNAMES = ", all_skuidnames_criteria)
@@ -3768,7 +3767,7 @@ def generate_reports():
     # Read all test names each section of best_of_all_graph.ini file
     selected_tests_list = [results_metadata_parser.get(section, 'testname').strip() for section in selected_sections_list] 
 
-    all_criteria_string += "selected-sections-" + ":".join(selected_sections_list)
+    all_criteria_string += "selected-sections-" + json.dumps(selected_sections_list)
     # DONE! We got the all_criteria_string key 
     
     # The directory where cached excel files will be stored
