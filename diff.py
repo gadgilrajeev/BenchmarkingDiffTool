@@ -351,6 +351,14 @@ def home_page():
 
     return render_template('all-tests.html', context=context)
 
+@app.route('/about')
+def about_page():
+    # For 'Go To Benchmark' Dropdown
+    all_tests_data = get_all_tests_data()
+
+    return render_template('about.html', context = {}, all_tests_data=all_tests_data)
+
+
 # Get data for All runs of the test 'testname' from database
 def getAllRunsData(testname, secret=False):
     # Read metadata for results in wiki_description.ini file

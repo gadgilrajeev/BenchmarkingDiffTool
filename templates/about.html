@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+
+{% block title %}
+About FACTs Frontend
+{% endblock title %}
+
+{% block navbar %}
+	<nav class="navbar sticky-top navbar-expand-sm bg-dark navbar-dark lead">
+		<a class="navbar-brand bg-light text-dark py-1 px-2 font-weight-normal" href="#">
+			<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="30" height="30" class="d-inline-block align-top" alt=""> FACTs Frontend
+		</a>
+		<!-- Links -->
+		<ul class="navbar-nav font-weight-normal">
+			<li class="nav-item">
+				<a class="nav-link active" href="/">Home Page</a>
+    		</li>
+    	</ul>
+
+        {{ super() }}
+
+ 	</nav>
+{% endblock %}
+
+{% block content %}
+
+	<h1 class="text-center">About Page. Welcome!</h1>
+	<div class="container-fluid" id="aboutDiv">
+		<!-- Card for version v1.2 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingOnePointTwo">
+				<h2 class="mb-0">
+				<button class="btn btn-lg" type="button" data-toggle="collapse" data-target="#collapseOnePointTwo" aria-expanded="true" aria-controls="collapseOnePointTwo">
+					FACTs v1.2 (Latest version)
+				</button>
+				</h2>
+			</div>
+
+			<div id="collapseOnePointTwo" class="collapse show" aria-labelledby="headingOnePointTwo" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Reports Generation</h5>
+					<p class="card-text text-secondary">Users can generate custom excel sheets in three steps</p>
+					<ol class="card-text text-secondary">
+						<li>Select Labels or Benchmarks </li> 
+						<li>Select Best results / Top 5 / All results</li>
+						<li>Advanced filters like SKU, Scaling, Kernel, OS, etc.</li>
+					</ol>
+					<br>
+
+					<h5 class="card-title">New Graphs</h5>
+					<ul>
+					<li class="card-text"><p class="lead">iostat graphs</p>
+					<p class="card-text text-secondary">Multiline graph for iostat is added to CPU Utilization graphs having kB_read/s and kB_write/s on y-axis</p>
+					</li>
+					<li class="card-text"><p class="lead">Scaling Graphs</p>
+					<p class="card-text text-secondary">These are the default graphs on the left side of All Runs page</p>	
+					</ul>
+					
+					<h5 class="card-title">Other additions</h5>
+					<ul class="card-text text-secondary">
+						<li>Download all graphs at once in CPU Utilization graphs</li> 
+						<li>Search benchmark names in the "Go to Benchmark" dropdown. No need of scrolling all the way down</li>
+						<li>Responsive loading circle for Graphs, which disappears after the graph has loaded. This will assure user that graph is being processed.</li>
+					</ul>
+					<br>
+	
+					<h5 class="card-title">Performance improvements and Bug Fixes</h5>
+					<ul class="card-text text-secondary">
+						<li>Some MYSQL queries have been optimized, Caching has been added for reports generation</li>
+						<li>Several bugs have been fixed. See github commit history and comments for more details</li>
+					</ul>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v1.1 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingOnePointOne">
+				<h2 class="mb-0">
+				<button class="btn btn-lg" type="button" data-toggle="collapse" data-target="#collapseOnePointOne" aria-expanded="true" aria-controls="collapseOnePointOne">
+					FACTs v1.1
+				</button>
+				</h2>
+			</div>
+
+			<div id="collapseOnePointOne" class="collapse" aria-labelledby="headingOnePointOne" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">New Graphs Added</h5>
+					<p class="card-text text-secondary">CPU and network utilization heatmap, multi-line graphs, RAM Utilization graphs, core frequency graphs, power, voltage and temperature consumption graphs.</p>
+					<br>
+
+					<h5 class="card-title">Performance Improvement</h5>
+					<p class="card-text text-secondary">Parallelized processing of all graphs using python's 'multiprocessing' module</p>
+					<br>
+
+					<h5 class="card-title">Main page graph flexibility.</h5>
+					<p class="card-text text-secondary">Engineers can add new sections to best_of_all_graph.ini file in order to view the same benchmark results with different filters
+					<br>For example Mongodb-workload-A, Mongodb-workload-B, Mongodb-workload-C, etc.
+					</p>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v1.0 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingOnePointZero">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseOnePointZero" aria-expanded="false" aria-controls="collapseOnePointZero">
+					FACTs v1.0
+				</button>
+				</h2>
+			</div>
+			<div id="collapseOnePointZero" class="collapse" aria-labelledby="headingOnePointZero" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Standardisation of FACTs</h5>
+					<p class="card-text text-secondary">FACTs name officially given. Added brand logo to every page.</p>
+					<br>
+
+					<h5 class="card-title">Added Navigation Bar</h5>
+					<p class="card-text text-secondary">Navigating between pages made easy. Added navbar to all pages with "Go To Benchmark" dropdown
+					<br>Also added go to top arrow on right hand bottom of the web page
+					</p>
+					<br>
+
+					<h5 class="card-title">Performance Improvement</h5>
+					<p class="card-text text-secondary">Added parallel processing to clustered-graph using 'joblib' module</p>
+					<br>
+
+					<h5 class="card-title">Exception Handling and 404 page</h5>
+					<p class="card-text text-secondary">Added custom Error 404 page. </p>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v0.9 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingZeroPointNine">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseZeroPointNine" aria-expanded="false" aria-controls="collapseZeroPointNine">
+					FACTs v0.9
+				</button>
+				</h2>
+			</div>
+			<div id="collapseZeroPointNine" class="collapse" aria-labelledby="headingZeroPointNine" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Counter Graphs and CPU Utilization Graphs</h5>
+					<p class="card-text text-secondary">A Total of 13 Counter Graphs added
+					<br>CPU Util graphs include heatmap, multiline and bar chart for CPU utilization
+					</p>
+					<br>
+
+					<h5 class="card-title">Additions to Main page graphs</h5>
+					<p class="card-text text-secondary">Added Download as CSV button 
+					<br>Custom date filter added 
+					</p>
+					<br>
+
+					<h5 class="card-title">Bug Fixes</h5>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v0.8 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingZeroPointEight">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseZeroPointEight" aria-expanded="false" aria-controls="collapseZeroPointEight">
+					FACTs v0.8
+				</button>
+				</h2>
+			</div>
+			<div id="collapseZeroPointEight" class="collapse" aria-labelledby="headingZeroPointEight" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Test Summary Added</h5>
+					<p class="card-text text-secondary">Test Summary Added on every benchmark's page
+					<br>The Summary includes description, source code link, default input, type of workload, latest version and label
+					</p>
+					<br>
+
+					<h5 class="card-title">Visual Changes</h5>
+					<p class="card-text text-secondary">Changed style of buttons. Using bootstrap buttons now
+					<br>Styled table using bootstrap table. Removed unused CSS properties
+					</p>
+					<br>
+
+					<h5 class="card-title">Secret Pages</h5>
+					<p class="card-text text-secondary">Added Secret pages (For Elite members only 😉) for marking originID invalid
+					<br>Another secret page for marking a single resultID invalid
+					</p>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v0.7 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingZeroPointSeven">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseZeroPointSeven" aria-expanded="false" aria-controls="collapseZeroPointSeven">
+					FACTs v0.7
+				</button>
+				</h2>
+			</div>
+			<div id="collapseZeroPointSeven" class="collapse" aria-labelledby="headingZeroPointSeven" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Input File filters on Graphs</h5>
+					<p class="card-text text-secondary">Added input file filters for both comparison graphs on allRuns page
+					<br>Graphs change as soon as new input filters are applied
+					</p>
+					<br>
+
+					<h5 class="card-title">Visual changes</h5>
+					<p class="card-text text-secondary">Added Grid implementation on All Runs page</p>
+					<br>
+
+					<h5 class="card-title">Bug Fixes</h5>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v0.6 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingZeroPointSix">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseZeroPointSix" aria-expanded="false" aria-controls="collapseZeroPointSix">
+					FACTs v0.6
+				</button>
+				</h2>
+			</div>
+			<div id="collapseZeroPointSix" class="collapse" aria-labelledby="headingZeroPointSix" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Download as CSV and PNG</h5>
+					<p class="card-text text-secondary">Added Download as CSV feature for both Graphs and Tables. 
+					<br>Download as PNG function for Graphs
+					</p>
+					<br>
+
+					<h5 class="card-title">Only Marvell TX2-B2 visible</h5>
+					<p class="card-text text-secondary">Bars having SKU as Marvell TX2-B2 are visible by default. User has to click on legend for viewing others </p>
+					<br>
+
+					<h5 class="card-title">Frontend Code Refactoring</h5>
+					<p class="card-text text-secondary">Refactored JS code, change the way parameters are passed to drawGraph functions
+					<br>Redrawing normalized graphs consumes less RAM now
+					</p>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v0.5 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingZeroPointFive">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseZeroPointFive" aria-expanded="false" aria-controls="collapseZeroPointFive">
+					FACTs v0.5
+				</button>
+				</h2>
+			</div>
+			<div id="collapseZeroPointFive" class="collapse" aria-labelledby="headingZeroPointFive" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Added Main Page Graph</h5>
+					<p class="card-text text-secondary">Best of All graph has been added to the main page.
+					<br>It is normalized with respect to the selected SKU Eg. Normalized w.r.t. Intel Skylake Gold
+					</p>
+					<br>
+
+					<h5 class="card-title">Compare results shareable</h5>
+					<p class="card-text text-secondary">Comparison of tests page is now shareable with a link</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v0.4 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingZeroPointFour">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseZeroPointFour" aria-expanded="false" aria-controls="collapseZeroPointFour">
+					FACTs v0.4
+				</button>
+				</h2>
+			</div>
+			<div id="collapseZeroPointFour" class="collapse" aria-labelledby="headingZeroPointFour" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Added SKU Comparison graph</h5>
+					<p class="card-text text-secondary">Best results of a benchmark for each SKU can be viewed and compared with respect to various parameters like Kernel Version, OS, SMT, etc. 
+					</p>
+					<br>
+
+					<h5 class="card-title">Graphs are now Clickable!</h5>
+					<p class="card-text text-secondary">Clicking on a bar takes you to corresponding originID's test-details page</p>
+					<br>
+
+					<h5 class="card-title">Added legend to all graphs</h5>
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v0.3 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingZeroPointThree">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseZeroPointThree" aria-expanded="false" aria-controls="collapseZeroPointThree">
+					FACTs v0.3
+				</button>
+				</h2>
+			</div>
+			<div id="collapseZeroPointThree" class="collapse" aria-labelledby="headingZeroPointThree" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Best SKU graphs, Absolute and Normalized</h5>
+					<p class="card-text text-secondary">Lets you view best results of a benchmark for all SKUs. 
+					<br>You can also view normalized results with respect to a particular SKU (Eg. Normalized w.r.t. Intel Skylake Gold)
+					</p>
+					<br>
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v0.2 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingZeroPointTwo">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseZeroPointTwo" aria-expanded="false" aria-controls="collapseZeroPointTwo">
+					FACTs v0.2
+				</button>
+				</h2>
+			</div>
+			<div id="collapseZeroPointTwo" class="collapse" aria-labelledby="headingZeroPointTwo" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Dynamic comparison Graphs for all test</h5>
+					<p class="card-text text-secondary">Best results of a benchmark can be viewed and compared with respect to various parameters like Kernel Version, OS, SMT, etc. </p>
+					<br>
+
+					<h5 class="card-title">Added RAM, Disk and NIC details</h5>
+					<p class="card-text text-secondary">These are visible on environment-details page</p>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- Card for version v0.1 -->
+		<div class="card border-info">
+			<div class="card-header border-info" style="background: azure" id="headingZeroPointOne">
+				<h2 class="mb-0">
+				<button class="btn btn-lg collapsed" type="button" data-toggle="collapse" data-target="#collapseZeroPointOne" aria-expanded="false" aria-controls="collapseZeroPointOne">
+					FACTs v0.1
+				</button>
+				</h2>
+			</div>
+			<div id="collapseZeroPointOne" class="collapse" aria-labelledby="headingZeroPointOne" data-parent="#aboutDiv">
+				<div class="card-body">
+					<h5 class="card-title">Set up the project environment</h5>
+					<p class="card-text text-secondary">Seperate directories for templates, static - css and js file. 
+					<br>Virtual env created, requirements.txt file added
+					</p>
+					<br>
+
+					<h5 class="card-title">Added Main Page</h5>
+					<p class="card-text text-secondary">This page contains a list of HPC benchmarks and Cloud benchmarks</p>
+					<br>
+
+					<h5 class="card-title">Added All Runs Page</h5>
+					<p class="card-text text-secondary">This page shows a table having all the runs of the selected Benchmark</p>
+					<br>
+
+					<h5 class="card-title">Added Test Details Page</h5>
+					<p class="card-text text-secondary">This page shows a table having all the results of the selected originID</p>
+					<br>
+
+					<h5 class="card-title">Added Environment Details Page</h5>
+					<p class="card-text text-secondary">This page shows tables having all env. details of the selected originID
+					<br>Details include bootenv, hwdetails, node, ostunings, etc.
+					</p>
+					<br>
+
+					<h5 class="card-title">Added Compare page</h5>
+					<p class="card-text text-secondary">This page compares two or more selected originIDs</p>
+
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+{% endblock content %}
