@@ -1181,6 +1181,7 @@ def diffTests():
 
             # Change column names according to OriginID
             intermediate_dataframe = intermediate_dataframe.reset_index()
+
             intermediate_dataframe.columns = join_on_columns_list + ["number_" + originID for originID in
                                                                      originID_compare_list]
 
@@ -1193,14 +1194,7 @@ def diffTests():
 
             intermediate_dataframe['resultype'] = intermediate_dataframe['resultype'].apply(lambda x: apply_result_type(x))
 
-            final_results_dataframe = pd.DataFrame(columns=intermediate_dataframe.columns)
-            # SUBSET OF ROWS WHICH HAVE "qualifier" IN QUALIFIER LIST
-            for q in qualifier_list:
-                mask = (intermediate_dataframe['qualifier'] == pd.Series([q] * len(intermediate_dataframe)))
-                dataframe = intermediate_dataframe[mask]
-
-                final_results_dataframe = final_results_dataframe.append(dataframe)
-
+            final_results_dataframe = intermediate_dataframe.sort_values(by=['qualifier'])
             logging.debug("PRINTING THE FINAL DATAFRAME")
             logging.debug(' = {}'.format(final_results_dataframe))
             logging.debug("DONE")
