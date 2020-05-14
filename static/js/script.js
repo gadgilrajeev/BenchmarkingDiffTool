@@ -186,7 +186,7 @@ function sendAjaxRequest(ajaxData, url) {
 	Plotly.purge(url_graph_map[url])
 
 	// Set html to loading circle
-	$('#'+url_graph_map[url]).html("<div class='loading-circle text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>")
+	$('#'+url_graph_map[url]).html("<div class='loading-circle-" + url_graph_map[url] + " text-center'><div class='spinner-border text-center' role='status'><span class='sr-only'>Loading...</span></div></div>")
 
 
 	$.ajax({
@@ -198,7 +198,7 @@ function sendAjaxRequest(ajaxData, url) {
 
 	}).done(function(response){
 		// Remove all the loading circles first
-		$('.loading-circle').remove()
+		$(".loading-circle-" + url_graph_map[url]).remove()
 
 
 		console.log("DONEEEEEEE")
