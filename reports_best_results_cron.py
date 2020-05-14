@@ -15,6 +15,8 @@ import json
 from packaging.version import LegacyVersion
 from pprint import pprint
 
+script_directory = os.path.dirname(os.path.realpath(__file__))
+
 DB_HOST_IP = '1.21.1.65'
 # DB_HOST_IP = '10.110.169.149'
 # DB_HOST_IP = 'localhost'
@@ -37,7 +39,7 @@ result_type_map = {0: "single thread", 1: 'single core',
                    12: 'OMP_MPI scaling', 20: 'Projection'}
 
 # Returns INPUT_FILTER_CONDITION from 'test_name' and 'input_filters_list'
-def get_input_filter_condition(test_name, input_filters_list, wiki_description_file='./config/wiki_description.ini'):
+def get_input_filter_condition(test_name, input_filters_list, wiki_description_file=script_directory + '/config/wiki_description.ini'):
     INPUT_FILTER_CONDITION = ""
 
     results_metadata_file_path = wiki_description_file
@@ -73,7 +75,7 @@ def parallel_test_report(params, **kwargs):
     logging.debug("Processing Paralelly for {}".format(testname))
     logging.debug("Input filter condition = {}".format(INPUT_FILTER_CONDITION))
 
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path = script_directory + '/config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -333,8 +335,6 @@ def get_updated_test_sections(**kwargs):
 
     logging.debug("Writing file")   
     logging.debug(new_originIDs_map)
-    logging.debug(type(new_originIDs_map))
-    logging.debug(type(new_originIDs_map['clubb']))
     # Write the updated test_section->originID dictionary to the file
     with open(reports_last_read_originIDs_file, 'w') as f:
         f.write(json.dumps(new_originIDs_map))
@@ -481,13 +481,13 @@ def get_criteria_params(all_criteria_string, sku_parser, skuid_cpu_map):
         'selected_sections_list' : selected_sections_list
     }
 
-# Write best results to excel file in 'cached_results' directory 
-def write_best_results_excel():
-    results_metadata_file_path = './config/best_of_all_graph.ini'
+# Update all cached reports (.xlsx) in 'cached_results' directory 
+def update_cached_reports():
+    results_metadata_file_path = script_directory + '/config/best_of_all_graph.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
-    sku_file_path = './config/sku_definition.ini'
+    sku_file_path = script_directory + '/config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -522,13 +522,13 @@ def write_best_results_excel():
     input_filters_list_list = [results_metadata_parser.get(test_section, 'default_input') \
                                 .replace('\"', '').split(',') for test_section in all_test_sections]
     INPUT_FILTER_CONDITION_LIST = [get_input_filter_condition(test_section, input_filters_list, \
-                                    wiki_description_file="./config/best_of_all_graph.ini") \
+                                    wiki_description_file= script_directory + "/config/best_of_all_graph.ini") \
                                     for test_section, input_filters_list in zip(all_test_sections, input_filters_list_list)]
 
     all_test_names = [results_metadata_parser.get(section, 'testname').strip() for section in all_test_sections] 
 
     # The directory where cached excel files will be stored
-    base_path = os.getcwd() + '/cached_results/'
+    base_path = script_directory + '/cached_results/'
     # If directory doesn't exist, create it
     if not os.path.exists(base_path):
         os.mkdir(base_path)         
@@ -578,10 +578,11 @@ def write_best_results_excel():
             if not best_results_condition:
                 selected_sections_list = [x for x in selected_sections_list if x in updated_test_sections]
             selected_tests_list = [results_metadata_parser.get(section, 'testname').strip() for section in selected_sections_list]
+
             input_filters_list_list = [results_metadata_parser.get(test_section, 'default_input') \
                                         .replace('\"', '').split(',') for test_section in selected_sections_list]
             INPUT_FILTER_CONDITION_LIST = [get_input_filter_condition(test_section, input_filters_list, \
-                                            wiki_description_file="./config/best_of_all_graph.ini") \
+                                            wiki_description_file=script_directory +"/config/best_of_all_graph.ini") \
                                             for test_section, input_filters_list in zip(updated_test_sections, input_filters_list_list)]
 
             logging.debug(SELECT_PARAMS)
@@ -667,6 +668,9 @@ def write_best_results_excel():
 
 
 if __name__ == "__main__":
-    write_best_results_excel()
+    print("Running script")
 
-    # write_top_5_results_excel()
+    start_time = time.time()
+    update_cached_reports()
+
+    print("Done running the script in {} seconds".format(time.time() - start_time))
