@@ -16,7 +16,6 @@ from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from packaging.version import LegacyVersion
 import json
-import counter_graphs_module
 
 DB_HOST_IP = '1.21.1.65'
 # DB_HOST_IP = '10.110.169.149'
@@ -2590,33 +2589,6 @@ def generate_custom_data():
 
     }
     return response
-
-# API Endpoint for Counter graphs
-@app.route('/counter_graphs', methods=['POST'])
-def counter_graphs():
-    start_time = time.time()
-    data = request.get_json()
-
-    logging.debug("DATA = {}".format(data))
-
-    jobname = data['jobname']
-    runID = data['runID']
-    numCPUs = data['numCPUs']
-
-    # Generate nas_path from received data
-    nas_path = "/mnt/nas/dbresults/" + jobname + '/' + runID + '/results/' + numCPUs;
-    logging.debug("NAS PATH = {}".format(nas_path))
-
-    # Get counter_graphs_data from the nas_path
-    counter_graphs_data = counter_graphs_module.process_perf_stat_files(nas_path, numCPUs)
-
-    logging.debug("COUNTERS HISTOGRAM DATA")
-    logging.debug(counter_graphs_data['dmc_histogram_data_' + numCPUs])
-
-    logging.debug("HELLOOOOOOOOOOOOOOOOOOOOOOOOOO")
-    logging.debug("IT took {} seconds for counter graph".format(time.time() - start_time))
-
-    return counter_graphs_data
 
 def parallel_compute_heatmap_zll(param, **kwargs):
 
