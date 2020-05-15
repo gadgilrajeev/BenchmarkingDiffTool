@@ -28,16 +28,48 @@ Reports Generation
 	</div>
 
 	<div id="reports-page-info" class="card border-info">
-		<div class="card-header bg-transparent border-info font-weight-bolder" style="font-size: 25px;">Information</div>
-		<div class="card-body text-secondary">
-			<h5 class="font-weight-bold card-title">About page and How to use</h5>
-			<p class="card-text lead">Reports generation page does "SOMETHING".</p>
-			<p>Click "View more" to know how to use</p>
+		<div class="card-header bg-transparent border-info font-weight-bolder" style="font-size: 25px;">How To Use</div>
+		<div class="card-body">
+			<div class="m-0 p-0 text-secondary">
+				<h4 class="font-weight-bold card-title">Generate custom excel sheets using filters</h4>
+				<p class="card-text lead"></p>
+				<p>Click "View more" to know how to use ⬇️</p>
+			</div>
 			<div class="collapse" id="fullSummaryCollapse">
-					<p><strong>HOW TO USE<br></strong> Select the tests you want.  </p>
-					<p>
-						Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. 
-					</p>
+					<h4 class="lead font-weight-bold text-primary">Instructions - How to use</h4>
+					<br>
+					<h5 class="card-title">Stage 1: Filter by Labels/Benchmark Name</h5>
+					<div class="ml-3">
+						<p class="card-text text-secondary">Select the Labels/Benchmarks you want in the Excel sheet
+						<br>For Example: </p>
+						<ul class="card-text text-secondary">
+							<li>Labels - Archer2, CTS2, Google OR</li>
+							<li>Benchmarks - MYSQL-RO, MYSQL-RW, Mongodb (distinct workloads), HPCC, tealeaf3d</li>
+						</ul>
+						<p class="card-text text-secondary">Note - You can select either Labels or Benchmarks, but not both at once</p>
+					</div>
+					<h5 class="card-title">Stage 2: Select Best Results / Top-5 / All Results</h5>
+					<div class="ml-3">
+						<p class="card-text text-secondary">Selecting "Best Results" will give the best numbers for that Benchmark/Label, likewise for others
+						<br>Not selecting anything will give all results
+						</p>
+						<br>
+					</div>
+					<h5 class="card-title">Stage 3: Advanced Filters</h5>
+					<div class="ml-3">
+						<p class="card-text text-secondary">Specify criteria for parameters like SKUID, Test Date, Scaling, Kernel, OSName, SMT, etc.
+						<br>Each parameter has the following options
+						<ol class="card-text text-secondary">
+							<li><strong>Display</strong> - Display this parameter's column in the final Excel Sheet (Yes/No)</li> 
+							<li><strong>Criteria-option</strong> - Values depend on the type of parameter, for eg. numbers have "less than", "equals" or "greater than" whereas strings have "matches" or "does not match"</li>
+							<li><strong>Actual Criteria</strong> - The value which is to be compared </li>
+						</ol>	
+						<br>PS - If you don't fill a criteria, it is not considered 🙂
+						</p>
+						<br>
+					</div>
+
+					<h5 class="d-inline card-title">Finally - Click <h5 class="d-inline text-success">"Generate Reports"</h5> button at the bottom</h5>
 			</div>
 		</div>
 		<div class="card-footer bg-transparent border-info d-flex flex-row-reverse">
@@ -157,7 +189,7 @@ Reports Generation
 		<div class="card container mt-5">
 			<div class="card-body">
 				<h4 class="card-title">Best Results</h4>
-				<p class="card-text lead text-secondary" id="best-results-filter-description">Click the button if you want to see the best results of the selected labels</p>
+				<p class="card-text lead text-secondary" id="best-results-filter-description">Select the type of results you want in the Reports Excel sheet</p>
 				<hr>
 
 				<div class="custom-control custom-radio custom-control-inline">
