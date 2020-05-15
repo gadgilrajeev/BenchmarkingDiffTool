@@ -3032,7 +3032,7 @@ def cpu_utilization_graphs():
 
         freq_dump_df = freq_dump_df.reset_index()
         # Add freq_dump data in context dict
-        cpu_ut_graphs_data['Memnet freq'] = memnet_freq_line_graph_data
+        cpu_ut_graphs_data['Core frequency'] = memnet_freq_line_graph_data
         cpu_ut_graphs_data['Power & Voltage Consumption vs Timestamp'] = power_voltage_graph_data
         cpu_ut_graphs_data['Temperature'] = temperature_line_graph_data
 

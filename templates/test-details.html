@@ -103,11 +103,11 @@ Test Details
 			</table>
 			<div id="generate-other-graphs" class="d-flex justify-content-between">
 				<button type="button" id="download-results-table-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
-				<button type="button" id="generate-cpu-graphs" class="btn btn-success font-weight-bold" >Generate CPU Utilization Graphs</button>
+				<button type="button" id="generate-cpu-graphs" class="btn btn-success font-weight-bold" >Generate CPU and I/O Utilization Graphs</button>
 			</div>
 		</div>
 
-		<!-- Modal (POPUP) for CPU Utilization graphs -->
+		<!-- Modal (POPUP) for CPU and I/O Utilization graphs -->
 		<div class="modal fade" id="cpu-graphs-modal" tabindex="-1" role="dialog" aria-labelledby="cpu-graphs-modal-label" aria-hidden="true">
 			<div class="modal-dialog modal-xl" role="document">
 
@@ -383,10 +383,10 @@ Test Details
 				console.log(response)
 
 				$.each(Object.keys(response), function(index, graphName){
-					$('#cpu-graphs-title-'+(index+1)).html(graphName)
+					$('#cpu-graphs-title-'+(index+1)).html('{{context.originID}} - ' + graphName)
 
 					// Set title for that particular graph
-					response[graphName]['graphTitle'] = graphName
+					response[graphName]['graphTitle'] = '{{context.originID}} - ' + graphName
 					graphType = response[graphName]['graph_type']
 
 					if(graphType == 'heatmap'){
