@@ -99,6 +99,14 @@
         });
 
 
+		$('#go-to-benchmark-button').click(function(){
+			console.log("Clicked on benchmark button")
+			setTimeout(()=>{
+				$("#live-search-textbox").focus();
+				console.log("Focussed " + Date())
+			}, 250)
+
+		})
 	{% endblock %}
 
 </script>
