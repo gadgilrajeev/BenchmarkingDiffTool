@@ -115,6 +115,9 @@ function drawBestOfAllGraph(normalizedWRT){
 	}).done(function(response){
 		$('.loading-circle').remove()
 
+		// Expand the collapse element
+		$('#bestGraphCollapse').addClass('show')
+
 		console.log("DONEEEEEEE BEST OF ALL")
 		console.log(response)
 
