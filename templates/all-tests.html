@@ -5,13 +5,15 @@ All tests page
 {% endblock title %}
 
 {% block header %}
-	<div class="bg-info jumbotron jumbotron-fluid py-3">
+	<div class="bg-dark jumbotron jumbotron-fluid py-3">
 		<div class="bg-dark p-1 m-0"></div>
 		<div class="container-fluid d-flex py-0">
-			<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="250" height="100" class="img-fluid" alt="">
+			<a class="navbar-brand bg-light rounded" href="#">
+				<img src="{{ url_for('static', filename='images/FACTs_Transparent.png') }}" width="250" height="100" class="img-fluid" alt="">
+			</a>
 			<div>
-			    <h1 class="display-3 font-weight-bold">FACTs FRONTEND</h1>
-			    <p class="lead font-weight-normal text-dark">Framework for Analysis and Comparison of Tests</p>
+			    <h1 class="display-3 text-white font-weight-bold">FACTs FRONTEND</h1>
+			    <p class="lead font-weight-normal text-secondary">Framework for Analysis and Comparison of Tests</p>
 			</div>
 		</div>
 		<div class="bg-dark p-1 m-0"></div>
@@ -30,10 +32,10 @@ All tests page
 				<a class="nav-link" href="#">Home</a>
     		</li>
     		<li class="nav-item">
-    			<a class="nav-link" href="#best-of-all-graph-div">Best Results Graph</a>
+    			<a class="nav-link" href="#best-of-all-graph-collapse-div">Best Results Graph</a>
     		</li>
     		<li class="nav-item">
-    			<a class="nav-link" href="#filters-and-tables">All Benchmarks Tables</a>
+    			<a class="nav-link" href="#all-benchmarks-and-labels-title">All Benchmarks Tables</a>
 			</li>
 			<li class="nav-item">
     			<a class="nav-link" href="/reports_page" target="_blank">Reports  <sup class="badge badge-primary badge-pill"><small>New</small></sup></a>
@@ -49,52 +51,87 @@ All tests page
 
 
 {% block content %}
-	
-	<div class="card bg-light border-info rounded mb-5" id="best-of-all-graph-div">
-		
-		<div class="mx-5 mb-5 w-75" style="height:350px; "id="best-of-all-graph">
-		</div>
 
-		<div class="card-footer mt-3 mb-0 p-0 bg-transparent d-flex">
-			
-			<div class="dropdown mr-5">
-				<button id="reference-for-normalized" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
-				Select Reference </button>
-				<div id="reference-for-normalized-dropdown" class="dropdown-menu">
-					<h4 class="dropdown-header">CPU Names</h4>
-					{% for reference in context.reference_list %}
-						<button class="dropdown-item" onclick="normalizedReferenceChanged('{{ reference }}')">{{ reference }}</button>
-					{% endfor %}
+	<!-- Best of all graph collapse div -->
+	<div id="best-of-all-graph-collapse-div" class="card border-info my-5">
+		<div class="card-header bg-transparent h3">Best of all results graph</div>
+		<div class="card-body text-secondary">
+			<h5 class="card-title">About the graph</h5>
+			<p class="card-text lead">This graph shows the best results of all benchmarks normalized w.r.t. the selected SKU</p>
+			<div class="collapse container-fluid" id="bestGraphCollapse">
+
+				<!-- The Actual Graph Div -->
+				<div class="card bg-light rounded mb-5" id="best-of-all-graph-div">
+					
+					<div class="mx-5 mb-5 w-75" style="height:350px; "id="best-of-all-graph">
+					</div>
+
+					<div class="card-footer mt-3 mb-0 p-0 bg-transparent d-flex">
+						
+						<div class="dropdown mr-5">
+							<button id="reference-for-normalized" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
+							Select Reference </button>
+							<div id="reference-for-normalized-dropdown" class="dropdown-menu">
+								<h4 class="dropdown-header">CPU Names</h4>
+								{% for reference in context.reference_list %}
+									<button class="dropdown-item" onclick="normalizedReferenceChanged('{{ reference }}')">{{ reference }}</button>
+								{% endfor %}
+							</div>
+						</div>
+
+						<!-- Download as CSV button -->
+						<button id="download-best-of-all-graph-csv" class="btn btn-outline-primary font-weight-bold float-right h-50 align-self-center ml-5 mr-3">Download as CSV</button>
+
+						<!-- Download as PNG button -->
+						<button id="download-best-of-all-graph-png" class="btn btn-primary font-weight-bold float-right h-50 align-self-center ml-5" onclick="downloadAsPng('Best results Normalized w.r.t. ' + $('#reference-for-normalized option:selected').text(), 'best-of-all-graph')">Download as PNG</button>
+
+						<!-- Toast (Popup info message) -->
+						<div id="reference-toast" class="toast ml-5" role="alert" aria-live="polite" aria-atomic="true" data-autohide="false">
+							<div id="reference-toast-info" class="toast-header"><h3 class="text-white">Information:</h3></div>
+							<div class="toast-body"><h5 id="reference-toast-body"></h5></div>
+						</div>
+
+						<!-- Download as CSV button -->
+						<button id="show-graph" class="btn btn-success font-weight-bold ml-auto h-50 align-self-center mr-5">Show Graph</button>
+
+					</div>
+
 				</div>
+
 			</div>
-
-			<!-- Download as CSV button -->
-			<button id="download-best-of-all-graph-csv" class="btn btn-outline-primary font-weight-bold float-right h-50 align-self-center ml-5 mr-3">Download as CSV</button>
-
-			<!-- Download as PNG button -->
-			<button id="download-best-of-all-graph-png" class="btn btn-primary font-weight-bold float-right h-50 align-self-center ml-5" onclick="downloadAsPng('Best results Normalized w.r.t. ' + $('#reference-for-normalized option:selected').text(), 'best-of-all-graph')">Download as PNG</button>
-
-			<!-- Toast (Popup info message) -->
-			<div id="reference-toast" class="toast ml-5" role="alert" aria-live="polite" aria-atomic="true" data-autohide="false">
-				<div id="reference-toast-info" class="toast-header"><h3 class="text-white">Information:</h3></div>
-				<div class="toast-body"><h5 id="reference-toast-body"></h5></div>
-			</div>
-
-			<!-- Download as CSV button -->
-			<button id="show-graph" class="btn btn-success font-weight-bold ml-auto h-50 align-self-center mr-5">Show Graph</button>
-
 		</div>
+		<div class="card-footer bg-transparent border-info d-flex flex-row-reverse">
+			<button id="bestGraphCollapseButton" class="btn btn-success font-weight-bold" type="button" data-toggle="collapse" data-target="#bestGraphCollapse" aria-expanded="false" aria-controls="bestGraphCollapse">
+				Click to view/hide the graph
+			</button>
+		</div>
+	</div>
 
+	<div id="all-benchmarks-and-labels-title" class="mt-5 container-fluid">
+		<hr class="bg-secondary container-fluid">
+		<h2 class="mb-2">All Benchmarks and Label filters</h2>
+		<p class="lead font-weight-normal text-secondary">List of all labels and Benchmarks
+		<br>
+		</p>
+	</div>
+	<!-- Search benchmark form -->
+	<div id="search-benchmark-form-div" class="container-fluid mx-0 p-0">
+		<form id="search-benchmark" class="m-0" action="" method="post">
+			<div class="form-group m-0">
+				<label id="search-label" for="search-textbox" class="h3 text-primary">Search Benchmark</label>
+				<input type="text" class="text-input form-control" id="search-textbox" placeholder="Search..." value="" />
+			</div>			
+		</form>
 	</div>
 
 	<!-- Filter and tables -->
 	<div id="filters-and-tables" class="container-fluid d-flex justify-content-between">
-		<div id="all-filters-div" class='card w-25 bg-light border-info font-weight-bold'>
-			<div class="card-header bg-success text-white">
-				<h2>Filter tests</h2>
-			</div>
+		<!-- All Filters div -->
+		<div id="all-filters-div">
+			<div class="card-header bg-transparent h2 text-primary">Filter by Labels</div>
 			<form>
-				<div class="card-body">
+				<!-- List of filter labels -->
+				<div style="max-height: 100vh; overflow-y: auto;">
 					{% for filter in context.filter_labels_list %}
 						<div class="custom-control custom-checkbox">
 						    <input type="checkbox" class="custom-control-input filter-checkboxes" id="{{ filter }}" onclick="filterTestsByLabel()" name="{{ filter }}" value="{{ filter }}">
@@ -102,15 +139,17 @@ All tests page
 		  				</div>
 					{% endfor %}
 					<div class="mb-5" ></div>
-					<div id="date-filters-div" class="d-flex flex-column mt-5 bg-secondary">
-						<h5 class="text-center text-white mr-5">Filter graph by date</h5>
-						<div class="d-flex justify-content-around">
-							<label>From</label>
+					
+					<!-- Date filters div -->
+					<div id="date-filters-div" class="card mt-5 bg-secondary">
+						<h5 class="card-header text-center text-white">Filter graph by date</h5>
+						<div class="d-flex">
+							<label class="text-white pr-2">From</label>
 							<input type="date" id="from-date" name="from-date" min="2000-01-01" required>
        					</div>
 
-       					<div class="d-flex justify-content-around">
-							<label>To</label>
+       					<div class="d-flex">
+							<label class="text-white pr-2">To</label>
 							<input type="date" id="to-date" name="to-date" min="2000-01-01" required>
 						</div>
        					<button id="apply-date-filter-button" type="button" class="btn btn-success m-2 font-weight-bold">Apply date filter</button>
@@ -125,27 +164,35 @@ All tests page
 				</div>
 			</form>
 		</div>
-		<div id="hpc-table-div" class='w-25'>
-			<h2 class="mx-2 mb-2 pb-2 font-weight-bold text-center">HPC BENCHMARKS</h2>
-			<table class="table table-dark table-hover" id="hpc-benchmarks-list">
-				{% for benchmark in context.hpc_benchmarks_list %}
-					<tr class="all-tests-rows">
-						<td class="all-tests-cells"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white font-weight-bold text-center w-100 my-0">{{benchmark}}</a></td>
-						<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
-					</tr>
-				{% endfor %}
-			</table>
+
+		<!-- HPC Table div -->
+		<div id="hpc-table-div" class=''>
+			<h2 class="mx-2 mb-2 pb-2 text-primary text-center">HPC Benchmarks</h2>
+			<div class="p-0 m-0" style="max-height: 100vh; overflow-y: auto;">
+				<table class="table table-dark table-hover" id="hpc-benchmarks-list">
+					{% for benchmark in context.hpc_benchmarks_list %}
+						<tr class="all-tests-rows">
+							<td class="all-tests-cells"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white font-weight-bold text-center w-100 my-0">{{benchmark}}</a></td>
+							<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
+						</tr>
+					{% endfor %}
+				</table>
+			</div>
 		</div>
-		<div id="cloud-table-div" class='w-25'>
-			<h2 class="mx-2 mb-2 pb-2 font-weight-bold text-center">CLOUD BENCHMARKS</h2>
-			<table class="table table-dark table-hover" id="cloud-benchmarks-list">
-				{% for benchmark in context.cloud_benchmarks_list %}
-					<tr class="all-tests-rows">
-						<td class="all-tests-cells"><a href="/allruns/{{benchmark}}" class="btn btn-dark font-weight-bold text-white text-center w-100 my-0">{{benchmark}}</a></td>
-						<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
-					</tr>
-				{% endfor %}
-			</table>
+
+		<!-- Cloud Table div -->
+		<div id="cloud-table-div" class=''>
+			<h2 class="mb-2 pb-2 text-primary text-center">Cloud Benchmarks</h2>
+			<div class="p-0 m-0" style="max-height: 100vh; overflow-y: auto;">
+				<table class="table table-dark table-hover" id="cloud-benchmarks-list">
+					{% for benchmark in context.cloud_benchmarks_list %}
+						<tr class="all-tests-rows">
+							<td class="all-tests-cells"><a href="/allruns/{{benchmark}}" class="btn btn-dark font-weight-bold text-white text-center w-100 my-0">{{benchmark}}</a></td>
+							<td style="display:none;">{{ context.filter_labels_dict[benchmark] }}</td>
+						</tr>
+					{% endfor %}
+				</table>
+			</div>
 		</div>
 	</div>
 
@@ -157,7 +204,9 @@ All tests page
 	
 	$(document).ready(function() {
 		
-    	uncheckBoxes("filter-checkboxes")
+		$(".filter-checkboxes").prop('checked', false)
+
+		$("#search-textbox").val("")
 
 		console.log("SENDING REQUEST")
 
@@ -180,6 +229,43 @@ All tests page
 		},500)
 
 	});
+
+	// Search benchmark on keyup
+	$("#search-textbox").keyup(function(){
+
+		// Retrieve the input field text
+		var filter = $(this).val();
+
+		// Loop through the comment list
+		$(".all-tests-cells").each(function(){
+
+			// If the list item does not contain the text phrase fade it out
+			if ($(this).text().search(new RegExp(filter, "i")) < 0) {
+				$(this).parent().fadeOut();
+
+			// Show the list item if the phrase matches
+			} else {
+				$(this).parent().show();
+
+			}
+		});
+	});
+
+	// Change style of search div on hover
+	$("#search-benchmark-form-div").hover(
+		// on mouse hover
+		() => {
+			$('#search-benchmark-form-div').addClass("bg-primary");
+			$('#search-label').removeClass('text-primary')
+			$('#search-label').addClass('text-white')
+		}, 
+		// on mouse leave
+		() => {
+			$('#search-benchmark-form-div').removeClass("bg-primary");
+			$('#search-label').addClass('text-primary')
+			$('#search-label').removeClass('text-white')
+		}
+	);
 
 	// Set to-date min as 'from-date' value
 	$('#from-date').change(function(){
@@ -292,7 +378,6 @@ All tests page
 
 		downloadAsCsv('Best of all Graph normalized WRT' + $bestOfAllGraph[0].data.normalizedWRT , data, $form)
 	})
-
 
 	// On 'Show Graph' clicked
 	$('#show-graph').click(function(){
