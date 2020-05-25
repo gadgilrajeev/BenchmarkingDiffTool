@@ -473,7 +473,8 @@ function drawClusteredGraph(response, graphID) {
 		for(i = 0; i < allBars.length; i++){
 			barData = allBars[i]
 			console.log(allBars[i])
-			index = barData.data.x.indexOf(barData.x)
+			// Comparison on similar types for safety
+			index = barData.data.x.findIndex(item => String(item) === String(barData.x))
 			console.log("INDEX = " + index)
 
 			originID = barData.data.originIDList[index]
