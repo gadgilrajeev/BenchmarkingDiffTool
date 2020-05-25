@@ -68,6 +68,11 @@
 
 <script>
 
+	$(document).ready(function() {
+		// Clear the live search textbox
+		$("#live-search-textbox").val("")
+	})
+
     $('[data-toggle="tooltip"]').tooltip()
 
 	$('#return-to-top').click(function() {      // When arrow is clicked
