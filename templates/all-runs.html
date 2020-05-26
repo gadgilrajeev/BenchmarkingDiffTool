@@ -217,7 +217,7 @@ All Runs of {{ context.testname }}
 	</form>
 
 <script>
-	uncheckBoxes("diff-checkbox");
+	$(".diff-checkbox").prop('checked', false)
 	
 	var $normalizedList = $("#normalized-dropdown");
 	$normalizedList.hide();

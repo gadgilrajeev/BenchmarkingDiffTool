@@ -127,15 +127,6 @@ function drawBestOfAllGraph(normalizedWRT){
 	})
 }
 
-function uncheckBoxes(classname){
-	checkboxes = document.getElementsByClassName(classname)
-
-	for(i = 0; i < checkboxes.length; i++)
-		checkboxes[i].checked = false;
-
-	console.log("DONE Unchecking!")
-}
-
 function showAllRuns(tableCell){
 	testName = tableCell.innerHTML.trim()
 	console.log(testName)
