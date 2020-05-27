@@ -21,7 +21,10 @@ Test Details
     			<a class="nav-link" href="#results-table-div">All-Results Table</a>
     		</li>
     		<li class="nav-item">
-    			<a class="nav-link" href="#generate-other-graphs">Other Graphs</a>
+    			<a class="nav-link" href="#download-results-table-csv">Download Results</a>
+			</li>
+			<li class="nav-item">
+    			<a class="nav-link" href="#generate-cpu-graphs">Graphs</a>
     		</li>
     	</ul>
 
@@ -101,11 +104,14 @@ Test Details
 					{% endfor %}
 				</tbody>
 			</table>
-			<div id="generate-other-graphs" class="d-flex justify-content-between">
-				<button type="button" id="download-results-table-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
-				<button type="button" id="generate-cpu-graphs" class="btn btn-success font-weight-bold" >Generate CPU and I/O Utilization Graphs</button>
-			</div>
 		</div>
+
+		<!-- Buttons for Download as csv and Generate Graphs -->
+		<div id="generate-other-graphs" class="d-flex justify-content-between mt-3">
+			<button type="button" id="download-results-table-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
+			<button type="button" id="generate-cpu-graphs" class="btn btn-success font-weight-bold" >Generate CPU and I/O Utilization Graphs</button>
+		</div>
+
 
 		<!-- Modal (POPUP) for CPU and I/O Utilization graphs -->
 		<div class="modal fade" id="cpu-graphs-modal" tabindex="-1" role="dialog" aria-labelledby="cpu-graphs-modal-label" aria-hidden="true">
