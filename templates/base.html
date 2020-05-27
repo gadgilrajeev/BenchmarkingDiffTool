@@ -28,9 +28,9 @@
                 <button id="go-to-benchmark-button" type="button" class="btn-lg btn-primary dropdown-toggle" data-toggle="dropdown">
                     Go to Benchmark </button>
                 <div id="go-to-benchmark-dropdown" class="dropdown-menu dropdown-menu-right" style="height: auto; max-height: 500px;overflow-x: hidden;">
-                    <form id="live-search-benchmark" action="" method="post">
-                        <input type="text" class="text-input form-control mx-1" id="live-search-textbox" placeholder="Search Benchmark" value="" />
-                    </form>
+					<!-- Go to benchmark Search box -->
+					<input type="text" class="text-input form-control mx-1" id="live-search-textbox" placeholder="Search Benchmark" value="" />
+
                     <h3 class="dropdown-header font-weight-bold mt-1 mb-2">HPC BENCHMARKS</h3>
                         {% for benchmark in all_tests_data.hpc_benchmarks_list %}
                             <button class="dropdown-item"><a href="/allruns/{{benchmark}}" class="btn btn-dark text-white">{{benchmark}}</a></button>
