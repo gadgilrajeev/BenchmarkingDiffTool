@@ -222,9 +222,10 @@ All Runs of {{ context.testname }}
 	var $normalizedList = $("#normalized-dropdown");
 	$normalizedList.hide();
 
-
-
 	$(document).ready(function() {
+
+		// Select absolute
+		$('#absolute-radio-button').prop('checked', true)
 
 	    // Setup - append a text input to each header cell
 	    $('#allRunsTable thead tr').clone(true).appendTo( '#allRunsTable #search-thead' );
@@ -246,89 +247,18 @@ All Runs of {{ context.testname }}
 	            }
 	        });
 	    } );
-	 
-	    var table = $('#allRunsTable').DataTable( {
+
+		var table = $('#allRunsTable').DataTable( {
 	    	"lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
 	        orderCellsTop: true,
 	        fixedHeader: true
 	    });
 
-	    // ajaxData is the object which is used to send data to the AJAX request
-	    ajaxData = {}
-
-	    //draw the first graph according to the selected values
-		ajaxData.xParameter = $("#xParameter option:selected").val();
-		ajaxData.yParameter = $("#yParameter option:selected").val();
-		ajaxData.testname = "{{ context.testname }}"
-
-		// Get the initial input filters list
-		inputFiltersList = []
-		$allInputFilters = $('.input-parameter-select')
-
-		jQuery.each($allInputFilters, (index, value) => {
-		    filter = $('option:selected', value)[0].innerHTML
-		    inputFiltersList.push(filter)
-		})
-
-		ajaxData.inputFiltersList = inputFiltersList
-
-	    //Function for drawing INITIAL comparison graph
-	    sendAjaxRequest(ajaxData, url='/get_data_for_graph')
-
-		// AJAX request to get_data_for_graph for redrawing the graph on "xParameter" changed event
-		$(function(){
-			$("#xParameter").change(function(){
-				//update the xParameter value
-				ajaxData.xParameter = $('option:selected', this).text()
-
-				sendAjaxRequest(ajaxData, url='/get_data_for_graph')
-			})
-		});
-
-
-		// AJAX request to get_data_for_graph for redrawing the graph on "xParameter" changed event
-		$(function(){
-			$("#yParameter").change(function(){
-				//update the yParameter value
-				ajaxData.yParameter = $('option:selected', this).text()
-				
-				sendAjaxRequest(ajaxData, url='/get_data_for_graph')
-			})
-		});
-
-	    //Function for drawing Best SKU graph
-	    bestSkuAjaxData = {'xParameter': 'SKUs', 'yParameter': "", 'testname' : "{{ context.testname }}"}
-	    bestSkuAjaxData.inputFiltersList = inputFiltersList
-	    sendAjaxRequest(bestSkuAjaxData, url='/best_sku_graph')
-
-	    //Event handler on switching from "Absolute" to "Normalized" best_sku_graph and vice-versa
-		$('input[type=radio][name=typeOfGraph]').change(function() {
-		    if (this.value == 'Absolute') {
-		    	var $normalizedList = $("#normalized-dropdown");
-		    	$normalizedList.hide();
-		    	sendAjaxRequest(bestSkuAjaxData, url='/best_sku_graph')
-		        
-		    }
-		    else if (this.value == 'Normalized') {
-		    	var $normalizedList = $("#normalized-dropdown");
-		    	$normalizedList.show();
-
-		    	drawNormalizedGraph('best-sku-graph', "{{ context.testname }}")
-		        
-		    }
-		});
-
-		$(function(){
-			$("#normalized-dropdown").change(function(){
-
-				drawNormalizedGraph('best-sku-graph', "{{ context.testname }}", alreadyNormalized = true)
-			})
-		});
-
+		// Compare button clicked handler function 
 		$('#diff-button').click(function(){
 			// Get the checkboxes which are 'checked'
 			$checkboxes = $('.diff-checkbox:checkbox:checked')
-			
+
 			if ( $checkboxes.length < 2) {
 				// Alert showing the error
 				$('#notification-title').html('Notification : <span class="badge badge-danger">Error</span>')
@@ -340,9 +270,92 @@ All Runs of {{ context.testname }}
 			}
 		})
 
-
+		// Draw both the sku comparison graphs
+		drawSkuComparisonGraph()
+		drawBestSkuGraph(graphTypeOption='Absolute')
 	});
 
+	// Get input filters list
+	function getInputFiltersList() {
+		inputFiltersList = []
+		$allInputFilters = $('.input-parameter-select')
+
+		jQuery.each($allInputFilters, (index, value) => {
+			filter = $('option:selected', value).html()
+			inputFiltersList.push(filter)
+		})
+
+		return inputFiltersList
+	}
+
+	// Sku comparison graph for Engineering Team
+	function drawSkuComparisonGraph() {
+	    // Data to be sent with the Ajax request
+	    ajaxData = {}
+		ajaxData.xParameter = $("#xParameter option:selected").val()
+		ajaxData.yParameter = $("#yParameter option:selected").val()
+		ajaxData.testname = "{{ context.testname }}"
+
+		ajaxData.inputFiltersList = getInputFiltersList()
+
+	    sendAjaxRequest(ajaxData, url='/get_data_for_graph')
+	}
+
+	// Redraw SKU comparison graph on xParameter Change
+	$("#xParameter").change(function(){
+		drawSkuComparisonGraph()
+	})
+
+	// Redraw SKU comparison graph on yParameter Change
+	$("#yParameter").change(function(){
+		drawSkuComparisonGraph()
+	})
+
+	// Best of SKUs graph for Marketing and Communications team
+	function drawBestSkuGraph(graphTypeOption = null, alreadyNormalized = false) {
+		var $normalizedList = $("#normalized-dropdown");
+
+		if (graphTypeOption == null)
+			graphTypeOption = $('input[type=radio][name=typeOfGraph]:checked').val()
+
+		// Data to be sent with the Ajax request
+		if (graphTypeOption == 'Absolute') {
+			// Hide the skus dropdown
+			$normalizedList.hide();
+
+			ajaxData = {}
+			ajaxData.xParameter = 'SKUs'
+			ajaxData.yParameter = ""
+			ajaxData.testname = "{{ context.testname }}"
+
+			ajaxData.inputFiltersList = getInputFiltersList()
+
+			sendAjaxRequest(ajaxData, url='/best_sku_graph')
+		}
+		else if (graphTypeOption == 'Normalized') {
+			$normalizedList.show();
+
+			drawNormalizedGraph('best-sku-graph', "{{ context.testname }}", alreadyNormalized=alreadyNormalized)
+		}
+	}
+
+
+	//Event handler on switching from "Absolute" to "Normalized" best_sku_graph and vice-versa
+	$('input[type=radio][name=typeOfGraph]').change(function() {
+		drawBestSkuGraph()
+	});
+
+	// Normalized dropdown changed handler
+	$("#normalized-dropdown").change(function(){
+		console.log("Normalized dropdown changed")
+		drawBestSkuGraph(graphTypeOption='Normalized', alreadyNormalized = true)
+	})
+
+	$('.input-parameter-select').change(function(){
+		// Redraw both graphs when input parameters change
+		drawSkuComparisonGraph()	
+		drawBestSkuGraph(graphTypeOption='Absolute')
+	})
 
 	$('#download-best-sku-graph-csv').click(function(){
 
@@ -397,26 +410,6 @@ All Runs of {{ context.testname }}
 		$form = $('#download-csv-form')
 
 		downloadAsCsv(filename, data, $form)
-	})
-
-	$('.input-parameter-select').change(function(){
-
-		inputFiltersList = []
-		$allInputFilters = $('.input-parameter-select')
-
-		jQuery.each($allInputFilters, (index, value) => {
-		    filter = $('option:selected', value)[0].innerHTML
-		    inputFiltersList.push(filter)
-		})
-
-		ajaxData.inputFiltersList = inputFiltersList
-		sendAjaxRequest(ajaxData, url='/get_data_for_graph')
-	
-		console.log("SENDING AJAX REQUEST")
-		console.log(ajaxData)
-
-		bestSkuAjaxData.inputFiltersList = inputFiltersList
-		sendAjaxRequest(bestSkuAjaxData, url='/best_sku_graph')
 	})
 
 	$('#compare-best-sku-graph').click(function(){
