@@ -1089,225 +1089,227 @@ def showEnvDetails(originID):
 # Compare two or more tests
 @app.route('/diff', methods=['GET', 'POST'])
 def diffTests():
-    if request.method == "GET":
-        db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
-                             passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+    start_time = time.time()
 
-        logging.debug(request)
-        logging.debug("REQUEST ARGS = {}".format(request.args))
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                            passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
-        # take checked rows from table
-        originID_compare_list = [value for key, value in request.args.items() if "diff-checkbox" in key]
+    logging.debug(request)
+    logging.debug("REQUEST ARGS = {}".format(request.args))
 
-        originID_compare_list.sort()
-        logging.debug(' = {}'.format(originID_compare_list))
+    # take checked rows from table
+    originID_compare_list = [value for key, value in request.args.items() if "diff-checkbox" in key]
 
-        # Get the Test name
-        test_name = get_test_name(originID_compare_list[0])
+    originID_compare_list.sort()
+    logging.debug(' = {}'.format(originID_compare_list))
 
-        JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O INNER JOIN jenkins J 
-                            ON O.jenkins_jenkinsID=J.jenkinsID AND O.originID in """ \
-                            + str(originID_compare_list).replace('[', '(').replace(']', ')') + ";"
-        jenkins_details = pd.read_sql(JENKINS_QUERY, db)
+    # Get the Test name
+    test_name = get_test_name(originID_compare_list[0])
 
-        #Get the jobname and runID from jenkins details
-        jobname_list = jenkins_details['jobname'].to_list()
-        runID_list = jenkins_details['runID'].to_list()
+    JENKINS_QUERY = """SELECT J.jobname, J.runID FROM origin O INNER JOIN jenkins J 
+                        ON O.jenkins_jenkinsID=J.jenkinsID AND O.originID in """ \
+                        + str(originID_compare_list).replace('[', '(').replace(']', ')') + ";"
+    jenkins_details = pd.read_sql(JENKINS_QUERY, db)
 
-        # create all parameter lists
-        parameter_lists = OrderedDict({
-            'results_param_list': [],
-            'origin_param_list': [],
-            'bootenv_param_list': [],
-            'node_param_list': [],
-            'hwdetails_param_list': [],
-            'ostunings_param_list': [],
-            'toolchain_param_list': [],
-            'ram_details_param_list': [],
-            'nic_details_param_list': [],
-            'disk_details_param_list': [],
+    #Get the jobname and runID from jenkins details
+    jobname_list = jenkins_details['jobname'].to_list()
+    runID_list = jenkins_details['runID'].to_list()
 
-            'qualifier': [],
-            'min_or_max': [],
-        })
+    # create all parameter lists
+    parameter_lists = OrderedDict({
+        'results_param_list': [],
+        'origin_param_list': [],
+        'bootenv_param_list': [],
+        'node_param_list': [],
+        'hwdetails_param_list': [],
+        'ostunings_param_list': [],
+        'toolchain_param_list': [],
+        'ram_details_param_list': [],
+        'nic_details_param_list': [],
+        'disk_details_param_list': [],
 
-        parameter_lists = read_all_parameter_lists(parameter_lists, test_name)
+        'qualifier': [],
+        'min_or_max': [],
+    })
 
-        # removes 'qualifier' from parameter_lists and assigns to qualifier_list variable (a list)
-        qualifier_list = parameter_lists.pop('qualifier')
-        min_or_max_list = parameter_lists.pop('min_or_max')
+    parameter_lists = read_all_parameter_lists(parameter_lists, test_name)
 
-        # Dictionary of List of Dictionaries (tests) to be compared
-        compare_lists = OrderedDict({
-            'origin_list': [],
-            'bootenv_list': [],
-            'node_list': [],
-            'hwdetails_list': [],
-            'ostunings_list': [],
-            'toolchain_list': [],
-            'ram_details_list': [],
-            'nic_details_list': [],
-            'disk_details_list': [],
+    # removes 'qualifier' from parameter_lists and assigns to qualifier_list variable (a list)
+    qualifier_list = parameter_lists.pop('qualifier')
+    min_or_max_list = parameter_lists.pop('min_or_max')
 
-        })
+    # Dictionary of List of Dictionaries (tests) to be compared
+    compare_lists = OrderedDict({
+        'origin_list': [],
+        'bootenv_list': [],
+        'node_list': [],
+        'hwdetails_list': [],
+        'ostunings_list': [],
+        'toolchain_list': [],
+        'ram_details_list': [],
+        'nic_details_list': [],
+        'disk_details_list': [],
 
-        # Function for reading "results.csv". 
-        # For Improved readability
-        def read_results():
-            # Read all results. Store in a dataframe
-            join_on_columns_list = parameter_lists['results_param_list'][0:-4]
-            join_on_columns_list.extend(['resultype', 'unit', 'qualifier'])
+    })
 
-            # read the first results file
-            results_file_path = '/mnt/nas/dbresults/' + str(jobname_list[0]) + '/' \
-                                + str(runID_list[0]) + '/results/results.csv'
-            first_results_dataframe = pd.read_csv(results_file_path, header=None,
-                                                  names=parameter_lists['results_param_list'])
+    # Function for reading "results.csv". 
+    # For Improved readability
+    def read_results():
+        # Read all results. Store in a dataframe
+        join_on_columns_list = parameter_lists['results_param_list'][0:-4]
+        join_on_columns_list.extend(['resultype', 'unit', 'qualifier'])
 
-            # LOWERCASE THE QUALIFIER COLUMN
-            first_results_dataframe['qualifier'] = first_results_dataframe['qualifier'].apply(lambda x: x.lower().strip())
+        # read the first results file
+        results_file_path = '/mnt/nas/dbresults/' + str(jobname_list[0]) + '/' \
+                            + str(runID_list[0]) + '/results/results.csv'
+        first_results_dataframe = pd.read_csv(results_file_path, header=None,
+                                                names=parameter_lists['results_param_list'])
+
+        # All columns as string type^M
+        first_results_dataframe[join_on_columns_list] = first_results_dataframe[join_on_columns_list].astype(str)
+        # LOWERCASE THE QUALIFIER COLUMN
+        first_results_dataframe['qualifier'] = first_results_dataframe['qualifier'].apply(lambda x: x.lower().strip())
+
+        # GROUP BY join_on_columns_list AND FIND MIN/MAX OF EACH GROUP
+        if min_or_max_list[0] == '0':
+            first_results_dataframe = first_results_dataframe.groupby(by=join_on_columns_list).min()
+        else:
+            first_results_dataframe = first_results_dataframe.groupby(by=join_on_columns_list).max()
+
+        # Assign first results_dataframe to intermediate_dataframe for merging
+        intermediate_dataframe = first_results_dataframe
+
+        logging.debug('\n\nDONE\n\n')
+
+        # for each subsequent results file, merge with the already exsiting dataframe on "description" columns
+        for jobname, runID in zip(jobname_list[1:], runID_list[1:]):
+            results_file_path = '/mnt/nas/dbresults/' + str(jobname) + '/' + str(runID) + '/results/results.csv'
+
+            next_dataframe = pd.read_csv(results_file_path, header=None, names=parameter_lists['results_param_list'])
+            # All columns as string type
+            next_dataframe[join_on_columns_list] = next_dataframe[join_on_columns_list].astype(str)
+            next_dataframe['qualifier'] = next_dataframe['qualifier'].apply(lambda x: x.lower().strip())
 
             # GROUP BY join_on_columns_list AND FIND MIN/MAX OF EACH GROUP
             if min_or_max_list[0] == '0':
-                first_results_dataframe = first_results_dataframe.groupby(by=join_on_columns_list).min()
+                next_dataframe = next_dataframe.groupby(by=join_on_columns_list).min()
             else:
-                first_results_dataframe = first_results_dataframe.groupby(by=join_on_columns_list).max()
+                next_dataframe = next_dataframe.groupby(by=join_on_columns_list).max()
 
-            # Assign first results_dataframe to intermediate_dataframe for merging
-            intermediate_dataframe = first_results_dataframe
+            # Merge the next_dataframe with previous
+            intermediate_dataframe = intermediate_dataframe.merge(next_dataframe, how='outer', on=join_on_columns_list,
+                                                                    validate="many_to_many")
 
-            logging.debug('\n\nDONE\n\n')
+        # Change column names according to OriginID
+        intermediate_dataframe = intermediate_dataframe.reset_index()
 
-            # for each subsequent results file, merge with the already exsiting dataframe on "description" columns
-            for jobname, runID in zip(jobname_list[1:], runID_list[1:]):
-                results_file_path = '/mnt/nas/dbresults/' + str(jobname) + '/' + str(runID) + '/results/results.csv'
+        intermediate_dataframe.columns = join_on_columns_list + ["number_" + originID for originID in
+                                                                    originID_compare_list]
 
-                next_dataframe = pd.read_csv(results_file_path, header=None, names=parameter_lists['results_param_list'])
-                next_dataframe['qualifier'] = next_dataframe['qualifier'].apply(lambda x: x.lower().strip())
-
-                # GROUP BY join_on_columns_list AND FIND MIN/MAX OF EACH GROUP
-                if min_or_max_list[0] == '0':
-                    next_dataframe = next_dataframe.groupby(by=join_on_columns_list).min()
-                else:
-                    next_dataframe = next_dataframe.groupby(by=join_on_columns_list).max()
-
-                # Merge the next_dataframe with previous
-                intermediate_dataframe = intermediate_dataframe.merge(next_dataframe, how='outer', on=join_on_columns_list,
-                                                                      validate="many_to_many")
-
-            # Change column names according to OriginID
-            intermediate_dataframe = intermediate_dataframe.reset_index()
-
-            intermediate_dataframe.columns = join_on_columns_list + ["number_" + originID for originID in
-                                                                     originID_compare_list]
-
-            def apply_result_type(x):
-                try:
-                    return result_type_map[x]
-                except:
-                    logging.warning("Couldn't parse result type")
-                    return None
-
-            intermediate_dataframe['resultype'] = intermediate_dataframe['resultype'].apply(lambda x: apply_result_type(x))
-
-            final_results_dataframe = intermediate_dataframe.sort_values(by=['qualifier'])
-            logging.debug("PRINTING THE FINAL DATAFRAME")
-            logging.debug(' = {}'.format(final_results_dataframe))
-            logging.debug("DONE")
-
-            # DROP THE NAN rows for comparing results in graphs
-            comparable_results = final_results_dataframe.dropna()
-            comparable_results = comparable_results[
-                ['qualifier'] + [column for column in comparable_results.columns if column not in join_on_columns_list]]
-
-            comparable_results.columns = ['qualifier'] + ["Test_" + originID for originID in originID_compare_list]
-
-            # FILL NAN cells with ""
-            final_results_dataframe = final_results_dataframe.fillna("")
-
-            logging.debug("PRINTING COMPARABLE RESULTS")
-            logging.debug(' = {}'.format(comparable_results))
-            logging.debug("DONE")
-
-            return final_results_dataframe, comparable_results, join_on_columns_list
-
-        # Get Results table, comparable_results(unused),
-        # Join on columns list is (description_list + resultype + unit + qualifier)
-        final_results_dataframe, comparable_results, join_on_columns_list = read_results()
-
-        # Function for reading ram_dataframe
-        def read_ram_details():
-            # READ RAM.CSV file and add the size to get total RAM in GB
-            ram_dataframe = pd.read_csv(results_file_path + '/ram.csv', header=None,
-                                        names=parameter_lists['ram_details_param_list'])
-
-            #CUSTOM FILTER
-            # Returns boolean True if the group has all 'ramsize' entries as 'float'
-            def only_numeric_groups(df):
-                ramsize_series = df['ramsize'].astype(str).str.isnumeric().isin([True])
-                return ramsize_series.all()
-
-
-            ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]).filter(only_numeric_groups).reset_index(drop=True)
-
-            # Convert each entry of 'ramsize' column to float
-            ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: float(x))
-
-            ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]) \
-                                .apply(lambda x: x.sum()/1024).reset_index()
-
-            #Add ' GB' to the size
+        def apply_result_type(x):
             try:
-                ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: str(x) + " GB")
+                return result_type_map[x]
             except:
-                logging.warning("Couldn't add 'GB' to RAM SIZE")
-                pass
+                logging.warning("Couldn't parse result type")
+                return None
 
-            return ram_dataframe
-            pass
+        intermediate_dataframe['resultype'] = intermediate_dataframe['resultype'].apply(lambda x: apply_result_type(x))
 
-        def read_disk_details():
-            pass
+        final_results_dataframe = intermediate_dataframe.sort_values(by=['qualifier'])
+        logging.debug("PRINTING THE FINAL DATAFRAME")
+        logging.debug(' = {}'.format(final_results_dataframe))
+        logging.debug("DONE")
 
-        def read_nic_details():
-            pass
+        # DROP THE NAN rows for comparing results in graphs
+        comparable_results = final_results_dataframe.dropna()
+        comparable_results = comparable_results[
+            ['qualifier'] + [column for column in comparable_results.columns if column not in join_on_columns_list]]
 
-        # Delete the param_lists which are no longer needed
-        del parameter_lists['results_param_list']
-        # del parameter_lists['ram_details_param_list'],
-        # del parameter_lists['nic_details_param_list'],
-        # del parameter_lists['disk_details_param_list'],
+        comparable_results.columns = ['qualifier'] + ["Test_" + originID for originID in originID_compare_list]
+
+        # FILL NAN cells with ""
+        final_results_dataframe = final_results_dataframe.fillna("")
+
+        logging.debug("PRINTING COMPARABLE RESULTS")
+        logging.debug(' = {}'.format(comparable_results))
+        logging.debug("DONE")
+
+        return final_results_dataframe, comparable_results, join_on_columns_list
+
+    # Get Results table, comparable_results(unused),
+    # Join on columns list is (description_list + resultype + unit + qualifier)
+    final_results_dataframe, comparable_results, join_on_columns_list = read_results()
+
+    # Function for reading ram_dataframe
+    def read_ram_details():
+        # READ RAM.CSV file and add the size to get total RAM in GB
+        ram_dataframe = pd.read_csv(results_file_path + '/ram.csv', header=None,
+                                    names=parameter_lists['ram_details_param_list'])
+
+        #CUSTOM FILTER
+        # Returns boolean True if the group has all 'ramsize' entries as 'float'
+        def only_numeric_groups(df):
+            ramsize_series = df['ramsize'].astype(str).str.isnumeric().isin([True])
+            return ramsize_series.all()
 
 
-        # read csv files from NAS path
-        compare_lists = read_all_csv_files(compare_lists, parameter_lists, originID_compare_list)
+        ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]).filter(only_numeric_groups).reset_index(drop=True)
 
-        # send data to the template compare.html
-        context = {
-            'originID_list': originID_compare_list,
-            'testname': test_name,
+        # Convert each entry of 'ramsize' column to float
+        ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: float(x))
 
-            'index_columns': join_on_columns_list,
+        ram_dataframe = ram_dataframe.groupby(by=parameter_lists['ram_details_param_list'][0:2]) \
+                            .apply(lambda x: x.sum()/1024).reset_index()
 
-            'parameter_lists': parameter_lists,
-            'compare_lists': compare_lists,
-
-            'comparable_results': comparable_results.to_dict(orient='list'), #Unused as of now
-            'results': final_results_dataframe.to_dict(orient='list'),
-        }
-        # close the database connection
+        #Add ' GB' to the size
         try:
-            db.close()
+            ram_dataframe['ramsize'] = ram_dataframe['ramsize'].apply(lambda x: str(x) + " GB")
         except:
+            logging.warning("Couldn't add 'GB' to RAM SIZE")
             pass
 
-        # For 'Go To Benchmark' Dropdown
-        all_tests_data = get_all_tests_data()
+        return ram_dataframe
+        pass
 
-        return render_template('compare.html', context=context, all_tests_data=all_tests_data)
-    else:
-        return redirect('/')
+    def read_disk_details():
+        pass
 
+    def read_nic_details():
+        pass
+
+    # Delete the param_lists which are no longer needed
+    del parameter_lists['results_param_list']
+    # del parameter_lists['ram_details_param_list'],
+    # del parameter_lists['nic_details_param_list'],
+    # del parameter_lists['disk_details_param_list'],
+
+
+    # read csv files from NAS path
+    compare_lists = read_all_csv_files(compare_lists, parameter_lists, originID_compare_list)
+
+    # send data to the template compare.html
+    context = {
+        'originID_list': originID_compare_list,
+        'testname': test_name,
+
+        'index_columns': join_on_columns_list,
+
+        'parameter_lists': parameter_lists,
+        'compare_lists': compare_lists,
+
+        'comparable_results': comparable_results.to_dict(orient='list'), #Unused as of now
+        'results': final_results_dataframe.to_dict(orient='list'),
+    }
+    # close the database connection
+    try:
+        db.close()
+    except:
+        pass
+
+    # For 'Go To Benchmark' Dropdown
+    all_tests_data = get_all_tests_data()
+
+    return render_template('compare.html', context=context, all_tests_data=all_tests_data)
 
 # This function handles the AJAX request for Comparison graph data. 
 # JS then draws the graph using this data
