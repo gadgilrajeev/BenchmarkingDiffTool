@@ -74,12 +74,21 @@ All Runs of {{ context.testname }}
 					{% set options_list = context.input_details[column] | unique_list %}
 					<div>
 						<form>
+							{% if i == 0 %}
+								<label class = "h4" for="resultype-filter">Result Type</label>
+								<select class="form-control form-control-lg" name="resultype-filter" id="resultype-filter">
+									<option value="" class="selected-option" selected="selected">None</option>
+									{% for option in context.result_type_list %}
+										<option value="option">{{option}}</option>
+									{% endfor %}
+								</select>
+							{% endif %}
 							<label class = "h4" for="input-parameter-{{column}}">{{column}}</label>
 							<select class="input-parameter-select form-control form-control-lg" name="input-parameter-{{column}}" id="input-parameter-{{column}}">
 								<option value="None">None</option>
 								{% for option in options_list %}
 									{% if option == context.default_input_filters[i] %}
-										<option value="option" selected>{{option}}</option>
+										<option value="option" class="selected-option" selected="selected">{{option}}</option>
 									{% else %}
 										<option value="option">{{option}}</option>
 									{% endif %}
@@ -99,7 +108,7 @@ All Runs of {{ context.testname }}
 				<!-- TAKING PARAMETERS FROM INI FILE -->
 				{% for qualifier in context.qualifier_list %}
 					{% if loop.index0 == 0 %}
-						<option value="{{ qualifier }}" selected="selected">{{ qualifier }}</option>
+						<option value="{{ qualifier }}" class="selected-option" selected="selected">{{ qualifier }}</option>
 					{% else %}
 						<option value="{{ qualifier }}">{{ qualifier }}</option>
 					{% endif %}
@@ -107,7 +116,7 @@ All Runs of {{ context.testname }}
 			</select>
 			<p>vs</p>
 			<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="X - Parameter" id="xParameter" class="form-control form-control-lg" name="xParameter">
-				<option value="Scaling" selected="selected">Scaling</option>
+				<option value="Scaling" class="selected-option" selected="selected">Scaling</option>
 				<option value="Kernel Version">Kernel Version</option>
 				<option value="OS Version">OS Version</option>
 				<option value="OS Name">OS Name</option>
@@ -163,7 +172,6 @@ All Runs of {{ context.testname }}
 					<tr>
 						<th>Select to Compare</th>
 						{% for column in context.data %}
-
 							<th>{{ column }}</th>
 						{% endfor %}
 					</tr>
@@ -223,6 +231,11 @@ All Runs of {{ context.testname }}
 	$normalizedList.hide();
 
 	$(document).ready(function() {
+
+		// Select all dropdown options with 'selected-option' as class
+		$('option').prop('selected',false); 
+
+		$('.selected-option').prop('selected', 'selected')
 
 		// Select absolute
 		$('#absolute-radio-button').prop('checked', true)
@@ -296,6 +309,8 @@ All Runs of {{ context.testname }}
 		ajaxData.yParameter = $("#yParameter option:selected").val()
 		ajaxData.testname = "{{ context.testname }}"
 
+		ajaxData.resultTypeFilter = $('#resultype-filter option:selected').html()
+
 		ajaxData.inputFiltersList = getInputFiltersList()
 
 	    sendAjaxRequest(ajaxData, url='/get_data_for_graph')
@@ -328,6 +343,8 @@ All Runs of {{ context.testname }}
 			ajaxData.yParameter = ""
 			ajaxData.testname = "{{ context.testname }}"
 
+			ajaxData.resultTypeFilter = $('#resultype-filter option:selected').html()
+
 			ajaxData.inputFiltersList = getInputFiltersList()
 
 			sendAjaxRequest(ajaxData, url='/best_sku_graph')
@@ -352,6 +369,12 @@ All Runs of {{ context.testname }}
 	})
 
 	$('.input-parameter-select').change(function(){
+		// Redraw both graphs when input parameters change
+		drawSkuComparisonGraph()	
+		drawBestSkuGraph(graphTypeOption='Absolute')
+	})
+
+	$('#resultype-filter').change(function(){
 		// Redraw both graphs when input parameters change
 		drawSkuComparisonGraph()	
 		drawBestSkuGraph(graphTypeOption='Absolute')
