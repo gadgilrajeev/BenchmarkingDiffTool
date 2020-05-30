@@ -351,6 +351,13 @@ def page_not_found(e):
 def home_page():
     context = get_all_tests_data()
 
+    # For result type filter
+    result_type_list = [3, 2, 7, 6, 5, 8, 1]
+    # Convert to result_type string according to result_type_map
+    result_type_list = [result_type_map[x] for x in result_type_list]
+
+    context['result_type_list'] = result_type_list
+
     return render_template('all-tests.html', context=context)
 
 @app.route('/about')
@@ -1149,7 +1156,6 @@ def diffTests():
         'ram_details_list': [],
         'nic_details_list': [],
         'disk_details_list': [],
-
     })
 
     # Function for reading "results.csv". 
@@ -1282,7 +1288,6 @@ def diffTests():
     # del parameter_lists['ram_details_param_list'],
     # del parameter_lists['nic_details_param_list'],
     # del parameter_lists['disk_details_param_list'],
-
 
     # read csv files from NAS path
     compare_lists = read_all_csv_files(compare_lists, parameter_lists, originID_compare_list)
@@ -1838,81 +1843,10 @@ def best_sku_graph_normalized():
 
     return response
 
-# Function for getting reference results. Excecuted parallely with multiprocessing "pool"
-def parallel_get_reference_results(params, **kwargs):
-    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
-                     passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
-
-    #Unpacking of the tuple
-    test_name, test_section, qualifier, higher_is_better = params
-
-    # Other Arguments
-    results_metadata_parser = kwargs['results_metadata_parser']
-    reference_skuid_list = kwargs['reference_skuid_list']
-    FROM_DATE_FILTER = kwargs['FROM_DATE_FILTER']
-    TO_DATE_FILTER = kwargs['TO_DATE_FILTER']
-
-    # Get input_filter_condition by calling the function
-    input_filters_list = results_metadata_parser.get(test_section, 'default_input') \
-                                                .replace('\"', '').split(',')
-    INPUT_FILTER_CONDITION = get_input_filter_condition(test_section, input_filters_list, \
-                                wiki_description_file="./config/best_of_all_graph.ini")
-
+def parallel_get_best_results(params, **kwargs):
     start_time = time.time()
-    # Build the query along with the input filters condition
-    if higher_is_better == '0':
-        # Fix this hack
-        # logging.debug("SELECTING MIN = {}".format(higher_is_better))
-        BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
-                                on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
-                                on n.nodeID = hw.node_nodeID inner join testdescriptor t
-                                on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
-                                on r.origin_originID = o.originID INNER JOIN display disp 
-                                ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
-                                ON r.subtest_subtestID=s.subtestID where r.number > 0 AND r.isvalid = 1 
-                                AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
-                                "%\' AND n.skuidname in """ + str(reference_skuid_list).replace('[', '(').replace(']', ')') + \
-                                INPUT_FILTER_CONDITION + \
-                                FROM_DATE_FILTER + \
-                                TO_DATE_FILTER + \
-                                " group by o.originID, r.number order by r.number limit 1;"
 
-    else:
-        # logging.debug("SELECTING MAX = {}".format(higher_is_better))
-        BEST_RESULT_QUERY = """SELECT MAX(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
-                                on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
-                                on n.nodeID = hw.node_nodeID inner join testdescriptor t
-                                on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
-                                on r.origin_originID = o.originID INNER JOIN display disp 
-                                ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
-                                ON r.subtest_subtestID=s.subtestID where r.isvalid = 1 
-                                AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
-                                "%\' AND n.skuidname in """ + str(reference_skuid_list).replace('[', '(').replace(']', ')') + \
-                                INPUT_FILTER_CONDITION + \
-                                FROM_DATE_FILTER + \
-                                TO_DATE_FILTER + \
-                                " group by o.originID, r.number order by r.number DESC limit 1;"
-
-
-    results_df = pd.read_sql(BEST_RESULT_QUERY, db)
-    print("BEST RESULTS QUERY {} \ntook {} seconds".format(BEST_RESULT_QUERY, time.time() - start_time))
-    # logging.debug("PRINTING RESULTS DF for= {}".format(test_name))
-    # logging.debug("= {}".format(results_df))
-
-    # close the database connection
-    try:
-        db.close()
-    except:
-        pass
-
-
-    if not results_df.empty:
-        return(test_section, results_df['number'][0])
-
-# Function for getting section results. Excecuted parallely with multiprocessing "pool"
-def parallel_get_section_results(params, **kwargs):
-    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
-                     passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER, passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     # The lists to be filled by the end of this function (and to be returned)
     x_list = []
@@ -1923,103 +1857,89 @@ def parallel_get_section_results(params, **kwargs):
     test_name, test_section, qualifier, higher_is_better = params
 
     # Other Arguments
-    reference_results_map = kwargs['reference_results_map']
     results_metadata_parser = kwargs['results_metadata_parser']
-    skuid_list = kwargs['skuid_list']
     FROM_DATE_FILTER = kwargs['FROM_DATE_FILTER']
     TO_DATE_FILTER = kwargs['TO_DATE_FILTER']
 
+    sku_file_path = './config/sku_definition.ini'
+    sku_parser = configparser.ConfigParser()
+    sku_parser.read(sku_file_path)
 
-    # If the test_result is not Empty (None) in the reference_results_map
-    if test_section in reference_results_map:
-        # Get input_filter_condition by calling the function
-        input_filters_list = results_metadata_parser.get(test_section, 'default_input') \
-                                                    .replace('\"', '').split(',')
-        INPUT_FILTER_CONDITION = get_input_filter_condition(test_section, input_filters_list, \
-                                    wiki_description_file="./config/best_of_all_graph.ini")
+    # Dictionary mapping from 'skuidname' : 'server_cpu_name'
+    # Example 'Cavium ThunderX2(R) CPU CN9980 v2.2 @ 2.20 GHz' : Marvell TX2-B2
+    skuid_cpu_map = OrderedDict({section: sku_parser.get(section, 'SKUID').replace('\"', '').split(',') for section in sku_parser.sections()})
 
+    # Fill the sku_cpu_map with all "sku->section" mapping entries
+    for section in sku_parser.sections():
+        skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
+        for sku in skus:
+            skuid_cpu_map[sku] = section
 
-        st = time.time()
-        # logging.debug("RESULT {} exists in REFERENCE".format(test_section))
-        if higher_is_better == '0':
-            # Fix this hack
-            BEST_RESULT_QUERY = """SELECT MIN(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
-                                    on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
-                                    on n.nodeID = hw.node_nodeID inner join testdescriptor t
-                                    on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
-                                    on r.origin_originID = o.originID INNER JOIN display disp 
-                                    ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
-                                    ON r.subtest_subtestID=s.subtestID where r.number > 0 AND r.isvalid = 1 
-                                    AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
-                                    "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
-                                    INPUT_FILTER_CONDITION + \
-                                    FROM_DATE_FILTER + \
-                                    TO_DATE_FILTER + \
-                                    " group by o.originID, r.number order by r.number limit 1;"
+    # Get input_filter_condition by calling the function
+    input_filters_list = results_metadata_parser.get(test_section, 'default_input') \
+                                                .replace('\"', '').split(',')
+    INPUT_FILTER_CONDITION = get_input_filter_condition(test_section, input_filters_list, \
+                                wiki_description_file="./config/best_of_all_graph.ini")
 
+    BEST_RESULT_QUERY = """SELECT t.testname, r.number, o.originID, n.skuidname, r.isvalid from origin o 
+                        inner join result r on r.origin_originID = o.originID 
+                        inner join testdescriptor t on t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                        inner join hwdetails hw on hw.hwdetailsID = o.hwdetails_hwdetailsID 
+                        inner join node n on n.nodeID = hw.node_nodeID 
+                        INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                        INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+                        where t.testname = \'""" + test_name + \
+                        "\' AND disp.qualifier LIKE \'%" + qualifier + "%\' " + \
+                        INPUT_FILTER_CONDITION + FROM_DATE_FILTER + TO_DATE_FILTER + ";"
+
+    results_df = pd.read_sql(BEST_RESULT_QUERY, db)
+    results_df = results_df[results_df['isvalid'] == 1].reset_index(drop=True);
+    del results_df['isvalid']
+
+    if not results_df.empty:
+        # Strip all the skuidnames
+        results_df['skuidname'] = results_df['skuidname'].apply(lambda x: x.strip())
+
+        # Only valid skuidnames
+        valid_skuidnames = list(itertools.chain(*[sku_parser.get(section, 'SKUID').replace('\"', '').split(',') \
+                                                    for section in sku_parser.sections()]))
+        results_df = results_df[results_df['skuidname'].apply(lambda x: x.strip() in valid_skuidnames)].reset_index(drop=True)
+
+        # Convert skuidname to corresponding SKU section
+        results_df['skuidname'] = results_df['skuidname'].apply(lambda x: skuid_cpu_map[x])
+
+        if higher_is_better == "0":
+            idx = results_df.groupby(by=['skuidname'])['number'].idxmin()
         else:
-            BEST_RESULT_QUERY = """SELECT MAX(r.number) as number, o.originID as originID from origin o inner join hwdetails hw
-                                    on hw.hwdetailsID = o.hwdetails_hwdetailsID inner join node n
-                                    on n.nodeID = hw.node_nodeID inner join testdescriptor t
-                                    on t.testdescriptorID = o.testdescriptor_testdescriptorID inner join result r
-                                    on r.origin_originID = o.originID INNER JOIN display disp 
-                                    ON  r.display_displayID = disp.displayID INNER JOIN subtest s 
-                                    ON r.subtest_subtestID=s.subtestID where r.isvalid = 1 
-                                    AND t.testname = \'""" + test_name + "\' AND disp.qualifier LIKE \'%" + qualifier + \
-                                    "%\' AND n.skuidname in """ + str(skuid_list).replace('[', '(').replace(']', ')') + \
-                                    INPUT_FILTER_CONDITION + \
-                                    FROM_DATE_FILTER + \
-                                    TO_DATE_FILTER + \
-                                    " group by o.originID, r.number order by r.number DESC limit 1;"
+            idx = results_df.groupby(by=['skuidname'])['number'].idxmax()
 
+        # Get best results for each sku
+        results_df = results_df.loc[idx].sort_values(by=['skuidname']).reset_index(drop=True)
+        
+        # 'number' of the reference SKU
+        normalized_wrt = 'Intel Skylake Gold'
 
-        results_df = pd.read_sql(BEST_RESULT_QUERY, db)
-        logging.debug("Y QUERY = {} \nfor section {} took {} seconds".format(BEST_RESULT_QUERY, test_section, time.time() - st))
+        if 'skuidname' in results_df.columns:
+            if normalized_wrt in results_df['skuidname'].tolist():
+                refnum = results_df.loc[results_df.skuidname == normalized_wrt]['number'].reset_index(drop=True)[0]
 
-        # A function which returns the normalized value y_list[-1] w.r.t. reference_results_map[test_section] 
-        def normalized_value():
-            try:
-                # Take inverse if lower is better
-                if higher_is_better == '0':
-                    return reference_results_map[test_section]/y_list[-1]
+                if higher_is_better == "0":
+                    results_df['number'] = results_df['number'].apply(lambda x: refnum/x)
                 else:
-                    return y_list[-1]/reference_results_map[test_section]
-            except:
-                # If divide by zero what to do????
-                pass
+                    results_df['number'] = results_df['number'].apply(lambda x: x/refnum)
 
-        if not results_df.empty:
-            # logging.debug("ENTERING")
-            x_list.append(test_section)
-            y_list.extend(results_df['number'])
-            logging.debug("Y_LIST ={}".format(y_list, test_section))
+                results_df = results_df.loc[results_df.skuidname != normalized_wrt]
 
-            # Normalize IT
-            y_list[-1] = normalized_value()
-            logging.debug("AFTER NORMALIZING")
-            logging.debug("Y_LIST ={} {}".format(y_list, test_section))
-            originID_list.extend(results_df['originID'])
-        else:
-            pass
-            # logging.debug("NOT ENTERING")
+                # Convert test_name to test_section
+                results_df['testname'] = results_df['testname'].apply(lambda x: test_section)
+
+                print("Parallel best results for {} took {} seconds".format(test_name, time.time() - start_time))
+
+                return results_df
         
-        # close the database connection
-        try:
-            db.close()
-        except:
-            pass
-
-        return (x_list, y_list, originID_list)
-
-    else:
-        # close the database connection
-        try:
-            db.close()
-        except:
-            pass
-        
-        pass
-        # logging.debug("######################RESULT {} DOES NOT EXIST in REFERENCE".format(test_section))
+    print("Parallel best results - returning Empty DataFrame, for {} took {} seconds".format(test_name, time.time() - start_time))
+    # Return empty dataframe. It becomes easier while filtering
+    return pd.DataFrame()
 
 @app.route('/best_of_all_graph', methods=['POST'])
 def best_of_all_graph():
@@ -2046,17 +1966,13 @@ def best_of_all_graph():
     logging.debug(" = {}".format(from_date))
     logging.debug(" = {}".format(to_date))
 
+    FROM_DATE_FILTER = " "
+    TO_DATE_FILTER = " "
     if from_date:
         FROM_DATE_FILTER = " and o.testdate > \'" + from_date + " 00:00:00\' "
-    else:
-        logging.debug("empty")
-        FROM_DATE_FILTER = " "
 
     if to_date:
         TO_DATE_FILTER = " and o.testdate < \'" + to_date + " 23:59:59\' "
-    else:
-        logging.debug("empty")
-        TO_DATE_FILTER = " "
 
     normalized_wrt = data['normalizedWRT']
 
@@ -2065,7 +1981,7 @@ def best_of_all_graph():
         test_name_list = [test_name.strip() for test_name in data['test_name_list']]
 
         # If test_name_list is empty, read everything
-        if(not test_name_list):
+        if not test_name_list:
             raise Exception
     except:
         # Read all test names from .ini file
@@ -2099,23 +2015,28 @@ def best_of_all_graph():
             logging.debug("DONE REMOVING")
             break
 
-    # logging.debug(" = {}".format(test_name_list))
-    # logging.debug(" = {}".format(test_sections_list))
-    # logging.debug(" = {}".format(qualifier_list))
-    # logging.debug(" = {}".format(higher_is_better_list))
+    logging.debug(" = {}".format(qualifier_list))
+    logging.debug(" = {}".format(higher_is_better_list))
 
     # Get colour and skuid_list for reference Cpu 
     reference_color = sku_parser.get(normalized_wrt, 'color').replace('\"', '').split(',')[0]
     reference_skuid_list = sku_parser.get(normalized_wrt, 'SKUID').replace('\"', '').split(',')
+
+    ######################################################################################################################
+
+    x_list_list = []
+    y_list_list = []
+    originID_list_list = []
+    server_cpu_list = []
+    color_list = []
 
     # Excecute parallel_get_reference_results parallely with multiprocessing "pool"
     pool = multiprocessing.Pool(processes=num_processes)
 
     start_time2 = time.time()
     try:
-        reference_results_list = pool.map(partial(parallel_get_reference_results, results_metadata_parser=results_metadata_parser, \
-                                reference_skuid_list = reference_skuid_list, FROM_DATE_FILTER = FROM_DATE_FILTER, \
-                                TO_DATE_FILTER = TO_DATE_FILTER ), \
+        best_results_data = pool.map(partial(parallel_get_best_results, results_metadata_parser=results_metadata_parser, \
+                                FROM_DATE_FILTER = FROM_DATE_FILTER, TO_DATE_FILTER = TO_DATE_FILTER ), \
                                 zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list)) 
 
     finally:
@@ -2123,88 +2044,42 @@ def best_of_all_graph():
         pool.close()
         pool.join()
 
-    # Remove all the 'None' values from the list
-    reference_results_list = filter(None, reference_results_list)
+    # Remove all the empty dataframes from the list
+    best_results_data = [x for x in best_results_data if not x.empty]
 
-    # Create a reference_results_map having entries for "testname" -> best_result
-    # This will be for the selected reference CPU manufacturer i.e. normalized_wrt
-    # Build a map from the list of tuples
-    reference_results_map = {k : v for k, v in reference_results_list}
+    # Concatenate all the dfs into a single df
+    best_results_df = pd.concat(best_results_data).sort_values(by=['skuidname', 'testname']).reset_index(drop=True)
 
-    logging.debug("Reference KEYS = ", reference_results_map.keys(), len(reference_results_map.keys()))
-    logging.debug("The Parallel Function (for Reference CPU Manufacturer) took {} seconds!!!".format(time.time() - start_time2))
-    # logging.debug("Reference results map = {}".format(reference_results_map))
+    # Get unique skuidname entries
+    server_cpu_list = [x for x in best_results_df['skuidname'].unique().tolist()]
 
+    best_results_df = best_results_df.set_index('skuidname')
+
+    # Extract the lists from the dataframe
+    # Always pass a list to .loc function to get Dataframe as the result
+    x_list_list = [best_results_df.loc[[skuidname]]['testname'].tolist() for skuidname in server_cpu_list]
+    y_list_list = [best_results_df.loc[[skuidname]]['number'].tolist() for skuidname in server_cpu_list]
+    originID_list_list = [best_results_df.loc[[skuidname]]['originID'].tolist() for skuidname in server_cpu_list]
+
+    for section in server_cpu_list:
+        color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
 
     ######################################################################################################################
-    
-    x_list_list = []
-    y_list_list = []
-    originID_list_list = []
-    server_cpu_list = []
-    color_list = []
-    # Start querying the database for best of each CPU MANUFACTURER
-    for section in sku_parser.sections():
-        start_time_section = time.time()
-        logging.debug("section = ", section)
-        # Only for sections other than selected 'reference'
-        if section != normalized_wrt:
-            # logging.debug("SECTION DID NOT MATCH. Proceeding with queries {} : {}  ".format(section, normalized_wrt))
-            skuid_list = sku_parser.get(section, 'SKUID').replace('\"', '').split(',')
-
-            # Get normalized results of all tests of this section parallely            
-            pool = multiprocessing.Pool(processes=num_processes)
-            try:
-                results_list_list = pool.map(partial(parallel_get_section_results, reference_results_map = reference_results_map, \
-                                        results_metadata_parser=results_metadata_parser, skuid_list = skuid_list, \
-                                        FROM_DATE_FILTER = FROM_DATE_FILTER, TO_DATE_FILTER = TO_DATE_FILTER ), \
-                                        zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list) ) 
-
-            # Shut down multiprocessing gracefully
-            finally:
-                logging.debug("Closing pool")
-                pool.close()
-                pool.join()
-
-            # Remove all the 'None' values from the list
-            results_list_list = list(filter(None, results_list_list))
-
-            x_list = []
-            y_list = []
-            originID_list = []
-            for i in range(len(results_list_list)):
-                if( results_list_list[i][0] != [] ):
-                    x_list.extend( results_list_list[i][0] )
-                    y_list.extend( results_list_list[i][1] )
-                    originID_list.extend( results_list_list[i][2] )
-
-            # Append to final list_lists
-            x_list_list.append(x_list)
-            y_list_list.append(y_list)
-            originID_list_list.append(originID_list)
-            server_cpu_list.append(section)
-            color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
-
-        else:
-            logging.debug("SECTION MATCHED {} .\tSkipping".format(section))
-
-        logging.debug("section {} over. Time taken = {}".format(section, time.time() - start_time_section))
-
 
     response = {
+        'server_cpu_list': server_cpu_list,
+        'color_list': color_list,
         'x_list_list': x_list_list, 
         'y_list_list': y_list_list,
+        'originID_list_list': originID_list_list,
         'y_axis_unit': "ratio",
         'xParameter': "All Tests",
         'yParameter': "",
-        'originID_list_list': originID_list_list,
-        'server_cpu_list': server_cpu_list,
-        'color_list': color_list,
         'reference_color' : reference_color,
         'normalized_wrt' : normalized_wrt,
     }
 
-    logging.debug("Best of All Graph took {} seconds".format(time.time() - start_time))
+    print("Best of All Graph took {} seconds".format(time.time() - start_time))
 
     return response
 
