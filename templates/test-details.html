@@ -82,6 +82,12 @@ Test Details
 				Results
 			</h1>
 
+			<!-- Buttons for Download as csv and Generate Graphs -->
+			<div id="generate-other-graphs" class="d-flex justify-content-between mt-3">
+				<button type="button" id="download-results-table-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
+				<button type="button" id="generate-cpu-graphs" class="btn btn-success font-weight-bold" >Generate CPU and I/O Utilization Graphs</button>
+			</div>
+
 			<table class="table table-hover px-5" id="resultsTable">
 
 				<thead class="thead-dark">
@@ -105,13 +111,6 @@ Test Details
 				</tbody>
 			</table>
 		</div>
-
-		<!-- Buttons for Download as csv and Generate Graphs -->
-		<div id="generate-other-graphs" class="d-flex justify-content-between mt-3">
-			<button type="button" id="download-results-table-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
-			<button type="button" id="generate-cpu-graphs" class="btn btn-success font-weight-bold" >Generate CPU and I/O Utilization Graphs</button>
-		</div>
-
 
 		<!-- Modal (POPUP) for CPU and I/O Utilization graphs -->
 		<div class="modal fade" id="cpu-graphs-modal" tabindex="-1" role="dialog" aria-labelledby="cpu-graphs-modal-label" aria-hidden="true">
