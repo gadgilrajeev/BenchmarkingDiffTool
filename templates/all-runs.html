@@ -79,7 +79,7 @@ All Runs of {{ context.testname }}
 								<select class="form-control form-control-lg" name="resultype-filter" id="resultype-filter">
 									<option value="" class="selected-option" selected="selected">None</option>
 									{% for option in context.result_type_list %}
-										<option value="option">{{option}}</option>
+										<option value="{{option}}">{{option}}</option>
 									{% endfor %}
 								</select>
 							{% endif %}
@@ -88,9 +88,9 @@ All Runs of {{ context.testname }}
 								<option value="None">None</option>
 								{% for option in options_list %}
 									{% if option == context.default_input_filters[i] %}
-										<option value="option" class="selected-option" selected="selected">{{option}}</option>
+										<option value="{{option}}" class="selected-option" selected="selected">{{option}}</option>
 									{% else %}
-										<option value="option">{{option}}</option>
+										<option value="{{option}}">{{option}}</option>
 									{% endif %}
 								{% endfor %}
 							</select>
@@ -309,7 +309,7 @@ All Runs of {{ context.testname }}
 		ajaxData.yParameter = $("#yParameter option:selected").val()
 		ajaxData.testname = "{{ context.testname }}"
 
-		ajaxData.resultTypeFilter = $('#resultype-filter option:selected').html()
+		ajaxData.resultTypeFilter = $('#resultype-filter option:selected').val()
 
 		ajaxData.inputFiltersList = getInputFiltersList()
 
@@ -343,7 +343,7 @@ All Runs of {{ context.testname }}
 			ajaxData.yParameter = ""
 			ajaxData.testname = "{{ context.testname }}"
 
-			ajaxData.resultTypeFilter = $('#resultype-filter option:selected').html()
+			ajaxData.resultTypeFilter = $('#resultype-filter option:selected').val()
 
 			ajaxData.inputFiltersList = getInputFiltersList()
 
