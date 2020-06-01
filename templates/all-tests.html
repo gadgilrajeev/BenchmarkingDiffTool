@@ -63,7 +63,7 @@ All tests page
 				<!-- The Actual Graph Div -->
 				<div class="card bg-light rounded mb-5" id="best-of-all-graph-div">
 					
-					<div class="mx-5 mb-5 w-75" style="height:350px; "id="best-of-all-graph">
+					<div class="mx-5 mb-5 w-75" style="height:500px; "id="best-of-all-graph">
 					</div>
 
 					<div class="card-footer mt-3 mb-0 p-0 bg-transparent d-flex">
@@ -79,6 +79,16 @@ All tests page
 							</div>
 						</div>
 
+						<div class="d-flex flex-column">
+							<label class = "h4" for="resultype-filter">Result Type</label>
+							<select class="form-control" name="resultype-filter" id="resultype-filter">
+								<option value="" class="selected-option" selected="selected">None</option>
+								{% for option in context.result_type_list %}
+									<option value="{{option}}">{{option}}</option>
+								{% endfor %}
+							</select>
+						</div>
+
 						<!-- Download as CSV button -->
 						<button id="download-best-of-all-graph-csv" class="btn btn-outline-primary font-weight-bold float-right h-50 align-self-center ml-5 mr-3">Download as CSV</button>
 
@@ -91,8 +101,8 @@ All tests page
 							<div class="toast-body"><h5 id="reference-toast-body"></h5></div>
 						</div>
 
-						<!-- Download as CSV button -->
-						<button id="show-graph" class="btn btn-success font-weight-bold ml-auto h-50 align-self-center mr-5">Show Graph</button>
+						<!-- Show graph button
+						<button id="refresh-graph" class="btn btn-success font-weight-bold ml-auto h-50 align-self-center mr-5">Refresh Graph</button> -->
 
 					</div>
 
@@ -209,7 +219,7 @@ All tests page
 		console.log("SENDING REQUEST")
 
 		//Draw the initial best-of-all-graph
-    	// drawBestOfAllGraph('{{ context.reference_list[0] }}')
+    	drawBestOfAllGraph('{{ context.reference_list[0] }}')
 
     	$('#from-date').val("")
     	$('#to-date').val("")
@@ -282,6 +292,21 @@ All tests page
 		console.log("Set from date max as")
 		console.log($fromDate.attr('max'))
 	})
+
+	// Redraw the graph when result type filter changes
+	$('#resultype-filter').change(function(){
+		// Get normalized WRT if graph exists, or choose the first one
+		// Graph does not exist initially when we load/refresh page
+		$dropdownMenu = $('#reference-for-normalized-dropdown')
+		$firstNormalized = $dropdownMenu.children()[1].innerHTML
+		
+		graphDiv = document.getElementById('best-of-all-graph')
+		normalizedWRT = graphDiv.data ? graphDiv.data.normalizedWRT : $firstNormalized
+		
+		//Draw new best_of_all_graph according to filters
+		drawBestOfAllGraph(normalizedWRT)
+	})
+
 
 	$('#apply-date-filter-button').click(function(){
 
@@ -378,7 +403,7 @@ All tests page
 	})
 
 	// On 'Show Graph' clicked
-	$('#show-graph').click(function(){
+	$('#refresh-graph').click(function(){
 			// Get normalized WRT if graph exists, or choose the first one
 			// Graph does not exist initially when we load/refresh page
 			$dropdownMenu = $('#reference-for-normalized-dropdown')
