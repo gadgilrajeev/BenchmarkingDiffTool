@@ -352,7 +352,7 @@ def home_page():
     context = get_all_tests_data()
 
     # For result type filter
-    result_type_list = [3, 2, 7, 6, 5, 8, 1]
+    result_type_list = [3, 2, 7, 6, 5, 8, 1, 0]
     # Convert to result_type string according to result_type_map
     result_type_list = [result_type_map[x] for x in result_type_list]
 
@@ -491,7 +491,7 @@ def getAllRunsData(testname, secret=False):
         test_summary['latest_version'] = test_summary_parser.get(testname, 'latest_version')
 
         # For result type filter
-        result_type_list = [3, 2, 7, 6, 5, 8, 1]
+        result_type_list = [3, 2, 7, 6, 5, 8, 1, 0]
         # Convert to result_type string according to result_type_map
         result_type_list = [result_type_map[x] for x in result_type_list]
 
@@ -1432,7 +1432,7 @@ def get_data_for_graph():
         "DDRfreq": 'greater than zero',
         "SKUID": 'not empty string',
         "Hostname": 'not empty string',
-        "Scaling" : 'greater than zero',
+        "Scaling" : '',
     }
 
     server_cpu_list = []
@@ -1444,8 +1444,8 @@ def get_data_for_graph():
     originID_list_list = []
 
     if xParameter == "Scaling":
-        # [dual socket, single socket, 1/2 socket, 1/4th socket, 1/8th  socket, 2 cores, single core]
-        initial_x_list = [3, 2, 7, 6, 5, 8, 1]
+        # [dual socket, single socket, 1/2 socket, 1/4th socket, 1/8th  socket, 2 cores, single core, single thread]
+        initial_x_list = [3, 2, 7, 6, 5, 8, 1, 0]
     else:
         # Get initial_x_list by excecuting the query
         X_LIST_QUERY = "SELECT DISTINCT " + parameter_map[xParameter] + " as \'" + parameter_map[xParameter] + \
@@ -1472,6 +1472,8 @@ def get_data_for_graph():
         initial_x_list = list(filter(lambda x: x != '', initial_x_list))
     elif filter_x_list_map[xParameter] == 'greater than zero':
         initial_x_list = list(filter(lambda x: x > 0, initial_x_list))
+    else:
+        pass
 
     logging.debug("initial_x_list = {}".format(initial_x_list))
 
@@ -1860,6 +1862,8 @@ def parallel_get_best_results(params, **kwargs):
     results_metadata_parser = kwargs['results_metadata_parser']
     FROM_DATE_FILTER = kwargs['FROM_DATE_FILTER']
     TO_DATE_FILTER = kwargs['TO_DATE_FILTER']
+    result_type_filter = kwargs['result_type_filter']
+    normalized_wrt = kwargs['normalized_wrt']
 
     sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
@@ -1881,63 +1885,82 @@ def parallel_get_best_results(params, **kwargs):
     INPUT_FILTER_CONDITION = get_input_filter_condition(test_section, input_filters_list, \
                                 wiki_description_file="./config/best_of_all_graph.ini")
 
-    BEST_RESULT_QUERY = """SELECT t.testname, r.number, o.originID, n.skuidname, r.isvalid from origin o 
-                        inner join result r on r.origin_originID = o.originID 
-                        inner join testdescriptor t on t.testdescriptorID = o.testdescriptor_testdescriptorID 
-                        inner join hwdetails hw on hw.hwdetailsID = o.hwdetails_hwdetailsID 
-                        inner join node n on n.nodeID = hw.node_nodeID 
-                        INNER JOIN display disp ON  r.display_displayID = disp.displayID 
-                        INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
-                        where t.testname = \'""" + test_name + \
-                        "\' AND disp.qualifier LIKE \'%" + qualifier + "%\' " + \
-                        INPUT_FILTER_CONDITION + FROM_DATE_FILTER + TO_DATE_FILTER + ";"
+    if higher_is_better == "0":
+        BEST_RESULT_QUERY = """SELECT t.testname, r.number, o.originID, n.skuidname, s.resultype as 'resultype_filter', r.isvalid from origin o 
+                            inner join result r on r.origin_originID = o.originID 
+                            inner join testdescriptor t on t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                            inner join hwdetails hw on hw.hwdetailsID = o.hwdetails_hwdetailsID 
+                            inner join node n on n.nodeID = hw.node_nodeID 
+                            INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                            INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+                            where t.testname = \'""" + test_name + "\' AND r.number > 0 " + \
+                            " AND disp.qualifier LIKE \'%" + qualifier + "%\' " + \
+                            INPUT_FILTER_CONDITION + FROM_DATE_FILTER + TO_DATE_FILTER + ";"
+    else:
+        BEST_RESULT_QUERY = """SELECT t.testname, r.number, o.originID, n.skuidname, s.resultype as 'resultype_filter', r.isvalid from origin o 
+                            inner join result r on r.origin_originID = o.originID 
+                            inner join testdescriptor t on t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                            inner join hwdetails hw on hw.hwdetailsID = o.hwdetails_hwdetailsID 
+                            inner join node n on n.nodeID = hw.node_nodeID 
+                            INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                            INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+                            where t.testname = \'""" + test_name + \
+                            "\' AND disp.qualifier LIKE \'%" + qualifier + "%\' " + \
+                            INPUT_FILTER_CONDITION + FROM_DATE_FILTER + TO_DATE_FILTER + ";"
+
 
     results_df = pd.read_sql(BEST_RESULT_QUERY, db)
     results_df = results_df[results_df['isvalid'] == 1].reset_index(drop=True);
     del results_df['isvalid']
 
     if not results_df.empty:
-        # Strip all the skuidnames
-        results_df['skuidname'] = results_df['skuidname'].apply(lambda x: x.strip())
+        # Convert to actual result type string
+        results_df['resultype_filter'] = results_df['resultype_filter'].apply(lambda x : result_type_map.get(x, "Unkown"))
+        if result_type_filter:
+            results_df = results_df[results_df['resultype_filter'] == result_type_filter].reset_index(drop=True)
 
-        # Only valid skuidnames
-        valid_skuidnames = list(itertools.chain(*[sku_parser.get(section, 'SKUID').replace('\"', '').split(',') \
-                                                    for section in sku_parser.sections()]))
-        results_df = results_df[results_df['skuidname'].apply(lambda x: x.strip() in valid_skuidnames)].reset_index(drop=True)
+        del results_df['resultype_filter']
 
-        # Convert skuidname to corresponding SKU section
-        results_df['skuidname'] = results_df['skuidname'].apply(lambda x: skuid_cpu_map[x])
+        # If results_df is not empty after applying reusult_type_filter
+        if not results_df.empty:
+            # Strip all the skuidnames
+            results_df['skuidname'] = results_df['skuidname'].apply(lambda x: x.strip())
 
-        if higher_is_better == "0":
-            idx = results_df.groupby(by=['skuidname'])['number'].idxmin()
-        else:
-            idx = results_df.groupby(by=['skuidname'])['number'].idxmax()
+            # Only valid skuidnames
+            valid_skuidnames = list(itertools.chain(*[sku_parser.get(section, 'SKUID').replace('\"', '').split(',') \
+                                                        for section in sku_parser.sections()]))
+            results_df = results_df[results_df['skuidname'].apply(lambda x: x.strip() in valid_skuidnames)].reset_index(drop=True)
 
-        # Get best results for each sku
-        results_df = results_df.loc[idx].sort_values(by=['skuidname']).reset_index(drop=True)
+            # Convert skuidname to corresponding SKU section
+            results_df['skuidname'] = results_df['skuidname'].apply(lambda x: skuid_cpu_map[x])
+
+            if higher_is_better == "0":
+                idx = results_df.groupby(by=['skuidname'])['number'].idxmin()
+            else:
+                idx = results_df.groupby(by=['skuidname'])['number'].idxmax()
+
+            # Get best results for each sku
+            results_df = results_df.loc[idx].sort_values(by=['skuidname']).reset_index(drop=True)
+
+            if 'skuidname' in results_df.columns:
+                if normalized_wrt in results_df['skuidname'].tolist():
+                    refnum = results_df.loc[results_df.skuidname == normalized_wrt]['number'].reset_index(drop=True)[0]
+
+                    if higher_is_better == "0":
+                        results_df['number'] = results_df['number'].apply(lambda x: refnum/x)
+                    else:
+                        results_df['number'] = results_df['number'].apply(lambda x: x/refnum)
+
+                    results_df = results_df.loc[results_df.skuidname != normalized_wrt]
+
+                    # Convert test_name to test_section
+                    results_df['testname'] = results_df['testname'].apply(lambda x: test_section)
+
+                    logging.debug("Parallel best results for {} took {} seconds".format(test_name, time.time() - start_time))
+
+                    return results_df
         
-        # 'number' of the reference SKU
-        normalized_wrt = 'Intel Skylake Gold'
-
-        if 'skuidname' in results_df.columns:
-            if normalized_wrt in results_df['skuidname'].tolist():
-                refnum = results_df.loc[results_df.skuidname == normalized_wrt]['number'].reset_index(drop=True)[0]
-
-                if higher_is_better == "0":
-                    results_df['number'] = results_df['number'].apply(lambda x: refnum/x)
-                else:
-                    results_df['number'] = results_df['number'].apply(lambda x: x/refnum)
-
-                results_df = results_df.loc[results_df.skuidname != normalized_wrt]
-
-                # Convert test_name to test_section
-                results_df['testname'] = results_df['testname'].apply(lambda x: test_section)
-
-                print("Parallel best results for {} took {} seconds".format(test_name, time.time() - start_time))
-
-                return results_df
-        
-    print("Parallel best results - returning Empty DataFrame, for {} took {} seconds".format(test_name, time.time() - start_time))
+    logging.debug("Parallel best results - returning Empty DataFrame, for {} took {} seconds".format(test_name, time.time() - start_time))
     # Return empty dataframe. It becomes easier while filtering
     return pd.DataFrame()
 
@@ -1975,6 +1998,12 @@ def best_of_all_graph():
         TO_DATE_FILTER = " and o.testdate < \'" + to_date + " 23:59:59\' "
 
     normalized_wrt = data['normalizedWRT']
+
+    # Result type filter eg. dual socket
+    result_type_filter = data['resultTypeFilter']
+
+    # result_type_filter = "dual socket"
+    logging.debug("Result type filter = '{}' {}".format(result_type_filter, type(result_type_filter)))
 
     # If No filters are applied, select all tests
     try:
@@ -2036,7 +2065,8 @@ def best_of_all_graph():
     start_time2 = time.time()
     try:
         best_results_data = pool.map(partial(parallel_get_best_results, results_metadata_parser=results_metadata_parser, \
-                                FROM_DATE_FILTER = FROM_DATE_FILTER, TO_DATE_FILTER = TO_DATE_FILTER ), \
+                                FROM_DATE_FILTER = FROM_DATE_FILTER, TO_DATE_FILTER = TO_DATE_FILTER, \
+                                result_type_filter=result_type_filter, normalized_wrt=normalized_wrt), \
                                 zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list)) 
 
     finally:
@@ -2048,21 +2078,26 @@ def best_of_all_graph():
     best_results_data = [x for x in best_results_data if not x.empty]
 
     # Concatenate all the dfs into a single df
-    best_results_df = pd.concat(best_results_data).sort_values(by=['skuidname', 'testname']).reset_index(drop=True)
+    if best_results_data:
+        best_results_df = pd.concat(best_results_data).sort_values(by=['skuidname', 'testname']).reset_index(drop=True)
+    else:
+        best_results_df = pd.DataFrame()
 
-    # Get unique skuidname entries
-    server_cpu_list = [x for x in best_results_df['skuidname'].unique().tolist()]
+    # If best_results_df is not empty
+    if not best_results_df.empty:
+        # Get unique skuidname entries
+        server_cpu_list = [x for x in best_results_df['skuidname'].unique().tolist()]
 
-    best_results_df = best_results_df.set_index('skuidname')
+        best_results_df = best_results_df.set_index('skuidname')
 
-    # Extract the lists from the dataframe
-    # Always pass a list to .loc function to get Dataframe as the result
-    x_list_list = [best_results_df.loc[[skuidname]]['testname'].tolist() for skuidname in server_cpu_list]
-    y_list_list = [best_results_df.loc[[skuidname]]['number'].tolist() for skuidname in server_cpu_list]
-    originID_list_list = [best_results_df.loc[[skuidname]]['originID'].tolist() for skuidname in server_cpu_list]
+        # Extract the lists from the dataframe
+        # Always pass a list to .loc function to get Dataframe as the result
+        x_list_list = [best_results_df.loc[[skuidname]]['testname'].tolist() for skuidname in server_cpu_list]
+        y_list_list = [best_results_df.loc[[skuidname]]['number'].tolist() for skuidname in server_cpu_list]
+        originID_list_list = [best_results_df.loc[[skuidname]]['originID'].tolist() for skuidname in server_cpu_list]
 
-    for section in server_cpu_list:
-        color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
+        for section in server_cpu_list:
+            color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
 
     ######################################################################################################################
 
