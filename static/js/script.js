@@ -91,14 +91,12 @@ function drawBestOfAllGraph(normalizedWRT){
 	for(i = 0; i < allRows.length; i++)
 		selectedTestsList.push(allRows[i].children[0].children[0].innerHTML)
 
-	// Normalized (Reference CPU Manufacturer)
-	// normalizedWRT = $('#reference-for-normalized option:selected').text()
-
 	data = {
 		'normalizedWRT' : normalizedWRT,
 		'test_name_list' : selectedTestsList,
 		'from_date_filter' : $fromDate,
 		'to_date_filter' : $toDate,
+		'resultTypeFilter' : $('#resultype-filter option:selected').val(),
 	}
 
 	Plotly.purge('best-of-all-graph')
@@ -125,19 +123,6 @@ function drawBestOfAllGraph(normalizedWRT){
 		$("#best-of-all-graph").empty()
 		drawClusteredGraph(response, graphID = 'best-of-all-graph')
 	})
-}
-
-function showAllRuns(tableCell){
-	testName = tableCell.innerHTML.trim()
-	console.log(testName)
-	window.location.href = '/allruns/'+testName
-}
-
-function testDetails(tableCell){
-	// replace all non-digits with nothing
-	originID = tableCell.innerHTML.trim().replace( /^\D+/g, '');
-	console.log(originID)
-	window.location.href = '/test-details/'+originID
 }
 
 function downloadAsPng(filename, graphID){
@@ -280,9 +265,11 @@ function drawComparisonGraph(response, graphID){
 		xaxis: {
 			type : 'category',
 			title : xParameter,
+			automargin : true, 
 		},
 		yaxis: {
 			title: yParameter + ' (' + yAxisUnit + ')',
+			automargin : true, 
 		},
 		title: title,
 		showlegend: true,
@@ -339,7 +326,7 @@ function drawClusteredGraph(response, graphID) {
 	visibleList = response.visible_list
 	yAxisUnit = response.y_axis_unit
 	normalizedWRT = response.normalized_wrt
-
+	
 	console.log("DRAWING CLUSTERED GRAPH")
 	graphDiv = document.getElementById(graphID);
 
@@ -347,11 +334,14 @@ function drawClusteredGraph(response, graphID) {
 		visibleList = Array.from(colorList, v=> true)
 
 	if(graphID == 'best-of-all-graph'){
-		title = "Best results normalized w.r.t. " + normalizedWRT
+		title = "Best results normalized w.r.t. " + normalizedWRT 
+		if ($('#resultype-filter option:selected').val() != "")
+			title = title + "<br>(" + $('#resultype-filter option:selected').val() + ")"
+
 		titlefont = {
-    		"size": 30
+    		"size": 24,
   		}
-  	}
+	}
 	else{
 		title = yParameter +'(' + yAxisUnit + ')' + ' vs ' + xParameter
 		titlefont = 24
@@ -361,9 +351,11 @@ function drawClusteredGraph(response, graphID) {
 		xaxis: {
 			type : 'category',
 			title : xParameter,
+			automargin : true, 
 		},
 		yaxis: {
 			title: yParameter,
+			automargin : true,
 		},
 		titlefont: titlefont,
 		title: title,
@@ -400,7 +392,6 @@ function drawClusteredGraph(response, graphID) {
 		Plotly.react( graphDiv, data, layout);
 
 	// Draw Reference Line if graphID is 'best-of-all-graph'
-	console.log("REDRAWING ANNA")
 	if(graphID == 'best-of-all-graph'){
 		function drawReferenceLine(data){	
 			console.log("REDRAWING REFERENCE LINE")	
