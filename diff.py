@@ -2191,20 +2191,7 @@ def secret_all_tests():
 
     return render_template('secret-all-tests.html', context=context)
 
-# Generate custom csv (or Excel) file for all selected tests and input params
-@app.route('/generate_custom_data', methods=['POST'])
-def generate_custom_data():
-    # ProTip: For completing this function
-    # Refer to 'download_as_csv'
-    logging.debug("Generating Custom Data")
-
-    response = {
-
-    }
-    return response
-
 def parallel_compute_heatmap_zll(param, **kwargs):
-
     graph_name = kwargs['graph_name']
 
     if graph_name == 'cpu_heatmap':
@@ -2777,23 +2764,6 @@ def cpu_utilization_graphs():
     logging.debug("Time taken for CPU utilization graphs {}".format(time.time() - start_time))
 
     return json.dumps(cpu_ut_graphs_data)
-
-# API Endpoint for Scaling graphs
-@app.route('/scaling_graphs', methods=['POST'])
-def scaling_graphs():
-    logging.debug("Got request for Scaling Graphs")
-    start_time = time.time()
-
-    data = request.get_json()
-    logging.debug("DATA = {}".format(data))
-
-    scaling_graph_data = {
-
-    }
-
-    logging.debug("IT took {} seconds for Scaling graph".format(time.time() - start_time))
-
-    return scaling_graph_data
 
 # One function for downloading everything as CSV
 @app.route('/download_as_csv', methods=['POST'])
