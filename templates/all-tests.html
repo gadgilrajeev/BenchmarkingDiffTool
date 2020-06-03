@@ -82,9 +82,13 @@ All tests page
 						<div class="d-flex flex-column">
 							<label class = "h4" for="resultype-filter">Result Type</label>
 							<select class="form-control" name="resultype-filter" id="resultype-filter">
-								<option value="" class="selected-option" selected="selected">None</option>
+								<option value="">None</option>
 								{% for option in context.result_type_list %}
-									<option value="{{option}}">{{option}}</option>
+									{% if option == 'dual socket' %}
+										<option value="{{option}}" class="selected-option" selected="selected">{{option}}</option>
+									{% else %}
+										<option value="{{option}}">{{option}}</option>
+									{% endif %}
 								{% endfor %}
 							</select>
 						</div>
