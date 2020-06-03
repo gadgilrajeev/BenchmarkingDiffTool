@@ -578,7 +578,9 @@ def markOriginIDInvalid():
     logging.debug("JSON STATHAM")
     logging.debug(" = {}".format(data))
 
-    originID = data.get('originID')
+    originIDs = data.get('originIDs')
+    logging.debug("Printing selected originIDs = '{}' {}".format(originIDs, type(originIDs)))
+
     testname = data.get('testname')
     valid = data.get('valid')
     secret_key = data.get('secretKey')
@@ -594,11 +596,13 @@ def markOriginIDInvalid():
 
         cursor = db.cursor()
         if not valid:
-            success['message'] = """The originID """ + originID +""" was marked invalid successfully"""
-            INVALID_ORIGINID_QUERY = "UPDATE result r SET r.isvalid=0 where r.origin_originID = " + originID + ";"
+            success['message'] = "The originIDs [" + originIDs +"] were marked invalid successfully"
+            INVALID_ORIGINID_QUERY = "UPDATE result r SET r.isvalid=0 where r.origin_originID in (" + originIDs + ");"
         else:
-            success['message'] = """The originID """ + originID +""" was marked valid successfully"""
-            INVALID_ORIGINID_QUERY = "UPDATE result r SET r.isvalid=1 where r.origin_originID = " + originID + ";"
+            success['message'] = "The originIDs [" + originIDs +"] were marked valid successfully"
+            INVALID_ORIGINID_QUERY = "UPDATE result r SET r.isvalid=1 where r.origin_originID in (" + originIDs + ");"
+
+        logging.debug(INVALID_ORIGINID_QUERY)
         cursor.execute(INVALID_ORIGINID_QUERY)
         cursor.close()
         db.commit()
@@ -933,7 +937,7 @@ def markResultIDInvalid():
     logging.debug('Data = {}'.format(data))
 
     originID = data.get('originID')
-    resultID = data.get('resultID')
+    resultIDs = data.get('resultIDs')
     valid = data.get('valid')
     secret_key = data.get('secretKey')
 
@@ -948,11 +952,13 @@ def markResultIDInvalid():
 
         cursor = db.cursor()
         if not valid:
-            success['message'] = """The resultID """ + resultID +""" was marked invalid successfully"""
-            CHANGE_RESULTID_VALIDITY_QUERY = "UPDATE result r SET r.isvalid=0 where r.resultID = " + resultID + ";"
+            success['message'] = """The resultIDs [""" + resultIDs +"""] were marked invalid successfully"""
+            CHANGE_RESULTID_VALIDITY_QUERY = "UPDATE result r SET r.isvalid=0 where r.resultID in (" + resultIDs + ");"
         else:
-            success['message'] = """The resultID """ + resultID +""" was marked valid successfully"""
-            CHANGE_RESULTID_VALIDITY_QUERY = "UPDATE result r SET r.isvalid=1 where r.resultID = " + resultID + ";"
+            success['message'] = """The resultIDs [""" + resultIDs +"""] were marked valid successfully"""
+            CHANGE_RESULTID_VALIDITY_QUERY = "UPDATE result r SET r.isvalid=1 where r.resultID in (" + resultIDs + ");"
+
+        logging.debug(CHANGE_RESULTID_VALIDITY_QUERY)
         cursor.execute(CHANGE_RESULTID_VALIDITY_QUERY)
         cursor.close()
         db.commit()
@@ -2222,10 +2228,15 @@ def cpu_utilization_graphs():
     start_time5 = time.time()
     # Set 'CPU' as index
     cpu_utilization_df = cpu_utilization_df.set_index('CPU')
-    # AVG. Data of all cores at all timestamps
-    all_cores_df = cpu_utilization_df.loc['all']
-    # Drop all those columns
-    cpu_utilization_df = cpu_utilization_df.drop('all')
+
+    try:
+        # AVG. Data of all cores at all timestamps
+        all_cores_df = cpu_utilization_df.loc['all']
+        # Drop all those columns
+        cpu_utilization_df = cpu_utilization_df.drop('all')
+    except:
+        all_cores_df = pd.DataFrame()
+
     # Reset index
     cpu_utilization_df = cpu_utilization_df.reset_index()
 
@@ -2363,47 +2374,50 @@ def cpu_utilization_graphs():
     #    #logging.debug(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
     #    logging.debug(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%busy'].tolist())
-    line_graph_data['legend_list'].append('Avg CPU Utilization')
+    print("printing all cores df")
+    print(all_cores_df)
+    if not all_cores_df.empty:
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%busy'].tolist())
+        line_graph_data['legend_list'].append('Avg CPU Utilization')
 
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%soft'].tolist())
-    line_graph_data['legend_list'].append('%soft')    
-    #%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice'
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%soft'].tolist())
+        line_graph_data['legend_list'].append('%soft')    
+        #%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice'
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%usr'].tolist())
-    line_graph_data['legend_list'].append('%usr')
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%usr'].tolist())
+        line_graph_data['legend_list'].append('%usr')
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%nice'].tolist())
-    line_graph_data['legend_list'].append('%nice')
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%nice'].tolist())
+        line_graph_data['legend_list'].append('%nice')
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%sys'].tolist())
-    line_graph_data['legend_list'].append('%sys')
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%sys'].tolist())
+        line_graph_data['legend_list'].append('%sys')
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%iowait'].tolist())
-    line_graph_data['legend_list'].append('%iowait')
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%iowait'].tolist())
+        line_graph_data['legend_list'].append('%iowait')
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%irq'].tolist())
-    line_graph_data['legend_list'].append('%irq')
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%irq'].tolist())
+        line_graph_data['legend_list'].append('%irq')
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%steal'].tolist())
-    line_graph_data['legend_list'].append('%steal')
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%steal'].tolist())
+        line_graph_data['legend_list'].append('%steal')
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%guest'].tolist())
-    line_graph_data['legend_list'].append('%guest')
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%guest'].tolist())
+        line_graph_data['legend_list'].append('%guest')
 
-    line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-    line_graph_data['y_list_list'].append(all_cores_df['%gnice'].tolist())
-    line_graph_data['legend_list'].append('%gnice')
+        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+        line_graph_data['y_list_list'].append(all_cores_df['%gnice'].tolist())
+        line_graph_data['legend_list'].append('%gnice')
 
 
 
