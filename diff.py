@@ -575,7 +575,6 @@ def markOriginIDInvalid():
     logging.debug(" = {}".format(request.form))
 
     data = json.loads(request.form.get('data'))
-    logging.debug("JSON STATHAM")
     logging.debug(" = {}".format(data))
 
     originIDs = data.get('originIDs')
@@ -611,6 +610,41 @@ def markOriginIDInvalid():
     else:
         keyerror['message'] = "BOOM! Wrong Password. This incident will be reported."
 
+
+    session['success'] = success
+    session['error'] = error
+    session['keyerror'] = keyerror
+
+    # code = 307 for keeping the original request type ('POST')
+    return redirect(url_for('showAllRunsSecret', testname=testname), code=307)
+
+@app.route('/edit-notes', methods=['POST'])
+def edit_notes():
+    data = json.loads(request.form.get('data'))
+    logging.debug(" = {}".format(data))
+
+    originID = data.get('originID')
+    testname = data.get('testname')
+    new_note = data.get('newNote')
+
+    logging.debug("OriginID = {}\ntestname = {}\nNew Note = {}".format(originID, testname, new_note))
+
+    success = {}
+    error = {}
+    keyerror = {}
+
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                        passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+
+    cursor = db.cursor()
+    success['message'] = "The 'notes' of originID '" + str(originID) + "' was changed to '" + new_note + "'  successfully"
+    EDIT_NOTES_QUERY = "UPDATE origin SET notes = \'" + new_note + "\' where originID = " + str(originID) + ";"
+
+    logging.debug(EDIT_NOTES_QUERY)
+    cursor.execute(EDIT_NOTES_QUERY)
+    cursor.close()
+    db.commit()
+    db.close()
 
     session['success'] = success
     session['error'] = error
@@ -1632,7 +1666,7 @@ def best_sku_graph():
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
     data = request.get_json()
-    xParameter = data['xParameter']
+    xParameter = data['xParameter'] # Not used. Sending ""
     yParameter = data['yParameter'] # Not used. Sending "Best" + first qualifier as yParameter
     testname = data['testname']
 
@@ -1769,7 +1803,7 @@ def best_sku_graph():
         'y_list': y_list,
         'y_axis_unit': y_axis_unit,
         'color_list': color_list,
-        'xParameter': xParameter,
+        'xParameter': "",
         'yParameter': 'Best ' + qualifier,
         'originID_list': originID_list,
         'higher_is_better': min_or_max,
@@ -2114,7 +2148,7 @@ def best_of_all_graph():
         'y_list_list': y_list_list,
         'originID_list_list': originID_list_list,
         'y_axis_unit': "ratio",
-        'xParameter': "All Tests",
+        'xParameter': "",
         'yParameter': "",
         'reference_color' : reference_color,
         'normalized_wrt' : normalized_wrt,
