@@ -20,12 +20,6 @@ Test Details
     		<li class="nav-item">
     			<a class="nav-link" href="#results-table-div">All-Results Table</a>
     		</li>
-    		<li class="nav-item">
-    			<a class="nav-link" href="#download-results-table-csv">Download Results</a>
-			</li>
-			<li class="nav-item">
-    			<a class="nav-link" href="#generate-cpu-graphs">Graphs</a>
-    		</li>
     	</ul>
 
         {{ super() }}
@@ -84,12 +78,11 @@ Test Details
 
 			<!-- Buttons for Download as csv and Generate Graphs -->
 			<div id="generate-other-graphs" class="d-flex justify-content-between mt-3">
-				<button type="button" id="download-results-table-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
-				<button type="button" id="generate-cpu-graphs" class="btn btn-success font-weight-bold" >Generate CPU and I/O Utilization Graphs</button>
+				<button type="button" id="download-results-table-csv" class="btn btn-lg btn-primary">Download as CSV</button>
+				<button type="button" id="generate-cpu-graphs" class="btn btn-lg btn-primary" >Generate CPU and I/O Utilization Graphs</button>
 			</div>
 
-			<table class="table table-hover px-5" id="resultsTable">
-
+			<table id="resultsTable" class="table table-hover px-5">
 				<thead class="thead-dark">
 					<tr>
 						{% for column in context.results %}
@@ -99,6 +92,7 @@ Test Details
 				</thead>
 				<thead id="search-thead">
 				</thead>
+
 				<tbody>
 					{% for row in range(context.results| no_of_rows ) %}
 						{% set i = loop.index0 %}
