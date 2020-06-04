@@ -144,7 +144,6 @@ def no_of_rows(dictionary):
     else:
         return 0
 
-
 def read_all_parameter_lists(parameter_lists, test_name):
 
     # read metadata from metadata.ini file
@@ -179,7 +178,6 @@ def read_all_parameter_lists(parameter_lists, test_name):
             parameter_lists[param_list_name] = env_metadata_parser.get(env_param_name, 'db_variables') \
                                                 .replace(' ', '').split(',')
     return parameter_lists
-
 
 def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
@@ -368,7 +366,7 @@ def about_page():
     return render_template('about.html', context = {}, all_tests_data=all_tests_data)
 
 # Get data for All runs of the test 'testname' from database
-def getAllRunsData(testname, secret=False):
+def get_all_runs_data(testname, secret=False):
     # Read metadata for results in wiki_description.ini file
     results_metadata_file_path = './config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
@@ -517,9 +515,9 @@ def getAllRunsData(testname, secret=False):
 
 # Show all runs of a test 'testname'
 @app.route('/allruns/<testname>', methods=['GET'])
-def showAllRuns(testname):
+def all_runs_page(testname):
     try:
-        context = getAllRunsData(testname)
+        context = get_all_runs_data(testname)
         error = None
     except Exception as error_message:
         context = None
@@ -532,7 +530,7 @@ def showAllRuns(testname):
 
 # Page for marking a test 'originID' invalid
 @app.route('/allruns/secret/<testname>', methods=['GET', 'POST'])
-def showAllRunsSecret(testname):
+def all_runs_secret_page(testname):
     if request.method == 'GET':
         # For 'Go To Benchmark' Dropdown
         all_tests_data = get_all_tests_data()
@@ -562,7 +560,7 @@ def showAllRunsSecret(testname):
         session.clear()
         logging.debug(' = {}'.format(session))
 
-        context = context = getAllRunsData(testname, secret=True)
+        context = context = get_all_runs_data(testname, secret=True)
 
         # For 'Go To Benchmark' Dropdown
         all_tests_data = get_all_tests_data()
@@ -570,7 +568,7 @@ def showAllRunsSecret(testname):
         return render_template('secret-all-runs.html', success=success, error=error, keyerror=keyerror, context=context, all_tests_data=all_tests_data)
 
 @app.route('/mark-origin-id-invalid', methods=['POST'])
-def markOriginIDInvalid():
+def mark_originID_invalid():
     logging.debug("\n\n\n#REQUEST#########")
     logging.debug(" = {}".format(request.form))
 
@@ -616,7 +614,7 @@ def markOriginIDInvalid():
     session['keyerror'] = keyerror
 
     # code = 307 for keeping the original request type ('POST')
-    return redirect(url_for('showAllRunsSecret', testname=testname), code=307)
+    return redirect(url_for('all_runs_secret_page', testname=testname), code=307)
 
 @app.route('/edit-notes', methods=['POST'])
 def edit_notes():
@@ -651,10 +649,10 @@ def edit_notes():
     session['keyerror'] = keyerror
 
     # code = 307 for keeping the original request type ('POST')
-    return redirect(url_for('showAllRunsSecret', testname=testname), code=307)
+    return redirect(url_for('all_runs_secret_page', testname=testname), code=307)
 
 # Get details for test with originID = 'originID' from database
-def getTestDetailsData(originID, secret=False):
+def get_test_details_data(originID, secret=False):
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
 
@@ -900,14 +898,14 @@ def getTestDetailsData(originID, secret=False):
 
 # View for handling Test details request
 @app.route('/test/<originID>', methods=['GET'])
-def showTestDetailsOld(originID):
+def test_details_page_old(originID):
     return redirect('/test-details/' + originID)
 
 @app.route('/test-details/<originID>', methods=['GET'])
-def showTestDetails(originID):
+def test_details_page(originID):
     logging.debug("INSIDE TEST DETAILS FUNCTION = {}".format(originID))
     try:
-        context = getTestDetailsData(originID)
+        context = get_test_details_data(originID)
         error = None
     except Exception as error_message:
         logging.debug("Printing error == {}".format(error_message))
@@ -923,7 +921,7 @@ def showTestDetails(originID):
 
 # Page for marking Individual test 'result' as invalid 
 @app.route('/test-details/secret/<originID>', methods=['GET', 'POST'])
-def showTestDetailsSecret(originID):
+def test_details_secret_page(originID):
     if request.method == 'GET':
         # For 'Go To Benchmark' Dropdown
         all_tests_data = get_all_tests_data()
@@ -953,7 +951,7 @@ def showTestDetailsSecret(originID):
         session.clear()
         logging.debug(' = {}'.format(session))
 
-        context = getTestDetailsData(originID, secret=True)
+        context = get_test_details_data(originID, secret=True)
 
         # For 'Go To Benchmark' Dropdown
         all_tests_data = get_all_tests_data()
@@ -962,12 +960,12 @@ def showTestDetailsSecret(originID):
 
 # Marks a single 'result' invalid
 @app.route('/mark-result-id-invalid', methods=['POST'])
-def markResultIDInvalid():
+def mark_resultID_invalid():
     logging.debug("\n\n\n#REQUEST#########")
     logging.debug(' = {}'.format(request.form))
 
     data = json.loads(request.form.get('data'))
-    logging.debug("JSON STATHAM")
+
     logging.debug('Data = {}'.format(data))
 
     originID = data.get('originID')
@@ -1007,15 +1005,15 @@ def markResultIDInvalid():
     session['keyerror'] = keyerror
 
     # code = 307 for keeping the original request type ('POST')
-    return redirect(url_for('showTestDetailsSecret', originID=originID), code=307)
+    return redirect(url_for('test_details_secret_page', originID=originID), code=307)
 
 # View for handling Environment details request
 @app.route('/details/<originID>')
-def showEnvDetailsOld(originID):
+def environment_details_page_old(originID):
     return redirect('/environment-details/' + originID)
 
 @app.route('/environment-details/<originID>')
-def showEnvDetails(originID):
+def environment_details_page(originID):
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
     HWDETAILS_QUERY = """SELECT H.fwversion, H.bmcversion, H.biosversion FROM hwdetails H INNER JOIN origin O 
@@ -1134,8 +1132,8 @@ def showEnvDetails(originID):
     return render_template('environment-details.html', context=context, all_tests_data=all_tests_data)
 
 # Compare two or more tests
-@app.route('/diff', methods=['GET', 'POST'])
-def diffTests():
+@app.route('/diff', methods=['GET'])
+def diff_tests():
     start_time = time.time()
 
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
@@ -2747,7 +2745,7 @@ def download_as_csv():
     logging.debug("= {}".format(request))
     logging.debug("= {}".format(request.form))
     json_data = json.loads(request.form.get('data'))
-    logging.debug("JSON STATHAM")
+
     logging.debug(" = {}".format(json_data))
     data = json_data['data']
 
