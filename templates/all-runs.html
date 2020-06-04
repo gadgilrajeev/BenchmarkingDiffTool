@@ -21,7 +21,7 @@ All Runs of {{ context.testname }}
     			<a class="nav-link" href="#outer-graph-div">Graphs</a>
     		</li>
     		<li class="nav-item">
-    			<a class="nav-link" href="#allRunsTable">All-Runs Table</a>
+    			<a class="nav-link" href="#all-runs-table-title">All-Runs Table</a>
     		</li>
     	</ul>
 
@@ -36,10 +36,11 @@ All Runs of {{ context.testname }}
 		<h1 class="btn-link font-weight-bold display-4">{{ context.testname }}</h1>
 	</div>
 
-	<div id="test-summary-div" class="card border-info">
-		<div class="card-header bg-transparent border-info font-weight-bolder" style="font-size: 25px;">Summary of the test</div>
+	<!-- Test summary div -->
+	<div id="test-summary-div" class="card border-info my-5">
+		<div class="card-header bg-transparent h3">Summary of the test</div>
 		<div class="card-body text-secondary">
-			<h5 class="font-weight-bold card-title">Summary</h5>
+			<h5 class="card-title">Summary</h5>
 			<p class="card-text lead">{{context.test_summary.summary}}</p>
 			<div class="collapse" id="fullSummaryCollapse">
 				{% if context.test_summary.source_code_link %}
@@ -57,14 +58,15 @@ All Runs of {{ context.testname }}
 
 			</div>
 		</div>
-		<div class="card-footer bg-transparent border-info d-flex flex-row-reverse">
-			<button class="btn btn-success font-weight-bold" type="button" data-toggle="collapse" data-target="#fullSummaryCollapse" aria-expanded="false" aria-controls="fullSummaryCollapse">
+		<div class="card-footer bg-transparent d-flex flex-row-reverse">
+			<button class="btn btn-success" type="button" data-toggle="collapse" data-target="#fullSummaryCollapse" aria-expanded="false" aria-controls="fullSummaryCollapse">
 				View full Summary
 			</button>
 		</div>
 	</div>
 	
-	<div class="card" id="outer-graph-div" style="background: #B7E9F7;">
+	<!-- Outer graph div -->
+	<div class="card my-5" id="outer-graph-div" style="background: #B7E9F7;">
 
 		<!-- All Input filters div -->
 		<div class="card-header bg-transparent p-0" id="input-filter-div">
@@ -164,15 +166,33 @@ All Runs of {{ context.testname }}
 		</div>
 	</div>
 
+	<!-- All runs title -->
+	<div id="all-runs-table-title" class="bg-light mt-5 container-fluid">
+		<hr class="bg-secondary">
+		<h2 class="mb-2">All Runs of {{ context.testname }}</h2>
+		<p class="lead font-weight-normal text-secondary">List of all originIDs, their data and best numbers
+		<br>
+		</p>
+	</div>
+
+	<!-- All Runs Table -->
 	<form action="/diff" id="compare-tests-form" method="GET">
 
-		<div class='inline-block-child'>
+		<div class='inline-block-child ml-0 bg-light'>
+			<div class="m-0 p-0 d-flex flex-row-reverse justify-content-around">
+				<button type="button" id="download-all-results-table-csv" class="btn btn-lg btn-primary">Download as CSV</button>
+			</div>
+
 			<table class="table table-hover" id="allRunsTable">
 				<thead class="thead-dark">
 					<tr>
-						<th>Select to Compare</th>
+						<th class="h5 font-weight-normal">Select to Compare</th>
 						{% for column in context.data %}
-							<th>{{ column }}</th>
+							<th class="h5 font-weight-normal" style="cursor: pointer;"
+							data-toggle="tooltip" data-placement="top" data-container="body" 
+							title="Click to sort column">	
+								{{ column }}
+							</th>
 						{% endfor %}
 					</tr>
 				</thead>
@@ -184,8 +204,13 @@ All Runs of {{ context.testname }}
 						{% set i = loop.index0 %}
 						<tr class="table-row">
 							{% for key in context.data %}
-								{% if loop.index0 == 0%}
-									<td><input class="checkbox diff-checkbox" type="checkbox" id="diff-checkbox-{{context.data['originID'][i]}}" name="diff-checkbox-{{i}}" value="{{ context.data['originID'][i] }}"></td>
+								{% if key == 'originID' %}
+									<td>
+										<div class="custom-control custom-checkbox originID-checkbox-div">
+											<input type="checkbox" class="custom-control-input diff-checkbox" id="diff-checkbox-{{context.data[key][i]}}" name="diff-checkbox-{{i}}" value="{{ context.data[key][i] }}">
+											<label class="custom-control-label" for="checkbox-{{context.data[key][i]}}"></label>
+										  </div>
+									</td>
 									<td class="originID table-cell"><a class="btn btn-lg btn-success font-weight-bold" href="/test-details/{{ context.data[key][i] }}">{{ context.data[key][i] }}</a></td>
 								{% else %}
 									<td class="table-cell"> {{ context.data[key][i] }}</td>
@@ -195,7 +220,6 @@ All Runs of {{ context.testname }}
 					{% endfor %}
 				</tbody>
 			</table>
-			<button type="button" id="download-all-results-table-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
 		</div>
 		
 	</form>
@@ -244,7 +268,7 @@ All Runs of {{ context.testname }}
 	    $('#allRunsTable thead tr').clone(true).appendTo( '#allRunsTable #search-thead' );
 	    $('#allRunsTable #search-thead tr th').each( function (i) {
 	    	if(i == 0)
-	    		$(this).html( '<button id="diff-button" class="btn btn-primary font-weight-bold" type="button">Compare</button>' );
+				$(this).html( '<button id="diff-button" class="btn btn-lg btn-primary" type="button">Compare</button>' );
 	    	else
 	        {
 	        	var title = $(this).text();
@@ -286,6 +310,12 @@ All Runs of {{ context.testname }}
 		// Draw both the sku comparison graphs
 		drawSkuComparisonGraph()
 		drawBestSkuGraph(graphTypeOption='Absolute')
+	});
+
+	// Toggle checkbox on div clicked
+	$('.originID-checkbox-div').on('click', function(){
+		var checkbox = $(this).children('input[type="checkbox"]');
+		checkbox.prop('checked', !checkbox.prop('checked'));
 	});
 
 	// Get input filters list
@@ -355,7 +385,6 @@ All Runs of {{ context.testname }}
 			drawNormalizedGraph('best-sku-graph', "{{ context.testname }}", alreadyNormalized=alreadyNormalized)
 		}
 	}
-
 
 	//Event handler on switching from "Absolute" to "Normalized" best_sku_graph and vice-versa
 	$('input[type=radio][name=typeOfGraph]').change(function() {
