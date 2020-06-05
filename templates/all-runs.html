@@ -188,9 +188,9 @@ All Runs of {{ context.testname }}
 					<tr>
 						<th class="h5 font-weight-normal">Select to Compare</th>
 						{% for column in context.data %}
-							<th class="h5 font-weight-normal" style="cursor: pointer;"
+							<th class="h5 font-weight-normal dropdown-toggle" style="cursor: pointer;"
 							data-toggle="tooltip" data-placement="top" data-container="body" 
-							title="Click to sort column">	
+							title="Click to sort column">
 								{{ column }}
 							</th>
 						{% endfor %}
@@ -267,6 +267,10 @@ All Runs of {{ context.testname }}
 	    // Setup - append a text input to each header cell
 	    $('#allRunsTable thead tr').clone(true).appendTo( '#allRunsTable #search-thead' );
 	    $('#allRunsTable #search-thead tr th').each( function (i) {
+
+			// Remove the dropdown arrow 
+			$(this).removeClass('dropdown-toggle')
+			
 	    	if(i == 0)
 				$(this).html( '<button id="diff-button" class="btn btn-lg btn-primary" type="button">Compare</button>' );
 	    	else

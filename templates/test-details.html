@@ -86,7 +86,11 @@ Test Details
 				<thead class="thead-dark">
 					<tr>
 						{% for column in context.results %}
-							<th>{{ column }}</th>
+							<th class="dropdown-toggle" style="cursor: pointer;"
+							data-toggle="tooltip" data-placement="top" data-container="body" 
+							title="Click to sort column">
+								{{ column }}
+							</th>
 						{% endfor %}
 					</tr>
 				</thead>
@@ -234,7 +238,10 @@ Test Details
 	    	$('#resultsTable thead tr').clone(true).appendTo( '#resultsTable #search-thead' );
 			//Add the Filter bars for each column
 			$('#resultsTable #search-thead tr th').each( function (i) {
-	    	
+
+				// Remove the dropdown arrow 
+				$(this).removeClass('dropdown-toggle')
+
 	        	var title = $(this).text();
 	        	$(this).html( '<input style="width: 150px;" type="text" placeholder="Search '+title+'" />' );
 
