@@ -2,7 +2,7 @@ from pprint import pprint
 import time
 import logging
 import os, shutil
-from joblib import Parallel, delayed    #For parallel processing
+# from joblib import Parallel, delayed    #For parallel processing
 import multiprocessing                  #Processing on multiple cores
 from functools import partial           #For passing extra arguments to pool.map 
 import pandas as pd

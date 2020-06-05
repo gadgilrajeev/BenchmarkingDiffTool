@@ -8,7 +8,6 @@ Flask==1.1.0
 itsdangerous==1.1.0
 jdcal==1.4.1
 Jinja2==2.10.1
-joblib==0.13.2
 kiwisolver==1.1.0
 leven==1.0.4
 MarkupSafe==1.1.1
