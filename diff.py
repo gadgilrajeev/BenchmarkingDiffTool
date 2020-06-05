@@ -255,7 +255,7 @@ def get_input_filter_condition(test_name, input_filters_list, wiki_description_f
         for index, input_filter in enumerate(input_filters_list):
             if(input_filter != "None"):
                 if(input_filter.isnumeric()):
-                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1) LIKE \'%" + input_filter  + "%\'"
+                    INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1) = \'" + input_filter  + "\'"
                 else:
                     INPUT_FILTER_CONDITION += " and SUBSTRING_INDEX(SUBSTRING_INDEX(s.description,','," + str(index+1) +"),',',-1) LIKE \'%" + input_filter  + "%\'"
     except Exception as error_message:
