@@ -178,9 +178,9 @@ All Runs of {{ context.testname }}
 	<!-- All Runs Table -->
 	<form action="/diff" id="compare-tests-form" method="GET">
 
-		<div class='inline-block-child ml-0 bg-light'>
+		<div class='ml-0 bg-light'>
 			<div class="m-0 p-0 d-flex flex-row-reverse justify-content-around">
-				<button type="button" id="download-all-results-table-csv" class="btn btn-lg btn-primary">Download as CSV</button>
+				<button type="button" id="download-all-results-table-csv" class="btn btn-lg btn-primary ml-auto mr-5">Download as CSV</button>
 			</div>
 
 			<table class="table table-hover" id="allRunsTable">
@@ -281,8 +281,6 @@ All Runs of {{ context.testname }}
 		let inputFiltersList = getInputFiltersList()
 
 		urlParam = "?resultType=" + resultTypeFilter + "&xParameter=" + xParameter + "&yParameter=" + yParameter + "&inputFiltersList=" + inputFiltersList
-		// Replace all %20 with ' ' space
-		urlParam = urlParam.replaceAll(' ', '%20')
 
 		console.log("{{context.testname}}"+urlParam)
 
@@ -301,8 +299,6 @@ All Runs of {{ context.testname }}
 		inputFiltersList = getInputFiltersList()
 
 		urlParam = "?resultType=" + resultTypeFilter + "&xParameter=" + xParameter + "&yParameter=" + yParameter + "&inputFiltersList=" + inputFiltersList
-		// Replace all %20 with ' ' space
-		urlParam = urlParam.replaceAll(' ', '%20')
 
 		console.log("{{context.testname}}"+urlParam)
 
@@ -321,13 +317,13 @@ All Runs of {{ context.testname }}
 
 			// resultType, xParameter, yParameter and inputFiltersList
 			// Replace all %20 with space everywhere
-			let resultType = getURLParam('resultType').replaceAll('%20', ' ')
+			let resultType = decodeURI( getURLParam('resultType') )
 			$("#resultype-filter").val(resultType)
 
-			let xParameter = getURLParam('xParameter').replaceAll('%20', ' ')
+			let xParameter = decodeURI( getURLParam('xParameter') )
 			$('#xParameter').val(xParameter)
 
-			let yParameter = getURLParam('yParameter').replaceAll('%20', ' ')
+			let yParameter = decodeURI( getURLParam('yParameter') )
 			$('#yParameter').val(yParameter)
 
 			let inputFiltersList = getURLParam('inputFiltersList').split(',')
@@ -335,7 +331,7 @@ All Runs of {{ context.testname }}
 			$allInputFilters = $('.input-parameter-select')
 			// Set value for each input filter
 			jQuery.each($allInputFilters, function (index, value) {
-				$(this).val(inputFiltersList[index].replaceAll('%20', ' '))
+				$(this).val(decodeURI( inputFiltersList[index] ))
 			})
 
 		}
