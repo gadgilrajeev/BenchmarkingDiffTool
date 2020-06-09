@@ -330,22 +330,6 @@ All Runs of {{ context.testname }}
 		return ( getURLParam('resultType') != null ) && ( getURLParam('xParameter') != null ) && ( getURLParam('yParameter') != null ) && ( getURLParam('inputFiltersList') != null )
 	}
 
-	// Reloads the page again. Clears current page from 'window' history
-	function changeURLRedirect() {
-		let xParameter = $("#xParameter option:selected").val()
-		let yParameter = $("#yParameter option:selected").val()
-		let testname = "{{ context.testname }}"
-		let resultTypeFilter = $('#resultype-filter option:selected').val()
-		let inputFiltersList = getInputFiltersList()
-
-		urlParam = "?resultType=" + resultTypeFilter + "&xParameter=" + xParameter + "&yParameter=" + yParameter + "&inputFiltersList=" + inputFiltersList
-
-		console.log("{{context.testname}}"+urlParam)
-
-		// Reloads the page again. Clears current page from 'window' history
-		window.location.replace("{{context.testname}}"+urlParam)
-	}
-
 	// Replace the current URL with the new URL by using replaceState method
 	function changeURLWithoutRedirect() {
 		xParameter = $("#xParameter option:selected").val()
@@ -393,11 +377,10 @@ All Runs of {{ context.testname }}
 			})
 
 		}
-		// Else redirect using changeURLRedirect function
+		// Else change URL without redirecting using changeURLWithoutRedirect function
 		else {
-			console.log("Params don't exist. Redirecting")
-			changeURLRedirect()
-			return false;
+			console.log("Params don't exist. Changing URL without redirecting")
+			changeURLWithoutRedirect()
 		}
 
 		// Select absolute
@@ -631,7 +614,6 @@ All Runs of {{ context.testname }}
 		// Empty the form contents
 		$('#compare-best-sku-graph-form').empty()
 	})
-
 
 </script>
 
