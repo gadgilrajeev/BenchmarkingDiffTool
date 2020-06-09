@@ -157,7 +157,7 @@ function sendAjaxRequest(ajaxData, url) {
 
 	url_graph_map = {
 		// url : graph-div-id
-		'/get_data_for_graph' : 'clustered-graph',
+		'/sku_comparison_graph' : 'sku-comparison-graph',
 		'/best_sku_graph' : 'best-sku-graph',
 		'/best_sku_graph_normalized' : 'best-sku-graph',
 	}
@@ -179,13 +179,10 @@ function sendAjaxRequest(ajaxData, url) {
 		// Remove all the loading circles first
 		$(".loading-circle-" + url_graph_map[url]).remove()
 
-
 		console.log("DONEEEEEEE")
 		console.log(response)
 
-		if(url == '/get_data_for_graph'){
-			console.log("CALLING DRAW CLUSTERED GERAPH")
-			console.log(response)
+		if(url == '/sku_comparison_graph'){
 			drawClusteredGraph(response, graphID = url_graph_map[url])
 		}
 		else{

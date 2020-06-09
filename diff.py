@@ -1356,9 +1356,9 @@ def diff_tests():
 
 # This function handles the AJAX request for Comparison graph data. 
 # JS then draws the graph using this data
-@app.route('/get_data_for_graph', methods=['POST'])
-def get_data_for_graph():
-    logging.debug("GOT THE REQUEST FOR GET DATA FOR GRAPH")
+@app.route('/sku_comparison_graph', methods=['POST'])
+def sku_comparison_graph():
+    logging.debug("Got the request for Sku Comparison Graph")
 
     start_time = time.time()
 
