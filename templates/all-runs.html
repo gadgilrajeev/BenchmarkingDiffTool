@@ -13,19 +13,19 @@ All Runs of {{ context.testname }}
 		<ul class="navbar-nav font-weight-normal">
 			<li class="nav-item">
 				<a class="nav-link active" href="/">Home</a>
-    		</li>
-    		<li class="nav-item">
-    			<a class="nav-link" href="#test-summary-div">Test Summary</a>
-    		</li>
-    		<li class="nav-item">
-    			<a class="nav-link" href="#outer-graph-div">Graphs</a>
-    		</li>
-    		<li class="nav-item">
-    			<a class="nav-link" href="#all-runs-table-title">All-Runs Table</a>
-    		</li>
-    	</ul>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="#test-summary-div">Test Summary</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="#performance-graphs-title">Graphs</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="#all-runs-table-title">All-Runs Table</a>
+			</li>
+		</ul>
 
-        {{ super() }}
+		{{ super() }}
 
  	</nav>
 {% endblock %}
@@ -65,109 +65,167 @@ All Runs of {{ context.testname }}
 		</div>
 	</div>
 	
+	<!-- Performance Graphs title -->
+	<div id="performance-graphs-title" class="bg-light mt-5 container-fluid" style="border-top: 15px solid #2d7a9c; border-right: 1px solid #2d7a9c; border-left: 1px solid #2d7a9c;">
+		<hr class="bg-secondary">
+		<h2>Performance Graphs for {{ context.testname }}</h2>
+		<p class="lead font-weight-normal text-secondary">Compare performance of Server CPUs based on various parameters
+		<br>
+		</p>
+	</div>
+	
 	<!-- Outer graph div -->
-	<div class="card my-5" id="outer-graph-div" style="background: #B7E9F7;">
-
+	<div class="py-5 mt-0" id="outer-graph-div" style="background: #2d7a9c;">
 		<!-- All Input filters div -->
-		<div class="card-header bg-transparent p-0" id="input-filter-div">
-			<h2>Input Filters</h2>
-				{% for column in context.input_details %}
-					{% set i = loop.index0 %}
-					{% set options_list = context.input_details[column] | unique_list %}
-					<div>
-						<form>
-							{% if i == 0 %}
-								<label class = "h4" for="resultype-filter">Result Type</label>
-								<select class="form-control form-control-lg" name="resultype-filter" id="resultype-filter">
-									<option value="" selected="selected">None</option>
-									{% for option in context.result_type_list %}
-										<option value="{{option}}">{{option}}</option>
+		<div class="container-fluid card border-light px-0 pb-0" id="input-filter-div">
+			<div class="card-header bg-light m-0 row">
+				<h3 class="col-3">Input Filters</h3>
+
+				<!-- Result type filter -->
+				<div class="col-md-2 text-secondary my-0 mx-2 p-0">
+					<label class = "card-title h5" for="resultype-filter">Result Type</label>
+					<select class="form-control" name="resultype-filter" id="resultype-filter">
+						<option value="" selected="selected">None</option>
+						{% for option in context.result_type_list %}
+							<option value="{{option}}">{{option}}</option>
+						{% endfor %}
+					</select>
+				</div>
+
+				<button class="btn btn-success align-self-start ml-auto" type="button" data-toggle="collapse" data-target="#inputFiltersCollapse" aria-expanded="false" aria-controls="inputFiltersCollapse">
+					View All Input Filters
+				</button>
+
+			</div>
+
+			<div class="card-body text-secondary">	
+				<!-- All other input filters -->
+				<div id="inputFiltersCollapse" class="collapse container-fluid m-0 p-0">
+					<div class="d-flex flex-wrap m-0 p-0">
+						{% for column in context.input_details %}
+							{% set i = loop.index0 %}
+							{% set options_list = context.input_details[column] | unique_list %}
+							<div class="col-md-2 my-2 mx-2 p-0">
+								<label class = "h5" for="input-parameter-{{column}}">{{column}}</label>
+								<select class="input-parameter-select form-control" name="input-parameter-{{column}}" id="input-parameter-{{column}}">
+									<option value="None">None</option>
+									{% for option in options_list %}
+										{% if option == context.default_input_filters[i] %}
+											<option value="{{option}}" selected="selected">{{option}}</option>
+										{% else %}
+											<option value="{{option}}">{{option}}</option>
+										{% endif %}
 									{% endfor %}
 								</select>
-							{% endif %}
-							<label class = "h4" for="input-parameter-{{column}}">{{column}}</label>
-							<select class="input-parameter-select form-control form-control-lg" name="input-parameter-{{column}}" id="input-parameter-{{column}}">
-								<option value="None">None</option>
-								{% for option in options_list %}
-									{% if option == context.default_input_filters[i] %}
-										<option value="{{option}}" selected="selected">{{option}}</option>
-									{% else %}
-										<option value="{{option}}">{{option}}</option>
-									{% endif %}
-								{% endfor %}
-							</select>
-						</form>		
+							</div>
+						{% endfor %}
 					</div>
-				{% endfor %}
+				</div>
+			</div>
 		</div>
 
-		<!-- SKU Comparison graph - For engineering team -->
-		<div class="card bg-light border-info" id="engineering-graph-div">
-			<div class="card-header bg-success text-white text-center" id="engineering-team-title"><h2 class="font-weight-bold">For Engineering Team</h2></div>
-			<div id="clustered-graph"></div>
-
-			<select data-toggle="tooltip" data-placement="bottom" title="Y - Parameter" id="yParameter" class="form-control form-control-lg" name="yParameter">
-				<!-- TAKING PARAMETERS FROM INI FILE -->
-				{% for qualifier in context.qualifier_list %}
-					{% if loop.index0 == 0 %}
-						<option value="{{ qualifier }}" selected="selected">{{ qualifier }}</option>
-					{% else %}
-						<option value="{{ qualifier }}">{{ qualifier }}</option>
-					{% endif %}
-				{% endfor %}
-			</select>
-			<p>vs</p>
-			<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="X - Parameter" id="xParameter" class="form-control form-control-lg" name="xParameter">
-				<option value="Scaling" selected="selected">Scaling</option>
-				<option value="Kernel Version">Kernel Version</option>
-				<option value="OS Version">OS Version</option>
-				<option value="OS Name">OS Name</option>
-				<option value="Firmware Version">Firmware Version</option>
-				<option value="ToolChain Name">ToolChain Name</option>
-				<option value="ToolChain Version">ToolChain Version</option>
-				<option value="SMT">SMT</option>
-				<option value="Cores">Cores</option>
-				<!-- <option value="Corefreq">Corefreq</option> -->
-				<option value="DDRfreq">DDRfreq</option>
-				<option value="SKUID">SKUID</option>
-				<option value="Hostname">Hostname</option>
-				<!-- <option value="Flags">Flags</option> -->
-			</select>
-
-			<button id="download-comparison-graph" class="btn btn-primary font-weight-bold" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'clustered-graph')">Download as PNG</button>
-			
-		</div>
-
-		<!-- BEST SKU Comparison graph - For Marketing and communications team -->
-		<div class="card bg-light border-info" id="marketing-graph-div">
-			<div class="card-header bg-success text-white text-center" id="marketing-team-title"><h2 class="font-weight-bold">For Marketing and Communication Team</h2></div>
-			<div id="best-sku-graph"></div>
-
-			<div id="absolute-radio-div" class="custom-control custom-radio">
-				<input type="radio" name="typeOfGraph" id="absolute-radio-button" class="custom-control-input" checked="checked" value="Absolute">
-				<label for="absolute-radio-button" class="custom-control-label">Absolute</label>
-			</div>
-			<div id="normalized-radio-div" class="custom-control custom-radio">
-				<input type="radio" name="typeOfGraph" id="normalized-radio-button" class="custom-control-input" value="Normalized">
-				<label for="normalized-radio-button" class="custom-control-label">Normalized</label>
-			</div>
-			<select id="normalized-dropdown" class="form-control form-control-lg" name="normalized-dropdown">
-
-			</select>
+		<!-- Both the graphs -->
+		<div class="d-flex p-0 mt-5 mx-0">
+			<!-- SKU Comparison graph - For engineering team -->
+			<div class="card bg-light border-info col-6 ml-0 mr-2" id="sku-comparison-graph-div">
+				<!-- Sku comparison graph -->
+				<div id="sku-comparison-graph-title" class="card-header bg-light pt-0 mt-0 container-fluid">
+					<hr class="bg-secondary">
+					<h2>SKU Comparison Graph</h2>
+					<p class="lead font-weight-normal text-secondary">For Engineering Team
+					<br>
+					</p>
+				</div>
 			
 
-			<button id="download-best-sku-graph-csv" class="btn btn-primary font-weight-bold">Download as CSV</button>
-			<button id="download-best-sku-graph" class="btn btn-primary font-weight-bold" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
-			<button id="compare-best-sku-graph" type="button" class="btn btn-success font-weight-bold">Compare these Tests</button>
-			<!-- Hidden form for Comparing Best SKU Graph -->
-			<form action="/diff" method="GET" id="compare-best-sku-graph-form" style="display:none;">
-			</form>
+				<!-- Sku comparison actual graph div -->
+				<div id="sku-comparison-graph" class="m-0 p-0" style="height:500px;"></div>
 
+				<!-- yParameter vs xParameter flex div -->
+				<div class="d-flex flex-column ml-0 pl-0">
+					<div class="mt-3 mx-0 p-0 d-flex">
+						<!-- yParameter -->
+						<select data-toggle="tooltip" data-placement="bottom" title="Y - Parameter" id="yParameter" class="form-control" name="yParameter">
+							<!-- TAKING PARAMETERS FROM INI FILE -->
+							{% for qualifier in context.qualifier_list %}
+								{% if loop.index0 == 0 %}
+									<option value="{{ qualifier }}" selected="selected">{{ qualifier }}</option>
+								{% else %}
+									<option value="{{ qualifier }}">{{ qualifier }}</option>
+								{% endif %}
+							{% endfor %}
+						</select>
+						<h5 class="align-self-center mx-3">vs</h5>
+
+						<!-- xParameter -->
+						<select data-toggle="tooltip" data-placement="bottom" data-container="body" title="X - Parameter" id="xParameter" class="form-control" name="xParameter">
+							<option value="Scaling" selected="selected">Scaling</option>
+							<option value="Kernel Version">Kernel Version</option>
+							<option value="OS Version">OS Version</option>
+							<option value="OS Name">OS Name</option>
+							<option value="Firmware Version">Firmware Version</option>
+							<option value="ToolChain Name">ToolChain Name</option>
+							<option value="ToolChain Version">ToolChain Version</option>
+							<option value="SMT">SMT</option>
+							<option value="Cores">Cores</option>
+							<option value="DDRfreq">DDRfreq</option>
+							<option value="SKUID">SKUID</option>
+							<option value="Hostname">Hostname</option>
+						</select>
+					</div>
+
+					<button id="download-comparison-graph" class="btn btn-primary mt-5 ml-auto" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'sku-comparison-graph')">Download as PNG</button>
+				</div>	
+			</div>
+
+			<!-- BEST SKU Comparison graph - For Marketing and communications team -->
+			<div class="card bg-light border-info col-6" id="best-sku-graph-div">
+				<!-- Best sku graph title -->
+				<div id="best-sku-graph-title" class="card-header bg-light pt-0 mt-0 container-fluid">
+					<hr class="bg-secondary">
+					<h2>Best of SKUs Graph</h2>
+					<p class="lead font-weight-normal text-secondary">For Marketing and Communication Team
+					<br>
+					</p>
+				</div>
+
+				<!-- Best sku actual graph div -->
+				<div id="best-sku-graph" class="m-0 p-0" style="height:500px;"></div>
+
+				<div class="d-flex justify-content-around mt-3 mx-0 p-0">
+					<!-- Absolute vs normalized options -->
+					<div class="d-flex flex-column m-0 p-0">
+						<div id="absolute-radio-div" class="custom-control custom-radio">
+							<input type="radio" name="typeOfGraph" id="absolute-radio-button" class="custom-control-input" checked="checked" value="Absolute">
+							<label for="absolute-radio-button" class="custom-control-label">Absolute</label>
+						</div>
+						<div id="normalized-radio-div" class="custom-control custom-radio">
+							<input type="radio" name="typeOfGraph" id="normalized-radio-button" class="custom-control-input" value="Normalized">
+							<label for="normalized-radio-button" class="custom-control-label">Normalized</label>
+						</div>
+
+						<!-- Normalized dropdown (filled dynamically) -->
+						<select id="normalized-dropdown" class="form-control" name="normalized-dropdown"></select>
+					</div>
+
+					<!-- Download and compare these buttons -->
+					<div class="d-flex flex-column m-0 p-0">
+						<button id="download-best-sku-graph-csv" class="btn btn-primary my-1 ml-auto">Download as CSV</button>
+						<button id="download-best-sku-graph" class="btn btn-primary my-1 ml-auto" onclick="downloadAsPng($('#yParameter option:selected').val() + '-vs-' + $('#xParameter option:selected').val(), 'best-sku-graph')">Download as PNG</button>
+						<button id="compare-best-sku-graph" type="button" class="btn btn-success my-1 ml-auto">Compare these Tests</button>
+					</div>
+				</div>
+
+				<!-- Hidden form for Comparing Best SKU Graph -->
+				<form action="/diff" method="GET" id="compare-best-sku-graph-form" style="display:none;">
+				</form>
+
+			</div>
 		</div>
 	</div>
-
+	
 	<!-- All runs title -->
-	<div id="all-runs-table-title" class="bg-light mt-5 container-fluid">
+	<div id="all-runs-table-title" class="bg-light mt-5 container-fluid" style="border-top: 15px solid #2d7a9c; border-right: 1px solid #2d7a9c; border-left: 1px solid #2d7a9c;">
 		<hr class="bg-secondary">
 		<h2 class="mb-2">All Runs of {{ context.testname }}</h2>
 		<p class="lead font-weight-normal text-secondary">List of all originIDs, their data and best numbers
@@ -178,7 +236,7 @@ All Runs of {{ context.testname }}
 	<!-- All Runs Table -->
 	<form action="/diff" id="compare-tests-form" method="GET">
 
-		<div class='ml-0 bg-light'>
+		<div class='ml-0 bg-light' style="border: 1px solid #2d7a9c; border-top: none;">
 			<div class="m-0 p-0 d-flex flex-row-reverse justify-content-around">
 				<button type="button" id="download-all-results-table-csv" class="btn btn-lg btn-primary ml-auto mr-5">Download as CSV</button>
 			</div>
@@ -186,9 +244,9 @@ All Runs of {{ context.testname }}
 			<table class="table table-hover" id="allRunsTable">
 				<thead class="thead-dark">
 					<tr>
-						<th class="h5 font-weight-normal">Select to Compare</th>
+						<th class="h6 font-weight-normal">Select to Compare</th>
 						{% for column in context.data %}
-							<th class="h5 font-weight-normal dropdown-toggle" style="cursor: pointer;"
+							<th class="h6 font-weight-normal dropdown-toggle" style="cursor: pointer;"
 							data-toggle="tooltip" data-placement="top" data-container="body" 
 							title="Click to sort column">
 								{{ column }}
@@ -224,7 +282,7 @@ All Runs of {{ context.testname }}
 		
 	</form>
 
-	<!-- Modal -->
+	<!-- Notification Modal -->
 	<div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
 		<div class="modal-dialog" role="document">
 		<div class="modal-content">
@@ -428,7 +486,7 @@ All Runs of {{ context.testname }}
 
 		ajaxData.inputFiltersList = getInputFiltersList()
 
-	    sendAjaxRequest(ajaxData, url='/get_data_for_graph')
+	    sendAjaxRequest(ajaxData, url='/sku_comparison_graph')
 	}
 
 	// Redraw SKU comparison graph on xParameter Change
@@ -576,7 +634,5 @@ All Runs of {{ context.testname }}
 
 
 </script>
-	
 
 {% endblock content %}
-
