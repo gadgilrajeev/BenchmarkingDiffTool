@@ -160,6 +160,7 @@ function sendAjaxRequest(ajaxData, url) {
 		'/sku_comparison_graph' : 'sku-comparison-graph',
 		'/best_sku_graph' : 'best-sku-graph',
 		'/best_sku_graph_normalized' : 'best-sku-graph',
+		'/timeline_graph' : 'timeline-graph',
 	}
 
 	Plotly.purge(url_graph_map[url])
@@ -182,10 +183,13 @@ function sendAjaxRequest(ajaxData, url) {
 		console.log("DONEEEEEEE")
 		console.log(response)
 
-		if(url == '/sku_comparison_graph'){
+		if(url == '/sku_comparison_graph') {
 			drawClusteredGraph(response, graphID = url_graph_map[url])
 		}
-		else{
+		else if(url == '/timeline_graph') {
+			drawScatterPlot(response, graphID = url_graph_map[url])
+		}
+		else {
 			console.log("CALLING DRAW OTHER GRAPH")
 			drawComparisonGraph(response, graphID = url_graph_map[url])
 		}
@@ -783,4 +787,76 @@ function drawComboGraph(response, graphID) {
 	  };
 
 	Plotly.newPlot(graphID, data, layout);
+}
+
+function drawScatterPlot(response, graphID) {
+	console.log("Drawing Scatter Plot")
+	console.log(response)
+	xListList = response.x_list_list 
+	yListList = response.y_list_list
+	originIDListList = response.originID_list_list 
+	legendList = response.legend_list ? response.legend_list : []
+	xParameter = response.xParameter
+	yParameter = response.yParameter
+	graphTitle = response.graphTitle
+	xListOrder = response.x_list_order ? response.x_list_order : []
+
+	// List  of traces to be drawn
+	traceList = []
+	xListList.forEach((value, index) => {
+		traceList.push({
+			type: 'scatter',
+			x: xListList[index],
+			y: yListList[index],
+			originIDList : originIDListList[index],
+			mode: 'lines+markers',
+			name: legendList[index],
+			line: {
+				width: 3,
+			},
+			text: legendList[index],
+		})
+	})
+
+	layout = {
+		xaxis: {
+			title : xParameter,
+			categoryorder : "array",
+			categoryarray : xListOrder,
+		},
+		yaxis: {
+			title: yParameter,
+		},
+		title: graphTitle,
+	};
+
+	Plotly.newPlot(graphID, traceList, layout);
+
+	function openTestDetailsPage(data){
+		console.log("PRINTING DATA")
+		console.log(data)
+
+		console.log("\nClicked on Point")
+		allPoints = data.points
+		for(i = 0; i < allPoints.length; i++){
+			pointData = allPoints[i]
+			console.log(allPoints[i])
+			// Comparison on similar types for safety
+			index = pointData.data.x.findIndex(item => String(item) === String(pointData.x))
+			console.log("INDEX = " + index)
+
+			originID = pointData.data.originIDList[index]
+			console.log("originID = " + originID)
+			window.open('/test-details/' + originID)
+		}
+	}
+
+	let graphDiv = document.getElementById(graphID);
+	//remove the previous listeners to avoid multiple function calls on click
+	graphDiv.removeAllListeners('plotly_click')
+
+	//Add Event on click of bar
+	//Send user to "test-details" page of the respective "originID"
+	graphDiv.on('plotly_click', openTestDetailsPage)
+
 }
