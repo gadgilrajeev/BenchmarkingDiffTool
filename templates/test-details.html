@@ -291,16 +291,6 @@ Test Details
 			downloadAsCsv(filename, data, $form)
 		})
 
-		// Open the modal (popup) having 13 counter graphs
-		$('#generate-counter-graphs').click(function(){
-			// Set select to first option
-			$firstOption = $('#num-cpus-select option').first().text()
-			$("#num-cpus-select").val($firstOption);
-
-			$("#counter-graph-modal").modal();
-			drawCounterGraphs()
-		})
-
 		// Open the modal (popup) having cpu-graphs
 		$('#generate-cpu-graphs').click(function(){
                         // Set select to first option
@@ -308,11 +298,6 @@ Test Details
                         $("#num-cpus-util-select").val($firstOption);
 			$("#cpu-graphs-modal").modal();
 			drawCPUUtilizationGraphs()
-		})
-
-		// On Num_CPUs change event
-		$("#num-cpus-select").change(function(){
-			drawCounterGraphs()
 		})
 
 		$("#num-cpus-util-select").change(function(){
