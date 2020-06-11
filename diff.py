@@ -443,6 +443,8 @@ def get_all_runs_data(testname, secret=False):
         logging.debug(INPUT_FILE_QUERY)
         try:
             input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
+        except:
+            pass
         finally:
             db.close()
 
@@ -2106,7 +2108,8 @@ def best_of_all_graph():
                                 FROM_DATE_FILTER = FROM_DATE_FILTER, TO_DATE_FILTER = TO_DATE_FILTER, \
                                 result_type_filter=result_type_filter, normalized_wrt=normalized_wrt), \
                                 zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list)) 
-
+    except:
+        pass
     finally:
         logging.debug("Closing pool")
         pool.close()
@@ -2202,86 +2205,6 @@ def cpu_utilization_graphs():
     logging.debug("DATA = {}".format(data))
     numCPUs = data['numCPUs']
 
-    # Generate nas_path from received data
-    nas_path = "/mnt/nas/dbresults/" + data['jobname'] + '/' + data['runID'] + '/results/' + numCPUs
-    cpu_file = nas_path + '/CPU_heatmap.csv'
-    logging.debug("NAS PATH = {}".format(cpu_file))
-
-    start_time2 = time.time()
-    cpu_utilization_df = pd.read_csv(cpu_file, usecols=['timestamp','CPU', '%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice'])
-
-    network_file = nas_path + '/ethperc.csv'
-    network_utilization_df = pd.read_csv(network_file,usecols=['Time','Interface','NW_UTIL'])
-
-    logging.debug("Reading CPU and N/W CSV files took {} seconds".format(time.time() - start_time2))
-
-    start_time3 = time.time()
-    try:
-        # Get data for stack graph from average_cpu_ut_df
-        stack_graph_data = {
-            'graph_type' : 'stack',
-            'x_list' : [],
-            'y_list_list' : [],
-            'legend_list' : [],
-            'xParameter' : 'Cores',
-            'yParameter' : 'AVG. % Utilization',
-        }
-
-        cpu_utilization_df = cpu_utilization_df.set_index('timestamp')
-        # For stack graph having average entries of all Cores and average of 'all'
-        average_cpu_ut_df = cpu_utilization_df.loc['Average:']
-        # Drop all those columns
-        cpu_utilization_df = cpu_utilization_df.drop('Average:')
-
-        # Columns list for stack graph
-        stack_cols_list = ['%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice']
-
-        stack_graph_data['x_list'] = average_cpu_ut_df['CPU'].tolist()
-
-        for col in stack_cols_list:
-            stack_graph_data['y_list_list'].append(average_cpu_ut_df[col].tolist())
-            stack_graph_data['legend_list'].append(col)
-        # Stack graph is done
-    except:
-        pass
-    finally:
-        # Reset index
-        cpu_utilization_df = cpu_utilization_df.reset_index()
-
-    logging.debug("Stack graph took {} seconds".format(time.time() - start_time3))
-
-    start_time4 = time.time()
-    # Calculate %busy by 100-%idle
-    cpu_utilization_df['%busy'] = cpu_utilization_df['%idle'].apply(lambda x: 100 - x)
-    cpu_utilization_df.pop('%idle')
-
-    logging.debug("Busy Column generation took {} seconds".format(time.time() - start_time4))
-
-    start_time5 = time.time()
-    # Set 'CPU' as index
-    cpu_utilization_df = cpu_utilization_df.set_index('CPU')
-
-    try:
-        # AVG. Data of all cores at all timestamps
-        all_cores_df = cpu_utilization_df.loc['all']
-        # Drop all those columns
-        cpu_utilization_df = cpu_utilization_df.drop('all')
-    except:
-        all_cores_df = pd.DataFrame()
-
-    # Reset index
-    cpu_utilization_df = cpu_utilization_df.reset_index()
-
-    logging.debug("Deleting 'all' cores columns took {} seconds".format(time.time() - start_time5))
-
-    network_heatmap_data = {
-        'graph_type' : 'heatmap',
-        'x_list' : [],
-        'y_list' : [],
-        'z_list_list' : [],
-        'xParameter' : 'Timestamp',
-        'yParameter' : 'Interface'
-    }    
     # Get data for heatmap
     heatmap_data = {
         'graph_type' : 'heatmap',
@@ -2301,97 +2224,6 @@ def cpu_utilization_graphs():
         'yParameter' : 'Cores'          
     }
 
-    logging.debug("PRINTING CPU Utilization DF")
-    logging.debug(cpu_utilization_df.columns)
-
-    start_time6 = time.time()
-    heatmap_data['x_list'] = cpu_utilization_df['timestamp'].unique().tolist()
-    heatmap_data['y_list'] = cpu_utilization_df['CPU'].unique().tolist()
-
-    start_time7 = time.time()
-    # list of lists. Length = unique timestamps = len(heatmap_data['x_list'])
-    # Each list has data for one timestamp
-    # Length of each list = No. of Cores
-    # x in range cpu_util_df['%busy'] with jumps of length = no of cores
-    pool = multiprocessing.Pool(num_processes)
-
-    try:
-        heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='cpu_heatmap'), \
-                    np.array_split(cpu_utilization_df, (cpu_utilization_df.shape[0]/len(heatmap_data['y_list']))))
-    finally:
-        logging.debug("Closing pool")
-        pool.close()
-        pool.join()
-
-    logging.debug("Z LIST LIST took {} seconds".format(time.time() - start_time7))        
-
-    start_time8 = time.time()
-    # Take transpose of the list_list
-    # Because plotly.js plots it left->right, then top->bottom
-    # So now
-    # list of lists. Length = No. of Cores
-    # Each list has data for one Core
-    # Length of each list = unique timestamps = len(heatmap_data['x_list'])
-    heatmap_data['z_list_list'] = np.array(heatmap_data['z_list_list']).T.tolist()
-
-    logging.debug("TRANSPOSE of Z list list took {} seconds".format(time.time() - start_time8))
-
-    logging.debug("CPU UTIL HEATMAP overall took {} seconds".format(time.time() - start_time6))
-    # CPU Util Heatmap is done
-
-    start_time9 = time.time()
-    network_heatmap_data['x_list'] = network_utilization_df['Time'].unique().tolist()
-    
-    network_heatmap_data['y_list'] = network_utilization_df['Interface'].unique().tolist()
-    
-    start_time10 = time.time()
-
-    pool = multiprocessing.Pool(num_processes)
-    try:
-        network_heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='network_heatmap'), \
-                                                np.array_split(network_utilization_df, (network_utilization_df.shape[0]/len(network_heatmap_data['y_list']))))
-
-    finally:
-        logging.debug("Closing pool")
-        pool.close()
-        pool.join()
-
-    logging.debug("Z LIST LIST took {} seconds".format(time.time() - start_time10))
-
-    start_time11 = time.time()
-    network_heatmap_data['z_list_list'] = np.array(network_heatmap_data['z_list_list']).T.tolist()
-    logging.debug("TRANSPOSE Z list list took {} seconds".format(time.time() - start_time11))
-
-    logging.debug("Network Heatmap overall took {} seconds".format(time.time() - start_time9))
-    #Network heatmap is done
-
-    start_time12 = time.time()
-    softirq_heatmap_data['x_list'] = cpu_utilization_df['timestamp'].unique().tolist()
-    softirq_heatmap_data['y_list'] = cpu_utilization_df['CPU'].unique().tolist()
-
-    start_time13 = time.time()
-
-
-    pool = multiprocessing.Pool(num_processes)
-    try:
-        softirq_heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='softirq_heatmap'), \
-                    np.array_split(cpu_utilization_df, (cpu_utilization_df.shape[0]/len(softirq_heatmap_data['y_list']))))
-    finally:
-        logging.debug("Closing pool")
-        pool.close()
-        pool.join()
-
-
-    logging.debug("Z LIST LIST took {} seconds".format(time.time() - start_time13))
-    # Take transpose of the list_list 
-    start_time14 = time.time()
-    softirq_heatmap_data['z_list_list'] = np.array(softirq_heatmap_data['z_list_list']).T.tolist()
-    logging.debug("TRANSPOSE Z list list took {} seconds".format(time.time() - start_time14))
-
-    logging.debug("SoftIRQ Heatmap overall took {} seconds".format(time.time() - start_time12))
-    #SoftIRQ heatmap is done
-
-    start_time15 = time.time()
     # Get data for line graph from all_cores_df
     line_graph_data = {
         'graph_type' : 'line',
@@ -2401,71 +2233,253 @@ def cpu_utilization_graphs():
         'xParameter' : 'Timestamp',
         'yParameter' : '% Utilization'
     }
-    
-    #for intface in network_utilization_df['Interface'].unique().tolist():
-    #    #logging.debug(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
-    #    logging.debug(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
 
-    print("printing all cores df")
-    print(all_cores_df)
-    if not all_cores_df.empty:
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%busy'].tolist())
-        line_graph_data['legend_list'].append('Avg CPU Utilization')
+    # Get data for stack graph from average_cpu_ut_df
+    stack_graph_data = {
+        'graph_type' : 'stack',
+        'x_list' : [],
+        'y_list_list' : [],
+        'legend_list' : [],
+        'xParameter' : 'Cores',
+        'yParameter' : 'AVG. % Utilization',
+    }
+
+    # Generate nas_path from received data
+    nas_path = "/mnt/nas/dbresults/" + data['jobname'] + '/' + data['runID'] + '/results/' + numCPUs
+    cpu_file = nas_path + '/CPU_heatmap.csv'
+    logging.debug("NAS PATH = {}".format(cpu_file))
+
+    start_time2 = time.time()
+    # Check if CPU_heatmap.csv exists
+    if os.path.isfile(cpu_file):
+        cpu_utilization_df = pd.read_csv(cpu_file, usecols=['timestamp','CPU', '%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice'])
+
+        logging.debug("Reading CPU and N/W CSV files took {} seconds".format(time.time() - start_time2))
+
+        start_time3 = time.time()
+        try:
+            # Get data for stack graph from average_cpu_ut_df
+
+            cpu_utilization_df = cpu_utilization_df.set_index('timestamp')
+            # For stack graph having average entries of all Cores and average of 'all'
+            average_cpu_ut_df = cpu_utilization_df.loc['Average:']
+            # Drop all those columns
+            cpu_utilization_df = cpu_utilization_df.drop('Average:')
+
+            # Columns list for stack graph
+            stack_cols_list = ['%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice']
+
+            stack_graph_data['x_list'] = average_cpu_ut_df['CPU'].tolist()
+
+            for col in stack_cols_list:
+                stack_graph_data['y_list_list'].append(average_cpu_ut_df[col].tolist())
+                stack_graph_data['legend_list'].append(col)
+            # Stack graph is done
+        except:
+            pass
+        finally:
+            # Reset index
+            cpu_utilization_df = cpu_utilization_df.reset_index()
+
+        logging.debug("Stack graph took {} seconds".format(time.time() - start_time3))
+
+        start_time4 = time.time()
+        # Calculate %busy by 100-%idle
+        cpu_utilization_df['%busy'] = cpu_utilization_df['%idle'].apply(lambda x: 100 - x)
+        cpu_utilization_df.pop('%idle')
+
+        logging.debug("Busy Column generation took {} seconds".format(time.time() - start_time4))
+
+        start_time5 = time.time()
+        # Set 'CPU' as index
+        cpu_utilization_df = cpu_utilization_df.set_index('CPU')
+
+        try:
+            # AVG. Data of all cores at all timestamps
+            all_cores_df = cpu_utilization_df.loc['all']
+            # Drop all those columns
+            cpu_utilization_df = cpu_utilization_df.drop('all')
+        except:
+            all_cores_df = pd.DataFrame()
+
+        # Reset index
+        cpu_utilization_df = cpu_utilization_df.reset_index()
+
+        logging.debug("Deleting 'all' cores columns took {} seconds".format(time.time() - start_time5))
+
+        logging.debug("PRINTING CPU Utilization DF")
+        logging.debug(cpu_utilization_df.columns)
+
+        start_time6 = time.time()
+        heatmap_data['x_list'] = cpu_utilization_df['timestamp'].unique().tolist()
+        heatmap_data['y_list'] = cpu_utilization_df['CPU'].unique().tolist()
+
+        start_time7 = time.time()
+        # list of lists. Length = unique timestamps = len(heatmap_data['x_list'])
+        # Each list has data for one timestamp
+        # Length of each list = No. of Cores
+        # x in range cpu_util_df['%busy'] with jumps of length = no of cores
+        pool = multiprocessing.Pool(num_processes)
+
+        try:
+            heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='cpu_heatmap'), \
+                        np.array_split(cpu_utilization_df, (cpu_utilization_df.shape[0]/len(heatmap_data['y_list']))))
+        except:
+            pass
+        finally:
+            logging.debug("Closing pool")
+            pool.close()
+            pool.join()
+
+        logging.debug("Z LIST LIST took {} seconds".format(time.time() - start_time7))
+
+        start_time8 = time.time()
+        # Take transpose of the list_list
+        # Because plotly.js plots it left->right, then top->bottom
+        # So now
+        # list of lists. Length = No. of Cores
+        # Each list has data for one Core
+        # Length of each list = unique timestamps = len(heatmap_data['x_list'])
+        heatmap_data['z_list_list'] = np.array(heatmap_data['z_list_list']).T.tolist()
+
+        logging.debug("TRANSPOSE of Z list list took {} seconds".format(time.time() - start_time8))
+
+        logging.debug("CPU UTIL HEATMAP overall took {} seconds".format(time.time() - start_time6))
+        # CPU Util Heatmap is done
+
+        start_time12 = time.time()
+        softirq_heatmap_data['x_list'] = cpu_utilization_df['timestamp'].unique().tolist()
+        softirq_heatmap_data['y_list'] = cpu_utilization_df['CPU'].unique().tolist()
+
+        start_time13 = time.time()
 
 
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%soft'].tolist())
-        line_graph_data['legend_list'].append('%soft')    
-        #%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice'
-
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%usr'].tolist())
-        line_graph_data['legend_list'].append('%usr')
-
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%nice'].tolist())
-        line_graph_data['legend_list'].append('%nice')
-
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%sys'].tolist())
-        line_graph_data['legend_list'].append('%sys')
-
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%iowait'].tolist())
-        line_graph_data['legend_list'].append('%iowait')
-
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%irq'].tolist())
-        line_graph_data['legend_list'].append('%irq')
-
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%steal'].tolist())
-        line_graph_data['legend_list'].append('%steal')
-
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%guest'].tolist())
-        line_graph_data['legend_list'].append('%guest')
-
-        line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
-        line_graph_data['y_list_list'].append(all_cores_df['%gnice'].tolist())
-        line_graph_data['legend_list'].append('%gnice')
+        pool = multiprocessing.Pool(num_processes)
+        try:
+            softirq_heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='softirq_heatmap'), \
+                        np.array_split(cpu_utilization_df, (cpu_utilization_df.shape[0]/len(softirq_heatmap_data['y_list']))))
+        except:
+            pass
+        finally:
+            logging.debug("Closing pool")
+            pool.close()
+            pool.join()
 
 
+        logging.debug("Z LIST LIST took {} seconds".format(time.time() - start_time13))
+        # Take transpose of the list_list 
+        start_time14 = time.time()
+        softirq_heatmap_data['z_list_list'] = np.array(softirq_heatmap_data['z_list_list']).T.tolist()
+        logging.debug("TRANSPOSE Z list list took {} seconds".format(time.time() - start_time14))
+
+        logging.debug("SoftIRQ Heatmap overall took {} seconds".format(time.time() - start_time12))
+        #SoftIRQ heatmap is done
+
+        start_time15 = time.time()
+        # Get data for line graph from all_cores_df
+        if not all_cores_df.empty:
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%busy'].tolist())
+            line_graph_data['legend_list'].append('Avg CPU Utilization')
 
 
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%soft'].tolist())
+            line_graph_data['legend_list'].append('%soft')
+            #%idle', '%soft', '%usr', '%nice', '%sys', '%iowait', '%irq', '%steal', '%guest', '%gnice'
 
-    #line_graph_data['x_list_list'].append(network_utilization_df['Time'].unique().tolist())
-    for intface in network_utilization_df['Interface'].unique().tolist():
-        #logging.debug(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
-        line_graph_data['x_list_list'].append(network_utilization_df['Time'].unique().tolist())
-        line_graph_data['y_list_list'].append(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
-        nw_util_str = intface
-        line_graph_data['legend_list'].append(nw_util_str)
-        #logging.debug(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
-    logging.debug("Line Graph overall took {} seconds".format(time.time() - start_time15))
-    # Line graph data is done
-    
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%usr'].tolist())
+            line_graph_data['legend_list'].append('%usr')
+
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%nice'].tolist())
+            line_graph_data['legend_list'].append('%nice')
+
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%sys'].tolist())
+            line_graph_data['legend_list'].append('%sys')
+
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%iowait'].tolist())
+            line_graph_data['legend_list'].append('%iowait')
+
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%irq'].tolist())
+            line_graph_data['legend_list'].append('%irq')
+
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%steal'].tolist())
+            line_graph_data['legend_list'].append('%steal')
+
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%guest'].tolist())
+            line_graph_data['legend_list'].append('%guest')
+
+            line_graph_data['x_list_list'].append(all_cores_df['timestamp'].tolist())
+            line_graph_data['y_list_list'].append(all_cores_df['%gnice'].tolist())
+            line_graph_data['legend_list'].append('%gnice')
+    else:
+        print("File CPU_heatmap.csv does not exist. Skipping CPU Util graphs")
+
+    # Network util graphs
+    network_heatmap_data = {
+        'graph_type' : 'heatmap',
+        'x_list' : [],
+        'y_list' : [],
+        'z_list_list' : [],
+        'xParameter' : 'Timestamp',
+        'yParameter' : 'Interface'
+    }
+
+    network_file = nas_path + '/ethperc.csv'
+    # Check if ethperc.csv exists
+    if os.path.isfile(network_file):
+        network_utilization_df = pd.read_csv(network_file,usecols=['Time','Interface','NW_UTIL'])
+
+        start_time9 = time.time()
+        network_heatmap_data['x_list'] = network_utilization_df['Time'].unique().tolist()
+
+        network_heatmap_data['y_list'] = network_utilization_df['Interface'].unique().tolist()
+
+        start_time10 = time.time()
+
+        pool = multiprocessing.Pool(num_processes)
+        try:
+            network_heatmap_data['z_list_list'] = pool.map(partial(parallel_compute_heatmap_zll, graph_name='network_heatmap'), \
+                                                    np.array_split(network_utilization_df, (network_utilization_df.shape[0]/len(network_heatmap_data['y_list']))))
+        except:
+            pass
+        finally:
+            logging.debug("Closing pool")
+            pool.close()
+            pool.join()
+
+        logging.debug("Z LIST LIST took {} seconds".format(time.time() - start_time10))
+
+        start_time11 = time.time()
+        network_heatmap_data['z_list_list'] = np.array(network_heatmap_data['z_list_list']).T.tolist()
+        logging.debug("TRANSPOSE Z list list took {} seconds".format(time.time() - start_time11))
+
+        logging.debug("Network Heatmap overall took {} seconds".format(time.time() - start_time9))
+        #Network heatmap is done
+
+
+        #line_graph_data['x_list_list'].append(network_utilization_df['Time'].unique().tolist())
+        for intface in network_utilization_df['Interface'].unique().tolist():
+            #logging.debug(network_utilization_df.query('Interface'==intface)['NW_UTIL'].tolist())
+            line_graph_data['x_list_list'].append(network_utilization_df['Time'].unique().tolist())
+            line_graph_data['y_list_list'].append(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
+            nw_util_str = intface
+            line_graph_data['legend_list'].append(nw_util_str)
+            #logging.debug(network_utilization_df[network_utilization_df['Interface']==intface]['NW_UTIL'].tolist())
+        logging.debug("Line Graph overall took {} seconds".format(time.time() - start_time15))
+        # Line graph data is done
+        # All network util graphs are done
+    else:
+        print("File ethperc.csv does not exist. Skipping Network graphs")
+
+
     # Do NOT change key names.
     # Changing them will require changes in HTML code
     cpu_ut_graphs_data = OrderedDict()
@@ -2476,7 +2490,6 @@ def cpu_utilization_graphs():
     cpu_ut_graphs_data['%CPU Utilization Multi-line Graph'] = line_graph_data
     cpu_ut_graphs_data['%CPU Utilization Stack graph'] = stack_graph_data
     
-
     # Freq dump graphs
     freq_dump_file = nas_path + '/freq_dump.csv'
     # Check if freq_dump.csv exists
@@ -2591,7 +2604,8 @@ def cpu_utilization_graphs():
                 temperature_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
                 # Legend list is the list of columns
                 temperature_line_graph_data['legend_list'].extend(['Node-'+str(node)+'-'+x[2] for x in temp_data])
-
+            except:
+                pass
             finally:
                 logging.debug("Closing pool")
                 pool.close()
@@ -2644,6 +2658,8 @@ def cpu_utilization_graphs():
                         pool.map(partial(parallel_compute_heatmap_zll, \
                         graph_name='ram_heatmap', ramstat_df=ramstat_df), \
                         ram_heatmap_data['y_list'])
+        except:
+            pass
         finally:
             logging.debug("Closing pool")
             pool.close()
@@ -2719,7 +2735,8 @@ def cpu_utilization_graphs():
                 iostat_line_graph_data['y_list_list'].extend([x[1] for x in temp_data])
                 # Legend list is the list of columns
                 iostat_line_graph_data['legend_list'].extend([col+'-'+x[2] for x in temp_data])
-
+            except:
+                pass
             finally:
                 pool.close()
                 pool.join()
@@ -2734,7 +2751,7 @@ def cpu_utilization_graphs():
 
     # iostat graphs DONE
 
-    logging.debug("Time taken for CPU utilization graphs {}".format(time.time() - start_time))
+    print("Time taken for CPU utilization graphs {}".format(time.time() - start_time))
 
     return json.dumps(cpu_ut_graphs_data)
 
@@ -3381,6 +3398,8 @@ def generate_reports():
                                     os_version_criteria_op=request.form.get('criteria-op-OS Version'), kernel_criteria_op=request.form.get('criteria-op-Kernel Version'), \
                                     skuid_cpu_map=skuid_cpu_map, best_results_condition=best_results_condition, skuid_criteria_op=skuid_criteria_op, \
                                     all_skuidnames_criteria=all_skuidnames_criteria), zip(selected_sections_list, selected_tests_list, INPUT_FILTER_CONDITION_LIST))
+        except:
+            pass
         finally:
             logging.debug("Closing Pool")
             pool.close()
