@@ -2,7 +2,6 @@ from pprint import pprint
 import time
 import logging
 import os, shutil
-# from joblib import Parallel, delayed    #For parallel processing
 import multiprocessing                  #Processing on multiple cores
 from functools import partial           #For passing extra arguments to pool.map 
 import pandas as pd
@@ -42,7 +41,6 @@ result_type_map = {0: "single thread", 1: 'single core',
 # Uncomment this line for toggling debugging messages on the console
 # logging.basicConfig(level=logging.DEBUG)
 
-# from datetime import datetime
 app = Flask(__name__)
 
 logging.debug("Flask server restarted")
@@ -1541,7 +1539,7 @@ def sku_comparison_graph():
                       " WHERE t.testname = \'" + testname + \
                         "\' AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
                         INPUT_FILTER_CONDITION + ";"
-  
+
     results_df = pd.read_sql(RESULTS_QUERY, db)
     logging.debug(RESULTS_QUERY)
     logging.debug(results_df.shape)
@@ -1574,7 +1572,7 @@ def sku_comparison_graph():
             param_name = param_name[param_name.find('.')+1:]
 
             results_df = results_df[results_df[param_name]
-                                .apply(lambda x: str(x).strip() in [str(e).strip() for e in initial_x_list])].reset_index(drop=True)
+                                .apply(lambda x: str(x).strip().upper() in [str(e).strip() for e in map(str.upper, list(map(str, initial_x_list)))])].reset_index(drop=True)
 
             # Convert skuidname to corresponding section in sku_definition.ini
             results_df['skuidname_legend'] = results_df['skuidname_legend'].apply(lambda x: skuid_cpu_map[x])
@@ -1587,6 +1585,12 @@ def sku_comparison_graph():
 
             results_df = results_df.loc[idx].sort_values(by=[param_name, 'skuidname_legend']).reset_index(drop=True)
 
+            # Sort by skuidname_legend according to the sku_definition.ini file
+            sku_categories = sku_parser.sections()
+            ordered_skus = pd.Categorical(results_df['skuidname_legend'].tolist(), categories = sku_categories, ordered=True)
+            results_df['skuidname_legend'] = pd.Series(ordered_skus)
+            results_df = results_df.sort_values(by='skuidname_legend').reset_index(drop=True)
+
             # Map the result type according to result_type_map
             if xParameter == 'Scaling':
                 results_df['resultype'] = results_df['resultype'].apply(lambda x : result_type_map[x])
@@ -1595,7 +1599,7 @@ def sku_comparison_graph():
                 result_type_categories = [result_type_map[x] for x in initial_x_list]
                 ordered_resultypes = pd.Categorical(results_df['resultype'].tolist(), categories=[result_type_map[x] for x in initial_x_list], ordered=True)
                 results_df['resultype'] = pd.Series(ordered_resultypes)
-                results_df = results_df.sort_values(by='resultype')
+                results_df = results_df.sort_values(by=['skuidname_legend', 'resultype']).reset_index(drop=True)
 
             # Get unique skuidname entries
             server_cpu_list = [x for x in results_df['skuidname_legend'].unique().tolist()]
@@ -1777,7 +1781,13 @@ def best_sku_graph():
                 idx = results_df.groupby(by=['skuidname'])['number'].idxmin()
             else:
                 idx = results_df.groupby(by=['skuidname'])['number'].idxmax()
-            results_df = results_df.loc[idx]
+            results_df = results_df.loc[idx].reset_index(drop=True)
+
+            # Sort by skuidname according to the sku_definition.ini file
+            sku_categories = sku_parser.sections()
+            ordered_skus = pd.Categorical(results_df['skuidname'].tolist(), categories = sku_categories, ordered=True)
+            results_df['skuidname'] = pd.Series(ordered_skus)
+            results_df = results_df.sort_values(by='skuidname')
 
             x_list = results_df['skuidname'].tolist()
             y_list = results_df['number'].tolist()
@@ -2126,6 +2136,14 @@ def best_of_all_graph():
 
     # If best_results_df is not empty
     if not best_results_df.empty:
+
+        print("Sorting best results df acc to skuidname")
+        # Sort by skuidname according to the sku_definition.ini file
+        sku_categories = sku_parser.sections()
+        ordered_skus = pd.Categorical(best_results_df['skuidname'].tolist(), categories = sku_categories, ordered=True)
+        best_results_df['skuidname'] = pd.Series(ordered_skus)
+        best_results_df = best_results_df.sort_values(by='skuidname')
+
         # Get unique skuidname entries
         server_cpu_list = [x for x in best_results_df['skuidname'].unique().tolist()]
 
