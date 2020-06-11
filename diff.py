@@ -1,5 +1,6 @@
 from pprint import pprint
 import time
+from datetime import datetime
 import logging
 import os, shutil
 import multiprocessing                  #Processing on multiple cores
@@ -37,6 +38,7 @@ result_type_map = {0: "single thread", 1: 'single core',
                    10: 'I/O utilization', 11: 'socmon',
                    12: 'OMP_MPI scaling', 20: 'Projection'}
 
+month_name_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', 5:'May', 6:'Jun', 7:'Jul', 8:'Aug', 9:'Sep', 10: 'Oct', 11:'Nov', 12:'Dec'}
 
 # Uncomment this line for toggling debugging messages on the console
 # logging.basicConfig(level=logging.DEBUG)
@@ -516,8 +518,17 @@ def get_all_runs_data(testname, secret=False):
 # Show all runs of a test 'testname'
 @app.route('/allruns/<testname>', methods=['GET'])
 def all_runs_page(testname):
+    # Reference for best_of_all_graph
+    sku_file_path = './config/sku_definition.ini'
+    sku_parser = configparser.ConfigParser()
+    sku_parser.read(sku_file_path)
+
+    # Reference dropdown for timeline graphs
+    all_skus_list = sku_parser.sections();
+
     try:
         context = get_all_runs_data(testname)
+        context['all_skus_list'] = all_skus_list
         error = None
     except Exception as error_message:
         context = None
@@ -1651,12 +1662,12 @@ def sku_comparison_graph():
 
     # close the database connection
     try:
-        logging.debug("CLOSING CONNECTION FOR get_data_for_graph {}".format(testname))
+        logging.debug("CLOSING CONNECTION FOR sku_comparison_graph {}".format(testname))
         db.close()
     except:
         pass
 
-    print("get_data_for_graph took {} seconds".format(time.time() - start_time))
+    print("sku_comparison_graph took {} seconds".format(time.time() - start_time))
 
     return response
 
@@ -1892,6 +1903,308 @@ def best_sku_graph_normalized():
         'originID_list': originID_list,
         'higher_is_better': higher_is_better,
     }
+
+    return response
+
+# Timeline Graph
+@app.route('/timeline_graph', methods=['POST'])
+def timeline_graph():
+    logging.debug("Got the request for Timeline Graph")
+
+    start_time = time.time()
+
+    db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
+                         passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
+
+    data = request.get_json()
+    xParameter = data['xParameter']
+    yParameter = data['yParameter']
+    smt_filter = data['smtFilter']
+    sku_filter = data['skuFilter']
+
+    logging.debug("Printing data\n\n{}".format(data))
+
+    testname = data['testname']
+
+    # Result type filter eg. dual socket
+    result_type_filter = data['resultTypeFilter']
+
+    if result_type_filter == "None":
+        result_type_filter = None
+
+    # Get input_filter_condition by calling the function
+    input_filters_list = data['inputFiltersList']
+    INPUT_FILTER_CONDITION = get_input_filter_condition(testname, input_filters_list)
+
+    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_parser = configparser.ConfigParser()
+    results_metadata_parser.read(results_metadata_file_path)
+
+    # GET qualifier_list and min_max_list from 'fields' and 'higher_is_better' the section 'testname'
+    qualifier_list = results_metadata_parser.get(testname, 'fields').replace('\"', '').split(',')
+    min_or_max_list = results_metadata_parser.get(testname, 'higher_is_better') \
+                    .replace('\"', '').replace(' ', '').split(',')
+    index = qualifier_list.index(yParameter)
+
+    sku_file_path = './config/sku_definition.ini'
+    sku_parser = configparser.ConfigParser()
+    sku_parser.read(sku_file_path)
+
+    # Dictionary mapping from 'skuidname' : 'server_cpu_name'
+    # Example 'Cavium ThunderX2(R) CPU CN9980 v2.2 @ 2.20 GHz' : Marvell TX2-B2
+    skuid_cpu_map = OrderedDict({section: sku_parser.get(section, 'SKUID').replace('\"', '').split(',') for section in sku_parser.sections()})
+
+    # Fill the sku_cpu_map with all "sku->section" mapping entries
+    for section in sku_parser.sections():
+        skus = sku_parser.get(section, 'SKUID').replace('\"','').split(',')
+        for sku in skus:
+            skuid_cpu_map[sku] = section
+
+
+    parameter_map = {
+        "Kernel Version": 'os.kernelname', 
+        'OS Version': 'os.osversion', 
+        'OS Name': 'os.osdistro', 
+        "Firmware Version": 'hw.fwversion' , 
+        "ToolChain Name": 'tc.toolchainname', 
+        "ToolChain Version" : 'tc.toolchainversion', 
+        "Flags": 'tc.flags',
+        "SMT" : 'b.smt',
+        "Cores": 'b.cores',
+        "Corefreq": 'b.corefreq',
+        "DDRfreq": 'b.ddrfreq',
+        "SKUID": 'n.skuidname',
+        "Hostname": 'o.hostname',
+        "Scaling" : 's.resultype',
+    }
+    join_on_map_for_x_query = {
+        'Kernel Version': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        'OS Version': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        'OS Name': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        "Firmware Version": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID', 
+        "ToolChain Name": 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "ToolChain Version" : 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "Flags": 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "SMT" : 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "Cores": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "Corefreq": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "DDRfreq": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "SKUID": 'INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID INNER JOIN node n ON hw.node_nodeID = n.nodeID',
+        "Hostname" : ' ',
+        "Scaling" : ' ',
+    }
+    join_on_map = {
+        'Kernel Version': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        'OS Version': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        'OS Name': 'INNER JOIN ostunings os ON o.ostunings_ostuningsID = os.ostuningsID',
+        "Firmware Version": ' ',
+        "ToolChain Name": 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "ToolChain Version" : 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "Flags": 'INNER JOIN toolchain tc ON o.toolchain_toolchainID = tc.toolchainID',
+        "SMT" : 'INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "Cores": 'INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "Corefreq": 'INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "DDRfreq": 'INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID',
+        "SKUID": ' ',
+        "Hostname" : ' ',
+        "Scaling" : ' ',
+    }
+
+    # Conditions for filtering x_list
+    filter_x_list_map = {
+        "Kernel Version": 'not empty string', 
+        'OS Version': 'not empty string',
+        'OS Name': 'not empty string',
+        "Firmware Version": 'not empty string',
+        "ToolChain Name": 'not empty string',
+        "ToolChain Version" : 'not empty string',
+        "Flags": 'not empty string',
+        "SMT" : 'greater than zero',
+        "Cores": 'greater than zero',
+        "Corefreq": 'greater than zero',
+        "DDRfreq": 'greater than zero',
+        "SKUID": 'not empty string',
+        "Hostname": 'not empty string',
+        "Scaling" : '',
+    }
+
+    # List of lists
+    # Each list has entries for a single CPU Manufacturer
+    x_list_list = []
+    y_list_list = []
+    originID_list_list = []
+    legend_list = []
+    x_list_order = []
+
+    if xParameter == "Scaling":
+        # [dual socket, single socket, 1/2 socket, 1/4th socket, 1/8th  socket, 2 cores, single core, single thread]
+        initial_x_list = [3, 2, 7, 6, 5, 8, 1, 0]
+    else:
+        # Get initial_x_list by excecuting the query
+        X_LIST_QUERY = "SELECT DISTINCT " + parameter_map[xParameter] + " as \'" + parameter_map[xParameter] + \
+                        """\' FROM origin o INNER JOIN result r ON o.originID = r.origin_originID 
+                        INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID
+                        INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID 
+                        INNER JOIN display disp ON  r.display_displayID = disp.displayID """ + \
+                        join_on_map_for_x_query[xParameter] + \
+                        " WHERE t.testname=\'""" + testname + "\'" + INPUT_FILTER_CONDITION + ";"
+
+        logging.debug("Printing XLIST QUERY")
+        logging.debug(X_LIST_QUERY)
+
+        x_df = pd.read_sql(X_LIST_QUERY, db)
+        logging.debug("X_Dataframe = {}".format(x_df))
+        initial_x_list = sorted(x_df[parameter_map[xParameter]].to_list())
+        logging.debug("X_LIST = {}".format(initial_x_list))
+
+    if filter_x_list_map[xParameter] == 'not empty string':
+        # Convert each element to type "str"
+        initial_x_list = list(map(lambda x: str(x).strip(), initial_x_list))
+
+        # Remove ALL the entries which are '' in the list 
+        initial_x_list = list(filter(lambda x: x != '', initial_x_list))
+    elif filter_x_list_map[xParameter] == 'greater than zero':
+        initial_x_list = list(filter(lambda x: x > 0, initial_x_list))
+    else:
+        pass
+
+    logging.debug("initial_x_list = {}".format(initial_x_list))
+
+    if min_or_max_list[index] == '0':
+        TIMELINE_QUERY = "SELECT r.number, o.originID, o.testdate, b.smt as 'smt_filter', n.skuidname as 'skuidname_legend', s.resultype as 'resultype_filter', r.isvalid, " + \
+                        parameter_map[xParameter] + """ FROM origin o 
+                        INNER JOIN result r ON o.originID = r.origin_originID 
+                        INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                        INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                        INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID 
+                        INNER JOIN node n ON hw.node_nodeID = n.nodeID 
+                        INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID 
+                        INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID """ + join_on_map[xParameter] + \
+                        " WHERE t.testname = \'" + testname + "\' AND r.number > 0 " + \
+                        " AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+                        INPUT_FILTER_CONDITION + ";"
+    else:
+        TIMELINE_QUERY = "SELECT r.number, o.originID, o.testdate, b.smt as 'smt_filter', n.skuidname as 'skuidname_legend', s.resultype as 'resultype_filter', r.isvalid, " + \
+                        parameter_map[xParameter] + """ FROM origin o 
+                        INNER JOIN result r ON o.originID = r.origin_originID 
+                        INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                        INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
+                        INNER JOIN hwdetails hw ON o.hwdetails_hwdetailsID = hw.hwdetailsID 
+                        INNER JOIN node n ON hw.node_nodeID = n.nodeID 
+                        INNER JOIN bootenv b ON hw.bootenv_bootenvID = b.bootenvID 
+                        INNER JOIN subtest s ON r.subtest_subtestID=s.subtestID """ + join_on_map[xParameter] + \
+                      " WHERE t.testname = \'" + testname + \
+                        "\' AND disp.qualifier LIKE \'%" + qualifier_list[index] + "%\'" + \
+                        INPUT_FILTER_CONDITION + ";"
+
+    results_df = pd.read_sql(TIMELINE_QUERY, db)
+    logging.debug(TIMELINE_QUERY)
+    logging.debug(results_df.shape)
+
+    if not results_df.empty:
+        # Remove results which are not valid
+        results_df = results_df[results_df['isvalid'] == 1].reset_index(drop=True)
+        del results_df['isvalid']
+        logging.debug(results_df.shape)
+
+        # Convert to actual result type string
+        results_df['resultype_filter'] = results_df['resultype_filter'].apply(lambda x : result_type_map.get(x, "Unkown"))
+        if result_type_filter:
+            results_df = results_df[results_df['resultype_filter'] == result_type_filter].reset_index(drop=True)
+
+        del results_df['resultype_filter']
+
+        # Apply SMT filter
+        results_df = results_df[results_df['smt_filter'] == int(smt_filter)].reset_index(drop=True)
+
+        # If results_df is not empty after applying reusult_type_filter
+        if not results_df.empty:
+            results_df['skuidname_legend'] = results_df['skuidname_legend'].apply(lambda x: x.strip())
+
+            # Only skuidnames which are in sku_definition.ini will be shown
+            valid_skuidnames = list(itertools.chain(*[sku_parser.get(section, 'SKUID').replace('\"', '').split(',') \
+                                for section in sku_parser.sections()]))
+            results_df = results_df[results_df['skuidname_legend']
+                                .apply(lambda x: x.strip() in valid_skuidnames)].reset_index(drop=True)
+
+            # Filter on initial_x_list
+            param_name = parameter_map[xParameter]
+            param_name = param_name[param_name.find('.')+1:]
+
+            results_df = results_df[results_df[param_name]
+                                .apply(lambda x: str(x).strip().upper() in [str(e).strip() for e in map(str.upper, list(map(str, initial_x_list)))])].reset_index(drop=True)
+
+            # Convert skuidname to corresponding section in sku_definition.ini
+            results_df['skuidname_legend'] = results_df['skuidname_legend'].apply(lambda x: skuid_cpu_map[x])
+
+            # Filter on SKU
+            results_df = results_df[results_df['skuidname_legend'] == sku_filter].reset_index(drop=True)
+            if not results_df.empty:
+                # Convert pandas.Timestamp to a format - "month_name-year"
+                results_df['test_month_year'] = results_df['testdate'].apply(lambda ts: month_name_map[ts.month] + '-' + str(ts.year))
+
+                # Get Min or Max results and group them w.r.t. skuidname_legend and x parameter
+                if min_or_max_list[index] == '0':
+                    idx = results_df.groupby(by=['test_month_year', 'skuidname_legend', param_name])['number'].idxmin()
+                else:
+                    idx = results_df.groupby(by=['test_month_year', 'skuidname_legend', param_name])['number'].idxmax()
+
+                results_df = results_df.loc[idx].sort_values(by=['testdate', param_name, 'skuidname_legend']).reset_index(drop=True)
+
+                # Delete testdate. No longer needed
+                del results_df['testdate']
+
+                # The order according to which X axis of the timeline graph is sorted
+                x_list_order = results_df['test_month_year'].tolist()
+
+                legend_list = [x for x in results_df[param_name].unique().tolist()]
+
+                results_df = results_df.set_index(param_name)
+
+                # Extract the lists from the dataframe
+                # Always pass a list to .loc function to get Dataframe as the result
+                x_list_list = [results_df.loc[[param]]['test_month_year'].tolist() for param in legend_list]
+                y_list_list = [results_df.loc[[param]]['number'].tolist() for param in legend_list]
+                originID_list_list = [results_df.loc[[param]]['originID'].tolist() for param in legend_list]
+
+    # Get the unit for the selected yParamter (qualifier)
+    UNIT_QUERY = """SELECT disp.qualifier, disp.unit FROM origin o INNER JOIN testdescriptor t 
+                    ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r 
+                    ON o.originID = r.origin_originID  INNER JOIN display disp ON  r.display_displayID = disp.displayID 
+                    where t.testname = \'""" + testname + "\' and disp.qualifier LIKE \'%" + yParameter.strip() +"%\' limit 1;"
+    unit_df = pd.read_sql(UNIT_QUERY, db)
+
+    logging.debug("Printing UNIT Query")
+    logging.debug(UNIT_QUERY)
+    try:
+        y_axis_unit = unit_df['unit'][0]
+    except Exception as error_message:
+        y_axis_unit = "Unknown Unit"
+        logging.debug("= {}".format(error_message))
+
+    response = {
+        'x_list_list': x_list_list, 
+        'y_list_list': y_list_list,
+        'y_axis_unit': y_axis_unit,
+        'xParameter': xParameter,
+        'yParameter': yParameter,
+        'originID_list_list': originID_list_list,
+        'legend_list' : legend_list,
+        'x_list_order' : x_list_order,
+        'graphTitle' : "Timeline Graphs - " + testname + " SMT - " + smt_filter + " SKU - " + sku_filter + " " + result_type_filter
+    }
+
+    logging.debug("Printing Final response")
+    logging.debug(response)
+
+    # close the database connection
+    try:
+        logging.debug("CLOSING CONNECTION FOR timeline_graph {}".format(testname))
+        db.close()
+    except:
+        pass
+
+    print("timeline_graph took {} seconds".format(time.time() - start_time))
 
     return response
 
