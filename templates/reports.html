@@ -24,14 +24,14 @@ Reports Generation
 {% block content %}
 
 	<div class="container-fluid text-center page-header">
-		<h1 class="font-weight-bold display-4">Generate reports</h1>
+		<h1 class="display-4">Generate reports</h1>
 	</div>
 
 	<div id="reports-page-info" class="card border-info">
-		<div class="card-header bg-transparent border-info font-weight-bolder" style="font-size: 25px;">How To Use</div>
+		<div class="card-header bg-transparent h4">How To Use</div>
 		<div class="card-body">
 			<div class="m-0 p-0 text-secondary">
-				<h4 class="font-weight-bold card-title">Generate custom excel sheets using filters</h4>
+				<h5 class="card-title">Generate custom excel sheets using filters</h5>
 				<p class="card-text lead"></p>
 				<p>Click "View more" to know how to use ⬇️</p>
 			</div>
@@ -73,7 +73,7 @@ Reports Generation
 			</div>
 		</div>
 		<div class="card-footer bg-transparent border-info d-flex flex-row-reverse">
-			<button class="btn btn-success font-weight-bold" type="button" data-toggle="collapse" data-target="#fullSummaryCollapse" aria-expanded="false" aria-controls="fullSummaryCollapse">
+			<button class="btn btn-success" type="button" data-toggle="collapse" data-target="#fullSummaryCollapse" aria-expanded="false" aria-controls="fullSummaryCollapse">
 				View more
 			</button>
 		</div>
@@ -86,7 +86,7 @@ Reports Generation
 		<input type="hidden" id="filter-by-label-or-benchmark" name="filter-by-label-or-benchmark" value="label">
 
 		<!-- Filter by Labels/Testname Block -->
-		<div class="card container mt-5">
+		<div class="card container mt-5" style="border-top: 15px solid #2d7a9c; border-right: 1px solid #2d7a9c; border-left: 1px solid #2d7a9c; border-bottom: 5px solid #2d7a9c;">
 			<div class="card-body">
 				<h4 class="card-title" id="filter-by-testname-label-title">Filter by Label</h4>
 				<p class="card-text lead text-secondary" id="filter-by-testname-label-description">Select the labels whose corresponding benchmarks you want in the final report</p>
@@ -138,37 +138,42 @@ Reports Generation
 									<!-- Live search benchmark textbox -->
 									<input type="text" class="text-input form-control form-control-lg" id="live-search-testname-textbox" placeholder="Search Benchmark Name" value="" />
 
-									<!-- HPC Benchmarks list -->
-									<h4 class="bg-info p-3 mt-3 mb-0 text-white font-weight-bold">HPC BENCHMARKS</h4>
-									<button type="button" class="btn btn-success mt-3" id="filter-testname-hpc-select-all-button">Select All</button>
-									<button type="button" class="btn btn-danger mt-3" id="filter-testname-hpc-clear-all-button">Clear All</button>
-									<div class="d-flex container-fluid flex-wrap">
-										{% for benchmark in all_tests_data.hpc_sections_list %}
-											<div class="col filter-testname-checkbox-div">
-												<div class="custom-control custom-checkbox">
-													<input type="checkbox" class="custom-control-input filter-testname-checkbox-hpc-checkbox" id="filter-testname-list-{{benchmark}}" name="filter_testname_list" value="{{benchmark}}">
-													<label class="custom-control-label filter-testname-checkbox-label" for="filter-testname-list-{{benchmark}}">{{benchmark}}</label>
-												</div>
+									<div class="d-flex justify-content-between">
+										<!-- HPC Benchmarks list -->
+										<div class="m-0 p-0">
+											<h4 class="bg-info p-3 mt-3 mb-0 text-white font-weight-bold">HPC BENCHMARKS</h4>
+											<button type="button" class="btn btn-success mt-3" id="filter-testname-hpc-select-all-button">Select All</button>
+											<button type="button" class="btn btn-danger mt-3" id="filter-testname-hpc-clear-all-button">Clear All</button>
+											<div class="d-flex flex-column">
+												{% for benchmark in all_tests_data.hpc_sections_list %}
+													<div class="col filter-testname-checkbox-div my-0 py-0">
+														<div class="custom-control custom-checkbox">
+															<input type="checkbox" class="custom-control-input filter-testname-checkbox-hpc-checkbox" id="filter-testname-list-{{benchmark}}" name="filter_testname_list" value="{{benchmark}}">
+															<label class="custom-control-label filter-testname-checkbox-label" for="filter-testname-list-{{benchmark}}">{{benchmark}}</label>
+														</div>
+													</div>
+												{% endfor %}
 											</div>
-										{% endfor %}
-									</div>
+										</div>
 
-									<!-- Cloud Benchmarks list -->
-									<h4 class="bg-info p-3 mt-3 mb-0 text-white font-weight-bold">CLOUD BENCHMARKS</h4>
-									<button type="button" class="btn btn-success mt-3" id="filter-testname-cloud-select-all-button">Select All</button>
-									<button type="button" class="btn btn-danger mt-3" id="filter-testname-cloud-clear-all-button">Clear All</button>
-									<div class="d-flex container-fluid flex-wrap">
-										{% for benchmark in all_tests_data.cloud_sections_list %}
-											<div class="col filter-testname-checkbox-div">
-												<div class="custom-control custom-checkbox">
-													<input type="checkbox" class="custom-control-input filter-testname-checkbox-cloud-checkbox" id="filter-testname-list-{{benchmark}}" name="filter_testname_list" value="{{benchmark}}">
-													<label class="custom-control-label filter-testname-checkbox-label" for="filter-testname-list-{{benchmark}}">{{benchmark}}</label>
-												</div>
+										<!-- Cloud Benchmarks list -->
+										<div class="m-0 p-0">
+											<h4 class="bg-info p-3 mt-3 mb-0 text-white font-weight-bold">CLOUD BENCHMARKS</h4>
+											<button type="button" class="btn btn-success mt-3" id="filter-testname-cloud-select-all-button">Select All</button>
+											<button type="button" class="btn btn-danger mt-3" id="filter-testname-cloud-clear-all-button">Clear All</button>
+											<div class="d-flex flex-column">
+												{% for benchmark in all_tests_data.cloud_sections_list %}
+													<div class="col filter-testname-checkbox-div">
+														<div class="custom-control custom-checkbox my-0 py-0">
+															<input type="checkbox" class="custom-control-input filter-testname-checkbox-cloud-checkbox" id="filter-testname-list-{{benchmark}}" name="filter_testname_list" value="{{benchmark}}">
+															<label class="custom-control-label filter-testname-checkbox-label" for="filter-testname-list-{{benchmark}}">{{benchmark}}</label>
+														</div>
+													</div>
+												{% endfor %}
+
 											</div>
-										{% endfor %}
-
+										</div>
 									</div>
-
 								</div>
 							</div>
 						</div>
@@ -179,14 +184,14 @@ Reports Generation
 			<!-- Card footer -->
 			<div class="card-footer bg-transparent border-light d-flex flex-row-reverse">
 				<!-- Button which triggers the collapse -->
-				<button class="btn btn-primary font-weight-bold" type="button" data-toggle="collapse" data-target="#filter-by-testname-label-collapse" aria-expanded="false" aria-controls="filter-by-testname-label-collapse">
-					Click here to view filters by Labels & Benchmark names
+				<button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#filter-by-testname-label-collapse" aria-expanded="false" aria-controls="filter-by-testname-label-collapse">
+					View filters by Labels & Benchmark names
 				</button>
 			</div>
 		</div>
 
 		<!-- Filters for Best Results, Top 5, Best of Last quarter, etc. -->
-		<div class="card container mt-5">
+		<div class="card container mt-5" style="border-top: 15px solid #2d7a9c; border-right: 1px solid #2d7a9c; border-left: 1px solid #2d7a9c; border-bottom: 5px solid #2d7a9c;">
 			<div class="card-body">
 				<h4 class="card-title">Best Results</h4>
 				<p class="card-text lead text-secondary" id="best-results-filter-description">Select the type of results you want in the Reports Excel sheet</p>
@@ -211,7 +216,7 @@ Reports Generation
 		</div>
 
 		<!-- Other Specific filters Card -->
-		<div id="advanced-search-options" class="card container mt-5">
+		<div id="advanced-search-options" class="card container mt-5" style="border-top: 15px solid #2d7a9c; border-right: 1px solid #2d7a9c; border-left: 1px solid #2d7a9c; border-bottom: 5px solid #2d7a9c;">
 			<!-- Card Body -->
 			<div class="card-body">
 				<h4 class="card-title">Advanced Search Options</h4>
@@ -223,7 +228,7 @@ Reports Generation
 						<h4 class="text-secondary">Specify what columns you want to see, and which records would qualify.</h4>
 					</div>
 
-					<div class="row px-1 align-items-center" style="background: azure;">
+					<div class="row px-1 align-items-center" style="background: #e4f5ff;">
 							<div class="col-sm">
 								<h5>Parameter</h5>
 							</div>
@@ -347,7 +352,7 @@ Reports Generation
 			<!-- Card footer -->
 			<div class="card-footer bg-transparent border-light d-flex flex-row-reverse">
 				<!-- Button which triggers the collapse -->
-				<button class="btn btn-primary font-weight-bold" type="button" data-toggle="collapse" data-target="#advanced-search-collapse" aria-expanded="false" aria-controls="advanced-search-collapse">
+				<button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#advanced-search-collapse" aria-expanded="false" aria-controls="advanced-search-collapse">
 					Click here to view Advanced Filters
 				</button>
 			</div>
@@ -424,6 +429,10 @@ Reports Generation
 
 			$('#filter-by-testname-label-title').html("Filter by Label")
 			$('#filter-by-testname-label-description').html("Select the labels whose corresponding benchmarks you want in the final report")
+
+			setTimeout(()=>{
+				$("#live-search-labels-textbox").focus()
+			}, 250)
 		})
 
 		$('#filter-by-testname-pill').click(function(){
@@ -433,6 +442,11 @@ Reports Generation
 
 			$('#filter-by-testname-label-title').html("Filter by Benchmark Name")
 			$('#filter-by-testname-label-description').html("Select the benchmarks you want in the final report")
+
+			setTimeout(()=>{
+				$("#live-search-testname-textbox").focus()
+			}, 250)
+
 		})
 
 		// On click Functions for all "Select all" buttons
