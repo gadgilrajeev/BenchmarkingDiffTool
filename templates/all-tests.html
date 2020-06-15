@@ -30,20 +30,20 @@ All tests page
 		<ul class="navbar-nav font-weight-normal">
 			<li class="nav-item active">
 				<a class="nav-link" href="#">Home</a>
-    		</li>
-    		<li class="nav-item">
-    			<a class="nav-link" href="#best-of-all-graph-collapse-div">Best Results Graph</a>
-    		</li>
-    		<li class="nav-item">
-    			<a class="nav-link" href="#all-benchmarks-and-labels-title">All Benchmarks Tables</a>
 			</li>
 			<li class="nav-item">
-    			<a class="nav-link" href="/reports_page" target="_blank">Reports  <sup class="badge badge-primary badge-pill"><small>New</small></sup></a>
-    		</li>
+				<a class="nav-link" href="#best-of-all-graph-collapse-div">Best Results Graph</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="#all-benchmarks-and-labels-title">All Benchmarks Tables</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="/reports_page" target="_blank">Reports</a>
+			</li>
 		</ul>
 		<ul class="navbar-nav font-weight-normal ml-auto">
 			<li class="nav-item">
-				<a class="nav-link" href="/about" target="_blank">About  <sup class="badge badge-primary badge-pill"><small>New</small></sup></a>
+				<a class="nav-link" href="/about" target="_blank">About</a>
 			</li>
 		</ul>
 	</nav>
@@ -53,7 +53,7 @@ All tests page
 {% block content %}
 
 	<!-- Best of all graph collapse div -->
-	<div id="best-of-all-graph-collapse-div" class="card border-info my-5">
+	<div id="best-of-all-graph-collapse-div" class="card my-5" style="border-top: 15px solid #2d7a9c; border-right: 1px solid #2d7a9c; border-left: 1px solid #2d7a9c; border-bottom: 5px solid #2d7a9c;">
 		<div class="card-header bg-transparent h3">Best of all results graph</div>
 		<div class="card-body text-secondary">
 			<h5 class="card-title">About the graph</h5>
@@ -63,7 +63,7 @@ All tests page
 				<!-- The Actual Graph Div -->
 				<div class="card bg-light rounded mb-5" id="best-of-all-graph-div">
 					
-					<div class="mx-5 mb-5 w-75" style="height:500px; "id="best-of-all-graph">
+					<div class="mx-5 mb-5 w-75" style="height:500px;" id="best-of-all-graph">
 					</div>
 
 					<div class="card-footer mt-3 mb-0 p-0 bg-transparent d-flex">
@@ -94,10 +94,10 @@ All tests page
 						</div>
 
 						<!-- Download as CSV button -->
-						<button id="download-best-of-all-graph-csv" class="btn btn-outline-primary font-weight-bold float-right h-50 align-self-center ml-5 mr-3">Download as CSV</button>
+						<button id="download-best-of-all-graph-csv" class="btn btn-outline-primary float-right h-50 align-self-center ml-5 mr-3">Download as CSV</button>
 
 						<!-- Download as PNG button -->
-						<button id="download-best-of-all-graph-png" class="btn btn-primary font-weight-bold float-right h-50 align-self-center ml-5" onclick="downloadAsPng('Best results Normalized w.r.t. ' + $('#reference-for-normalized option:selected').text(), 'best-of-all-graph')">Download as PNG</button>
+						<button id="download-best-of-all-graph-png" class="btn btn-primary float-right h-50 align-self-center ml-5" onclick="downloadAsPng('Best results Normalized w.r.t. ' + $('#reference-for-normalized option:selected').text(), 'best-of-all-graph')">Download as PNG</button>
 
 						<!-- Toast (Popup info message) -->
 						<div id="reference-toast" class="toast ml-5" role="alert" aria-live="polite" aria-atomic="true" data-autohide="false">
@@ -106,7 +106,7 @@ All tests page
 						</div>
 
 						<!-- Show graph button
-						<button id="refresh-graph" class="btn btn-success font-weight-bold ml-auto h-50 align-self-center mr-5">Refresh Graph</button> -->
+						<button id="refresh-graph" class="btn btn-success ml-auto h-50 align-self-center mr-5">Refresh Graph</button> -->
 
 					</div>
 
@@ -115,32 +115,41 @@ All tests page
 			</div>
 		</div>
 		<div class="card-footer bg-transparent border-info d-flex flex-row-reverse">
-			<button id="bestGraphCollapseButton" class="btn btn-success font-weight-bold" type="button" data-toggle="collapse" data-target="#bestGraphCollapse" aria-expanded="false" aria-controls="bestGraphCollapse">
+			<button id="bestGraphCollapseButton" class="btn btn-success" type="button" data-toggle="collapse" data-target="#bestGraphCollapse" aria-expanded="false" aria-controls="bestGraphCollapse">
 				Click to view/hide the graph
 			</button>
 		</div>
 	</div>
 
-	<div id="all-benchmarks-and-labels-title" class="mt-5 container-fluid">
-		<hr class="bg-secondary container-fluid">
+	<div id="all-benchmarks-and-labels-title" class="mt-5 pb-5 container-fluid bg-light" style="border-top: 15px solid #2d7a9c; border-right: 1px solid #2d7a9c; border-left: 1px solid #2d7a9c;">
+		<hr class="bg-secondary">
 		<h2 class="mb-2">All Benchmarks and Label filters</h2>
 		<p class="lead font-weight-normal text-secondary">List of all labels and Benchmarks
 		<br>
 		</p>
 	</div>
 	<!-- Search benchmark form -->
-	<div id="search-benchmark-form-div" class="container-fluid mx-0 p-0">
+	<div id="search-benchmark-form-div" class="container-fluid mx-0 py-0 bg-light" style="border-right: 1px solid #2d7a9c; border-left: 1px solid #2d7a9c;">
 		<div class="form-group m-0">
-			<label id="search-label" for="search-textbox" class="h3 text-primary">Search Benchmark</label>
+			<label id="search-label" for="search-textbox" class="h3 text-secondary">Search Benchmark</label>
 			<input type="text" class="text-input form-control" id="search-textbox" placeholder="Search..." value="" />
 		</div>
 	</div>
 
 	<!-- Filter and tables -->
-	<div id="filters-and-tables" class="container-fluid d-flex justify-content-between">
+	<div id="filters-and-tables" class="container-fluid d-flex justify-content-between" style="border-right: 1px solid #2d7a9c; border-left: 1px solid #2d7a9c; border-bottom: 5px solid #2d7a9c;">
 		<!-- All Filters div -->
 		<div id="all-filters-div">
-			<div class="card-header bg-transparent h2 text-primary">Filter by Labels</div>
+			<!-- Filter by labels title -->
+			<div id="filter-by-labels-title" class="card-header bg-transparent pt-0 mt-0 container-fluid">
+				<hr class="bg-secondary">
+				<h2>Filter by Labels</h2>
+				<p class="lead font-weight-normal text-secondary">Select a label to redraw
+				<br>
+				the above graph
+				</p>
+			</div>
+
 			<form>
 				<!-- List of filter labels -->
 				<div style="max-height: 100vh; overflow-y: auto;">
@@ -164,22 +173,26 @@ All tests page
 							<label class="text-white pr-2">To</label>
 							<input type="date" id="to-date" name="to-date" min="2000-01-01" required>
 						</div>
-       					<button id="apply-date-filter-button" type="button" class="btn btn-success m-2 font-weight-bold">Apply date filter</button>
-       					<button id="remove-date-filter-button" type="button" class="btn btn-danger m-2 font-weight-bold">Remove date filter</button>
+						<button id="apply-date-filter-button" type="button" class="btn btn-success m-2">Apply date filter</button>
+						<button id="remove-date-filter-button" type="button" class="btn btn-danger m-2">Remove date filter</button>
 
 						<div id="filter-toast" class="toast mt-3 p-1" role="alert" aria-live="polite" aria-atomic="true" data-autohide="false">
 							<div id="filter-toast-info" class="toast-header"><h4 class="text-white">Information:</h4></div>
 							<div class="toast-body"><h5 id="filter-toast-body"></h5></div>
 						</div>
-
-       				</div>
+					</div>
 				</div>
 			</form>
 		</div>
 
 		<!-- HPC Table div -->
 		<div id="hpc-table-div" class=''>
-			<h2 class="mx-2 mb-2 pb-2 text-primary text-center">HPC Benchmarks</h2>
+			<!-- HPC Table title -->
+			<div id="sku-comparison-graph-title" class="card-header bg-transparent pt-0 mt-0 container-fluid">
+				<hr class="bg-secondary">
+				<h2>HPC Benchmarks</h2>
+			</div>
+
 			<div class="p-0 m-0" style="max-height: 100vh; overflow-y: auto;">
 				<table class="table table-dark table-hover" id="hpc-benchmarks-list">
 					{% for benchmark in context.hpc_benchmarks_list %}
@@ -194,7 +207,10 @@ All tests page
 
 		<!-- Cloud Table div -->
 		<div id="cloud-table-div" class=''>
-			<h2 class="mb-2 pb-2 text-primary text-center">Cloud Benchmarks</h2>
+			<div id="sku-comparison-graph-title" class="card-header bg-transparent pt-0 mt-0 container-fluid">
+				<hr class="bg-secondary">
+				<h2>Cloud Benchmarks</h2>
+			</div>
 			<div class="p-0 m-0" style="max-height: 100vh; overflow-y: auto;">
 				<table class="table table-dark table-hover" id="cloud-benchmarks-list">
 					{% for benchmark in context.cloud_benchmarks_list %}
@@ -215,7 +231,6 @@ All tests page
 <script>
 	
 	$(document).ready(function() {
-		
 		$(".filter-checkboxes").prop('checked', false)
 
 		$("#search-textbox").val("")
@@ -223,23 +238,22 @@ All tests page
 		console.log("SENDING REQUEST")
 
 		//Draw the initial best-of-all-graph
-    	drawBestOfAllGraph('{{ context.reference_list[0] }}')
+		drawBestOfAllGraph('{{ context.reference_list[0] }}')
 
-    	$('#from-date').val("")
-    	$('#to-date').val("")
+		$('#from-date').val("")
+		$('#to-date').val("")
 
-    	// Show and hide immediately because it is taking up space
-    	$('#filter-toast').toast('show')
+		// Show and hide immediately because it is taking up space
+		$('#filter-toast').toast('show')
 		setTimeout(function(){	
 			$('#filter-toast').toast('hide')
 		},1000)
 
-    	// Show and hide immediately because it is taking up space
-    	$('#reference-toast').toast('show')
+		// Show and hide immediately because it is taking up space
+		$('#reference-toast').toast('show')
 		setTimeout(function(){	
 			$('#reference-toast').toast('hide')
 		},500)
-
 	});
 
 	// Search benchmark on keyup
@@ -267,14 +281,16 @@ All tests page
 	$("#search-benchmark-form-div").hover(
 		// on mouse hover
 		() => {
-			$('#search-benchmark-form-div').addClass("bg-primary");
-			$('#search-label').removeClass('text-primary')
+			$('#search-benchmark-form-div').removeClass("bg-light");
+			$('#search-benchmark-form-div').css("background-color", '#2d7a9c');
+			$('#search-label').removeClass('text-secondary')
 			$('#search-label').addClass('text-white')
 		}, 
 		// on mouse leave
 		() => {
-			$('#search-benchmark-form-div').removeClass("bg-primary");
-			$('#search-label').addClass('text-primary')
+			$('#search-benchmark-form-div').css("background-color", '');
+			$('#search-benchmark-form-div').addClass("bg-light");
+			$('#search-label').addClass('text-secondary')
 			$('#search-label').removeClass('text-white')
 		}
 	);
@@ -303,10 +319,10 @@ All tests page
 		// Graph does not exist initially when we load/refresh page
 		$dropdownMenu = $('#reference-for-normalized-dropdown')
 		$firstNormalized = $dropdownMenu.children()[1].innerHTML
-		
+
 		graphDiv = document.getElementById('best-of-all-graph')
 		normalizedWRT = graphDiv.data ? graphDiv.data.normalizedWRT : $firstNormalized
-		
+
 		//Draw new best_of_all_graph according to filters
 		drawBestOfAllGraph(normalizedWRT)
 	})
@@ -324,8 +340,8 @@ All tests page
 		}
 		else
 		{
-	    	//show success message
-	    	showFilterToast('bg-success', "Applying filters. Redrawing graph")
+			//show success message
+			showFilterToast('bg-success', "Applying filters. Redrawing graph")
 
 			// Get normalized WRT if graph exists, or choose the first one
 			// Graph does not exist initially when we load/refresh page
@@ -350,20 +366,20 @@ All tests page
 			showFilterToast('bg-danger', "No Filters are currently applied")
 		}
 		else{
-	    	$('#from-date').val("")
-	    	$('#to-date').val("")
+			$('#from-date').val("")
+			$('#to-date').val("")
 
-	    	//show success message
-	    	showFilterToast('bg-success', "Removed filters. Redrawing graph")
+			//show success message
+			showFilterToast('bg-success', "Removed filters. Redrawing graph")
 
 			// Get normalized WRT if graph exists, or choose the first one
 			// Graph does not exist initially when we load/refresh page
 			$dropdownMenu = $('#reference-for-normalized-dropdown')
 			$firstNormalized = $dropdownMenu.children()[1].innerHTML
-			
+
 			graphDiv = document.getElementById('best-of-all-graph')
 			normalizedWRT = graphDiv.data ? graphDiv.data.normalizedWRT : $firstNormalized
-			
+
 			//Draw new best_of_all_graph according to filters
 			drawBestOfAllGraph(normalizedWRT)
     	}
@@ -383,16 +399,16 @@ All tests page
 
 		data['x'] = $bestOfAllGraph[0]._fullLayout.xaxis._categories
 
-		for(i = 0; i < $bestOfAllGraph[0].data.length; i++){
+		for(i = 0; i < $bestOfAllGraph[0].data.length; i++) {
 			$name = $bestOfAllGraph[0].data[i].name
 			data['y_'+$name] = []
-		  for(j = 0; j < data['x'].length; j++){
-		  	$currentX = $bestOfAllGraph[0].data[i].x
-		    $index = $.inArray(data['x'][j], $currentX)
+			for(j = 0; j < data['x'].length; j++) {
+				$currentX = $bestOfAllGraph[0].data[i].x
+				$index = $.inArray(data['x'][j], $currentX)
 				if($index != -1){
 					data['y_'+$name].push($bestOfAllGraph[0].data[i].y[$index])
-		    }
-		    else{
+				}
+				else {
 					data['y_'+$name].push("")
 				}
 		  }
@@ -412,10 +428,10 @@ All tests page
 			// Graph does not exist initially when we load/refresh page
 			$dropdownMenu = $('#reference-for-normalized-dropdown')
 			$firstNormalized = $dropdownMenu.children()[1].innerHTML
-			
+
 			graphDiv = document.getElementById('best-of-all-graph')
 			normalizedWRT = graphDiv.data ? graphDiv.data.normalizedWRT : $firstNormalized
-			
+
 			//Draw new best_of_all_graph according to filters
 			drawBestOfAllGraph(normalizedWRT)
 	})
@@ -445,7 +461,7 @@ All tests page
 
 	function normalizedReferenceChanged(normalizedWRT) {
 		graphDiv = document.getElementById('best-of-all-graph')
-	
+
 		if(graphDiv.data && graphDiv.data.normalizedWRT == normalizedWRT)
 		{
 			console.log("SAME REFERENCE MAN" + normalizedWRT)
@@ -464,4 +480,3 @@ All tests page
 </script>
 
 {% endblock content %}
-
