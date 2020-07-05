@@ -102,6 +102,10 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# Editor files
+.vimrc
+.vscode*
+
 # exclude everything inside the folder
 temp_download_files/*
 cached_results/*
