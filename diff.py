@@ -1263,7 +1263,7 @@ def diff_tests():
 
         def apply_result_type(x):
             try:
-                return result_type_map[x]
+                return result_type_map[int(x)]
             except:
                 logging.warning("Couldn't parse result type")
                 return None
