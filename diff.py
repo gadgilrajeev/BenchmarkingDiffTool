@@ -17,11 +17,11 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from packaging.version import LegacyVersion
 import json
 
-DB_HOST_IP = '1.21.1.65'
+# DB_HOST_IP = '1.21.1.65'
 # DB_HOST_IP = '10.110.169.149'
-# DB_HOST_IP = 'localhost'
+DB_HOST_IP = 'localhost'
 DB_USER = 'root'
-DB_PASSWD = ''
+DB_PASSWD = 'root'
 DB_NAME = 'benchtooldb'
 DB_PORT = 3306
 
@@ -41,7 +41,7 @@ result_type_map = {0: "single thread", 1: 'single core',
 month_name_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', 5:'May', 6:'Jun', 7:'Jul', 8:'Aug', 9:'Sep', 10: 'Oct', 11:'Nov', 12:'Dec'}
 
 # Uncomment this line for toggling debugging messages on the console
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
@@ -518,13 +518,15 @@ def get_all_runs_data(testname, secret=False):
 # Show all runs of a test 'testname'
 @app.route('/allruns/<testname>', methods=['GET'])
 def all_runs_page(testname):
+    
     # Reference for best_of_all_graph
     sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
+
     # Reference dropdown for timeline graphs
-    all_skus_list = sku_parser.sections();
+    all_skus_list = sku_parser.sections()
 
     try:
         context = get_all_runs_data(testname)
@@ -689,10 +691,7 @@ def get_test_details_data(originID, secret=False):
     logging.debug("BEFORE GETTING DATAFRAME")
 
     # RESULTS TABLE
-    RESULTS_QUERY = """SELECT R.resultID, S.description, R.number, S.resultype, disp.unit, disp.qualifier, R.isvalid
-                        FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID 
-                        INNER JOIN display disp ON disp.displayID=R.display_displayID 
-                        INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + \
+    RESULTS_QUERY = """SELECT R.resultID, S.description, R.number, S.resultype, disp.unit, disp.qualifier, R.isvalid FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID INNER JOIN display disp ON disp.displayID=R.display_displayID INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + \
                         RESULTS_VALIDITY_CONDITION + ";"
     results_dataframe = pd.read_sql(RESULTS_QUERY, db)
 
@@ -826,10 +825,10 @@ def get_test_details_data(originID, secret=False):
 
         # list for creating a column in the system_details_dataframe
         nas_link = []
-        nas_link.append("http://sm2650-2s-01/dbresults/" +
+        nas_link.append("http://localhost:5000/dbresults/" +
                         jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]))
         jenkins_link = []
-        jenkins_link.append("http://sm2650-2s-05:8080/view/Production_Pipeline/job/" +
+        jenkins_link.append("http://localhost:5000/view/Production_Pipeline/job/" +
                             jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]))
 
         # Put the Jenkins details in the System Details Dataframe
@@ -3378,7 +3377,7 @@ def parallel_test_report(params, **kwargs):
 
     # Add "FACTS Link" column at the end
     index = len(results_dataframe.columns)
-    results_dataframe.insert(index, "FACTS Link", ['http://gbt-2s-02:5000/test-details/' + str(originID) for originID in results_dataframe['originID']])
+    results_dataframe.insert(index, "FACTS Link", ['http://localhost:5000/test-details/' + str(originID) for originID in results_dataframe['originID']])
 
     return results_dataframe
 
