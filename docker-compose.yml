@@ -1,0 +1,43 @@
+services:
+  web:
+    build:
+      context: .
+    container_name: flask_app
+    restart: always
+    expose:
+      - "5000"
+    environment:
+      MYSQL_HOST: mysql_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: benchtooldb
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
+
+  db:
+    image: mysql:8.0.40
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: benchtooldb
+    ports:
+      - "3307:3306"  # Map MySQL's internal port 3306 to host's port 3307
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./data/custom.cnf:/etc/mysql/conf.d/custom.cnf
+      # - ./data/dump.sql:/docker-entrypoint-initdb.d/dump.sql:ro  # Mount SQL dump file
+
+volumes:
+  mysql_data:
