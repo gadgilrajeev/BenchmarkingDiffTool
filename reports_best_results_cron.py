@@ -17,11 +17,11 @@ from pprint import pprint
 
 script_directory = os.path.dirname(os.path.realpath(__file__))
 
-DB_HOST_IP = '1.21.1.65'
+# DB_HOST_IP = '1.21.1.65'
 # DB_HOST_IP = '10.110.169.149'
-# DB_HOST_IP = 'localhost'
+DB_HOST_IP = 'localhost'
 DB_USER = 'root'
-DB_PASSWD = ''
+DB_PASSWD = 'root'
 DB_NAME = 'benchtooldb'
 DB_PORT = 3306
 
@@ -260,7 +260,7 @@ def parallel_test_report(params, **kwargs):
 
     # Add "FACTS Link" column at the end
     index = len(results_dataframe.columns)
-    results_dataframe.insert(index, "FACTS Link", ['http://gbt-2s-02:5000/test-details/' + str(originID) for originID in results_dataframe['originID']])
+    results_dataframe.insert(index, "FACTS Link", ['http://localhost:5000/test-details/' + str(originID) for originID in results_dataframe['originID']])
 
     return results_dataframe
     
