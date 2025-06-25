@@ -19,7 +19,7 @@ services:
     container_name: nginx_proxy
     restart: always
     ports:
-      - "80:80"
+      - "8005:8005"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
