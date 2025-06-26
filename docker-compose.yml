@@ -33,11 +33,11 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: benchtooldb
     ports:
-      - "3307:3306"  # Map MySQL's internal port 3306 to host's port 3307
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./data/custom.cnf:/etc/mysql/conf.d/custom.cnf
-      # - ./data/dump.sql:/docker-entrypoint-initdb.d/dump.sql:ro  # Mount SQL dump file
+      - ./data/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
 volumes:
   mysql_data:
