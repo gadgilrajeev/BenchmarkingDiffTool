@@ -2369,6 +2369,8 @@ def best_of_all_graph():
         logging.error("Missing or empty 'normalizedWRT' in request payload.")
         return jsonify({"error": "Missing 'normalizedWRT' value."}), 400
 
+    logging.debug("sku_parser", sku_parser.sections())
+    
     if normalized_wrt not in sku_parser.sections():
         logging.error(f"'normalizedWRT' value '{normalized_wrt}' not found in sku_definition.ini")
         return jsonify({"error": f"'normalizedWRT' value '{normalized_wrt}' not found in config."}), 400
