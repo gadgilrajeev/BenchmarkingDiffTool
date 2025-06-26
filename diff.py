@@ -2363,6 +2363,8 @@ def best_of_all_graph():
     normalized_wrt = data.get('normalizedWRT', '').strip()
     result_type_filter = data.get('resultTypeFilter', '').strip()
 
+    normalized_wrt = "Marvell TX2-B2"
+
     if not normalized_wrt:
         logging.error("Missing or empty 'normalizedWRT' in request payload.")
         return jsonify({"error": "Missing 'normalizedWRT' value."}), 400
