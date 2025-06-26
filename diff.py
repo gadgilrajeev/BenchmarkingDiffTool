@@ -825,10 +825,10 @@ def get_test_details_data(originID, secret=False):
 
         # list for creating a column in the system_details_dataframe
         nas_link = []
-        nas_link.append("http://localhost:5000/dbresults/" +
+        nas_link.append("http://localhost:8005/dbresults/" +
                         jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]))
         jenkins_link = []
-        jenkins_link.append("http://localhost:5000/view/Production_Pipeline/job/" +
+        jenkins_link.append("http://localhost:8005/view/Production_Pipeline/job/" +
                             jenkins_details['jobname'][0] + "/" + str(jenkins_details['runID'][0]))
 
         # Put the Jenkins details in the System Details Dataframe
@@ -3377,7 +3377,7 @@ def parallel_test_report(params, **kwargs):
 
     # Add "FACTS Link" column at the end
     index = len(results_dataframe.columns)
-    results_dataframe.insert(index, "FACTS Link", ['http://localhost:5000/test-details/' + str(originID) for originID in results_dataframe['originID']])
+    results_dataframe.insert(index, "FACTS Link", ['http://localhost:8005/test-details/' + str(originID) for originID in results_dataframe['originID']])
 
     return results_dataframe
 
