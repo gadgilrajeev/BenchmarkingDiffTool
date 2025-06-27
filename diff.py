@@ -31,7 +31,7 @@ logging.basicConfig(
 
 # DB_HOST_IP = '1.21.1.65'
 # DB_HOST_IP = '10.110.169.149'
-DB_HOST_IP = 'localhost'
+DB_HOST_IP = 'mysql_db'
 DB_USER = 'root'
 DB_PASSWD = 'root'
 DB_NAME = 'benchtooldb'
