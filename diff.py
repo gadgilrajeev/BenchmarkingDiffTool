@@ -361,12 +361,16 @@ def page_not_found(e):
 def home_page():
     context = get_all_tests_data()
 
+    logging.debug(context)
+
     # For result type filter
     result_type_list = [3, 2, 7, 6, 5, 8, 1, 0]
     # Convert to result_type string according to result_type_map
     result_type_list = [result_type_map[x] for x in result_type_list]
 
     context['result_type_list'] = result_type_list
+
+    logging.debug("context", context)
 
     return render_template('all-tests.html', context=context)
 
@@ -398,25 +402,9 @@ def get_all_runs_data(testname, secret=False):
         RESULTS_VALIDITY_CONDITION = " AND r.isvalid = 1 "
 
     if min_or_max_list[0] == '0':
-        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MIN(r.number) as \'Best" +\
-                        qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp 
-                        ON  r.display_displayID = disp.displayID
-                        INNER JOIN origin o ON o.originID = r.origin_originID 
-                        INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
-                        where t.testname = \'""" + testname + """\' 
-                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + \
-                        RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid
-                        ORDER BY o.originID DESC"""
+        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MIN(r.number) as \'Best" + qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp ON  r.display_displayID = disp.displayID INNER JOIN origin o ON o.originID = r.origin_originID INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID where t.testname = \'""" + testname + """\' AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid ORDER BY o.originID DESC"""
     else:
-        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MAX(r.number) as \'Best" +\
-                        qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp 
-                        ON  r.display_displayID = disp.displayID 
-                        INNER JOIN origin o ON o.originID = r.origin_originID 
-                        INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
-                        where t.testname = \'""" + testname + """\' 
-                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + \
-                        RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid
-                        ORDER BY o.originID DESC"""
+        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MAX(r.number) as \'Best" +qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp ON  r.display_displayID = disp.displayID INNER JOIN origin o ON o.originID = r.origin_originID INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID where t.testname = \'""" + testname + """\' AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid ORDER BY o.originID DESC"""
     
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
@@ -448,10 +436,8 @@ def get_all_runs_data(testname, secret=False):
         input_parameters = results_metadata_parser.get(testname, 'description') \
                                                     .replace('\"', '').replace(' ', '').split(',')
 
-        INPUT_FILE_QUERY = """SELECT DISTINCT s.description, r.isvalid FROM origin o INNER JOIN testdescriptor t
-                                ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
-                                ON o.originID = r.origin_originID INNER JOIN subtest s
-                                ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\';" #RRG
+        INPUT_FILE_QUERY = """SELECT DISTINCT s.description, r.isvalid FROM origin o INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r ON o.originID = r.origin_originID INNER JOIN subtest s ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\';" #RRG
+        
         logging.debug(INPUT_FILE_QUERY)
         try:
             input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
@@ -703,8 +689,11 @@ def get_test_details_data(originID, secret=False):
     logging.debug("BEFORE GETTING DATAFRAME")
 
     # RESULTS TABLE
-    RESULTS_QUERY = """SELECT R.resultID, S.description, R.number, S.resultype, disp.unit, disp.qualifier, R.isvalid FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID INNER JOIN display disp ON disp.displayID=R.display_displayID INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + \
-                        RESULTS_VALIDITY_CONDITION + ";"
+    # RESULTS_QUERY = """SELECT R.resultID, S.description, R.number, S.resultype, disp.unit, disp.qualifier, R.isvalid FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID INNER JOIN display disp ON disp.displayID=R.display_displayID INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + \
+    #                     RESULTS_VALIDITY_CONDITION + ";"
+    
+    RESULTS_QUERY = f"""SELECT R.resultID, S.description, R.number, S.resultype, disp.unit, disp.qualifier, R.isvalid FROM result R LEFT JOIN subtest S ON S.subtestID = R.subtest_subtestID LEFT JOIN display disp ON disp.displayID = R.display_displayID INNER JOIN origin O ON O.originID = R.origin_originID WHERE O.originID = {originID} {RESULTS_VALIDITY_CONDITION};"""
+
     results_dataframe = pd.read_sql(RESULTS_QUERY, db)
 
     # Map the resultype to the result type name Example 2-> Single Socket
@@ -2363,7 +2352,7 @@ def best_of_all_graph():
     normalized_wrt = data.get('normalizedWRT', '').strip()
     result_type_filter = data.get('resultTypeFilter', '').strip()
 
-    normalized_wrt = "Marvell TX2-B2"
+    # normalized_wrt = "Marvell TX2-B2"
 
     if not normalized_wrt:
         logging.error("Missing or empty 'normalizedWRT' in request payload.")
