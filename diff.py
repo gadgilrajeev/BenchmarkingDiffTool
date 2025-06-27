@@ -286,14 +286,14 @@ def favicon():
                                'images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # Get all-tests data
-def get_all_tests_data(wiki_description_file= BASE_URL + '/config/wiki_description.ini'):
+def get_all_tests_data(wiki_description_file= './config/wiki_description.ini'):
     parser = configparser.ConfigParser()
     parser.read(wiki_description_file)
 
     logging.debug('Parser', parser)
 
     # Reference for best_of_all_graph
-    sku_file_path = BASE_URL + '/config/sku_definition.ini'
+    sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
