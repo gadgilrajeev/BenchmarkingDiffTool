@@ -297,7 +297,7 @@ def get_all_tests_data(wiki_description_file= './config/wiki_description.ini'):
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
-    reference_list = sku_parser.sections();
+    reference_list = sku_parser.sections()
     logging.debug("SECTIONS")
     logging.debug("{}".format(reference_list))
 
@@ -331,7 +331,7 @@ def get_all_tests_data(wiki_description_file= './config/wiki_description.ini'):
 
     hpc_sections_list = []
     cloud_sections_list = []
-    if wiki_description_file == BASE_URL + '/config/best_of_all_graph.ini':
+    if wiki_description_file == './config/best_of_all_graph.ini':
         hpc_sections_list, cloud_sections_list = hpc_benchmarks_list, cloud_benchmarks_list
         hpc_benchmarks_list = [parser.get(section, 'testname').strip() for section in hpc_sections_list]
         cloud_benchmarks_list = [parser.get(section, 'testname').strip() for section in cloud_sections_list]
