@@ -37,6 +37,9 @@ DB_PASSWD = 'root'
 DB_NAME = 'benchtooldb'
 DB_PORT = 3306
 
+BASE_URL = '.' # Uncomment for Local Machine
+BASE_URL = '/app' # Uncomment for AADP Machine
+
 # The number of cores to be used for multiprocessing
 num_processes = 40
 
@@ -159,12 +162,12 @@ def no_of_rows(dictionary):
 def read_all_parameter_lists(parameter_lists, test_name):
 
     # read metadata from metadata.ini file
-    env_metadata_file_path = './config/metadata.ini'
+    env_metadata_file_path = BASE_URL + '/config/metadata.ini'
     env_metadata_parser = configparser.ConfigParser()
     env_metadata_parser.read(env_metadata_file_path)
 
     # Read metadata for results in wiki_description.ini file
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path = BASE_URL + '/config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -288,7 +291,7 @@ def get_all_tests_data(wiki_description_file='./config/wiki_description.ini'):
     parser.read(wiki_description_file)
 
     # Reference for best_of_all_graph
-    sku_file_path = './config/sku_definition.ini'
+    sku_file_path = BASE_URL + '/config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -326,7 +329,7 @@ def get_all_tests_data(wiki_description_file='./config/wiki_description.ini'):
 
     hpc_sections_list = []
     cloud_sections_list = []
-    if wiki_description_file == './config/best_of_all_graph.ini':
+    if wiki_description_file == BASE_URL + '/config/best_of_all_graph.ini':
         hpc_sections_list, cloud_sections_list = hpc_benchmarks_list, cloud_benchmarks_list
         hpc_benchmarks_list = [parser.get(section, 'testname').strip() for section in hpc_sections_list]
         cloud_benchmarks_list = [parser.get(section, 'testname').strip() for section in cloud_sections_list]
@@ -384,7 +387,7 @@ def about_page():
 # Get data for All runs of the test 'testname' from database
 def get_all_runs_data(testname, secret=False):
     # Read metadata for results in wiki_description.ini file
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path = BASE_URL + '/config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -518,7 +521,7 @@ def get_all_runs_data(testname, secret=False):
 def all_runs_page(testname):
     
     # Reference for best_of_all_graph
-    sku_file_path = './config/sku_definition.ini'
+    sku_file_path = BASE_URL + '/config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -1392,7 +1395,7 @@ def sku_comparison_graph():
     input_filters_list = data['inputFiltersList']
     INPUT_FILTER_CONDITION = get_input_filter_condition(testname, input_filters_list)
 
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path = BASE_URL + '/config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -1402,7 +1405,7 @@ def sku_comparison_graph():
                     .replace('\"', '').replace(' ', '').split(',')
     index = qualifier_list.index(yParameter)
 
-    sku_file_path = './config/sku_definition.ini'
+    sku_file_path = BASE_URL + '/config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -1691,7 +1694,7 @@ def best_sku_graph():
     if result_type_filter == "None":
         result_type_filter = None
 
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path = BASE_URL + '/config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -1717,7 +1720,7 @@ def best_sku_graph():
                     .replace('\"', '').replace(' ', '').split(',')[0]
 
 
-    sku_file_path = './config/sku_definition.ini'
+    sku_file_path = BASE_URL + '/config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -1844,7 +1847,7 @@ def best_sku_graph():
 # Returns the NORMALIZED version of the graph with respect to a xParameter
 @app.route('/best_sku_graph_normalized', methods=['POST'])
 def best_sku_graph_normalized():
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path = BASE_URL + '/config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -1882,7 +1885,7 @@ def best_sku_graph_normalized():
         normalized_y_list = [value/y_list[index] for value in y_list]
 
     # Colors for the graphs
-    sku_file_path = './config/sku_definition.ini'
+    sku_file_path = BASE_URL + '/config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -1936,7 +1939,7 @@ def timeline_graph():
     input_filters_list = data['inputFiltersList']
     INPUT_FILTER_CONDITION = get_input_filter_condition(testname, input_filters_list)
 
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path = BASE_URL + '/config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -1946,7 +1949,7 @@ def timeline_graph():
                     .replace('\"', '').replace(' ', '').split(',')
     index = qualifier_list.index(yParameter)
 
-    sku_file_path = './config/sku_definition.ini'
+    sku_file_path = BASE_URL + '/config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -2228,7 +2231,7 @@ def parallel_get_best_results(params, **kwargs):
     result_type_filter = kwargs['result_type_filter']
     normalized_wrt = kwargs['normalized_wrt']
 
-    sku_file_path = './config/sku_definition.ini'
+    sku_file_path = BASE_URL + '/config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
@@ -2332,8 +2335,8 @@ def best_of_all_graph():
     start_time = time.time()
 
     # Load config files
-    wiki_metadata_file_path = './config/best_of_all_graph.ini'
-    sku_file_path = './config/sku_definition.ini'
+    wiki_metadata_file_path = BASE_URL + '/config/best_of_all_graph.ini'
+    sku_file_path = BASE_URL + '/config/sku_definition.ini'
 
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(wiki_metadata_file_path)
@@ -3176,7 +3179,7 @@ def parallel_test_report(params, **kwargs):
     logging.debug("Processing Paralelly for {}".format(testname))
     logging.debug("Input filter condition = {}".format(INPUT_FILTER_CONDITION))
 
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path = BASE_URL + '/config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -3370,11 +3373,11 @@ def generate_reports():
 
     logging.debug("Got request for generate reports")
 
-    results_metadata_file_path = './config/best_of_all_graph.ini'
+    results_metadata_file_path = BASE_URL + '/config/best_of_all_graph.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
-    sku_file_path = './config/sku_definition.ini'
+    sku_file_path = BASE_URL + '/config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
