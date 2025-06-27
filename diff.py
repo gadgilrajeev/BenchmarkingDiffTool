@@ -255,7 +255,7 @@ def read_all_csv_files(compare_lists, parameter_lists, originID_compare_list):
     return compare_lists
 
 # Returns INPUT_FILTER_CONDITION from 'test_name' and 'input_filters_list'
-def get_input_filter_condition(test_name, input_filters_list, wiki_description_file='./config/wiki_description.ini'):
+def get_input_filter_condition(test_name, input_filters_list, wiki_description_file=BASE_URL+ '/config/wiki_description.ini'):
     INPUT_FILTER_CONDITION = ""
 
     results_metadata_file_path = wiki_description_file
@@ -286,9 +286,11 @@ def favicon():
                                'images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # Get all-tests data
-def get_all_tests_data(wiki_description_file='./config/wiki_description.ini'):
+def get_all_tests_data(wiki_description_file= BASE_URL + '/config/wiki_description.ini'):
     parser = configparser.ConfigParser()
     parser.read(wiki_description_file)
+
+    logging.debug('Parser', parser)
 
     # Reference for best_of_all_graph
     sku_file_path = BASE_URL + '/config/sku_definition.ini'
@@ -3124,7 +3126,7 @@ def download_as_csv():
 def reports_page():
 
     # For 'Go To Benchmark' Dropdown
-    all_tests_data = get_all_tests_data(wiki_description_file='./config/best_of_all_graph.ini')
+    all_tests_data = get_all_tests_data(wiki_description_file=BASE_URL + '/config/best_of_all_graph.ini')
 
     param_list = [
         {
