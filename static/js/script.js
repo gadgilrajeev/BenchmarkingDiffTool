@@ -99,6 +99,7 @@ function drawBestOfAllGraph(normalizedWRT){
 		'resultTypeFilter' : $('#resultype-filter option:selected').val(),
 	}
 
+	
 	Plotly.purge('best-of-all-graph')
 
 	// Set html to loading circle

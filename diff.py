@@ -17,9 +17,21 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from packaging.version import LegacyVersion
 import json
 
+import logging
+from flask import jsonify
+
+# Logging setup
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+
 # DB_HOST_IP = '1.21.1.65'
 # DB_HOST_IP = '10.110.169.149'
-DB_HOST_IP = 'localhost'
+DB_HOST_IP = 'mysql_db'
 DB_USER = 'root'
 DB_PASSWD = 'root'
 DB_NAME = 'benchtooldb'
@@ -271,16 +283,18 @@ def favicon():
                                'images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # Get all-tests data
-def get_all_tests_data(wiki_description_file='./config/wiki_description.ini'):
+def get_all_tests_data(wiki_description_file= './config/wiki_description.ini'):
     parser = configparser.ConfigParser()
     parser.read(wiki_description_file)
+
+    logging.debug('Parser', parser)
 
     # Reference for best_of_all_graph
     sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
-    reference_list = sku_parser.sections();
+    reference_list = sku_parser.sections()
     logging.debug("SECTIONS")
     logging.debug("{}".format(reference_list))
 
@@ -349,12 +363,16 @@ def page_not_found(e):
 def home_page():
     context = get_all_tests_data()
 
+    logging.debug(context)
+
     # For result type filter
     result_type_list = [3, 2, 7, 6, 5, 8, 1, 0]
     # Convert to result_type string according to result_type_map
     result_type_list = [result_type_map[x] for x in result_type_list]
 
     context['result_type_list'] = result_type_list
+
+    logging.debug("context", context)
 
     return render_template('all-tests.html', context=context)
 
@@ -368,7 +386,7 @@ def about_page():
 # Get data for All runs of the test 'testname' from database
 def get_all_runs_data(testname, secret=False):
     # Read metadata for results in wiki_description.ini file
-    results_metadata_file_path = './config/wiki_description.ini'
+    results_metadata_file_path ='./config/wiki_description.ini'
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(results_metadata_file_path)
 
@@ -386,25 +404,9 @@ def get_all_runs_data(testname, secret=False):
         RESULTS_VALIDITY_CONDITION = " AND r.isvalid = 1 "
 
     if min_or_max_list[0] == '0':
-        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MIN(r.number) as \'Best" +\
-                        qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp 
-                        ON  r.display_displayID = disp.displayID
-                        INNER JOIN origin o ON o.originID = r.origin_originID 
-                        INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
-                        where t.testname = \'""" + testname + """\' 
-                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + \
-                        RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid
-                        ORDER BY o.originID DESC"""
+        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MIN(r.number) as \'Best" + qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp ON  r.display_displayID = disp.displayID INNER JOIN origin o ON o.originID = r.origin_originID INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID where t.testname = \'""" + testname + """\' AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid ORDER BY o.originID DESC"""
     else:
-        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MAX(r.number) as \'Best" +\
-                        qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp 
-                        ON  r.display_displayID = disp.displayID 
-                        INNER JOIN origin o ON o.originID = r.origin_originID 
-                        INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID 
-                        where t.testname = \'""" + testname + """\' 
-                        AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + \
-                        RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid
-                        ORDER BY o.originID DESC"""
+        ALL_RUNS_QUERY = "SELECT DISTINCT o.originID, o.testdate, o.hostname, MAX(r.number) as \'Best" +qualifier_list[0].replace(" ",'') + """\', o.notes, r.isvalid from result r INNER JOIN display disp ON  r.display_displayID = disp.displayID INNER JOIN origin o ON o.originID = r.origin_originID INNER JOIN testdescriptor t ON t.testdescriptorID = o.testdescriptor_testdescriptorID where t.testname = \'""" + testname + """\' AND disp.qualifier LIKE \'%""" + qualifier_list[0] + "%\'" + RESULTS_VALIDITY_CONDITION + """ GROUP BY o.originID, o.testdate, o.hostname, o.notes, r.isvalid ORDER BY o.originID DESC"""
     
     db = pymysql.connect(host=DB_HOST_IP, user=DB_USER,
                          passwd=DB_PASSWD, db=DB_NAME, port=DB_PORT)
@@ -436,10 +438,8 @@ def get_all_runs_data(testname, secret=False):
         input_parameters = results_metadata_parser.get(testname, 'description') \
                                                     .replace('\"', '').replace(' ', '').split(',')
 
-        INPUT_FILE_QUERY = """SELECT DISTINCT s.description, r.isvalid FROM origin o INNER JOIN testdescriptor t
-                                ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r
-                                ON o.originID = r.origin_originID INNER JOIN subtest s
-                                ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\';" #RRG
+        INPUT_FILE_QUERY = """SELECT DISTINCT s.description, r.isvalid FROM origin o INNER JOIN testdescriptor t ON t.testdescriptorID=o.testdescriptor_testdescriptorID  INNER JOIN result r ON o.originID = r.origin_originID INNER JOIN subtest s ON  r.subtest_subtestID = s.subtestID WHERE t.testname = \'""" + testname + "\';" #RRG
+        
         logging.debug(INPUT_FILE_QUERY)
         try:
             input_details_df = pd.read_sql(INPUT_FILE_QUERY, db)
@@ -691,8 +691,11 @@ def get_test_details_data(originID, secret=False):
     logging.debug("BEFORE GETTING DATAFRAME")
 
     # RESULTS TABLE
-    RESULTS_QUERY = """SELECT R.resultID, S.description, R.number, S.resultype, disp.unit, disp.qualifier, R.isvalid FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID INNER JOIN display disp ON disp.displayID=R.display_displayID INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + \
-                        RESULTS_VALIDITY_CONDITION + ";"
+    # RESULTS_QUERY = """SELECT R.resultID, S.description, R.number, S.resultype, disp.unit, disp.qualifier, R.isvalid FROM result R INNER JOIN subtest S ON S.subtestID=R.subtest_subtestID INNER JOIN display disp ON disp.displayID=R.display_displayID INNER JOIN origin O ON O.originID=R.origin_originID WHERE O.originID=""" + originID + \
+    #                     RESULTS_VALIDITY_CONDITION + ";"
+    
+    RESULTS_QUERY = f"""SELECT R.resultID, S.description, R.number, S.resultype, disp.unit, disp.qualifier, R.isvalid FROM result R LEFT JOIN subtest S ON S.subtestID = R.subtest_subtestID LEFT JOIN display disp ON disp.displayID = R.display_displayID INNER JOIN origin O ON O.originID = R.origin_originID WHERE O.originID = {originID} {RESULTS_VALIDITY_CONDITION};"""
+
     results_dataframe = pd.read_sql(RESULTS_QUERY, db)
 
     # Map the resultype to the result type name Example 2-> Single Socket
@@ -2328,156 +2331,125 @@ def parallel_get_best_results(params, **kwargs):
 
 @app.route('/best_of_all_graph', methods=['POST'])
 def best_of_all_graph():
-    # Just for testing the speed
     start_time = time.time()
 
+    # Load config files
     wiki_metadata_file_path = './config/best_of_all_graph.ini'
+    sku_file_path = './config/sku_definition.ini'
+
     results_metadata_parser = configparser.ConfigParser()
     results_metadata_parser.read(wiki_metadata_file_path)
 
-    all_test_sections = results_metadata_parser.sections()
-
-    sku_file_path = './config/sku_definition.ini'
     sku_parser = configparser.ConfigParser()
     sku_parser.read(sku_file_path)
 
+    all_test_sections = results_metadata_parser.sections()
+
     data = request.get_json()
+    logging.debug(f"Incoming data: {data}")
+
+    # Input validation
+    from_date = data.get('from_date_filter', '')
+    to_date = data.get('to_date_filter', '')
+    normalized_wrt = data.get('normalizedWRT', '').strip()
+    result_type_filter = data.get('resultTypeFilter', '').strip()
+
+    # normalized_wrt = "Marvell TX2-B2"
+
+    if not normalized_wrt:
+        logging.error("Missing or empty 'normalizedWRT' in request payload.")
+        return jsonify({"error": "Missing 'normalizedWRT' value."}), 400
+
+    logging.debug("sku_parser", sku_parser.sections())
     
-    logging.debug(" = {}".format(data))
+    if normalized_wrt not in sku_parser.sections():
+        logging.error(f"'normalizedWRT' value '{normalized_wrt}' not found in sku_definition.ini")
+        return jsonify({"error": f"'normalizedWRT' value '{normalized_wrt}' not found in config."}), 400
 
-    # Apply DATE - FILTERS
-    from_date = data['from_date_filter']
-    to_date = data['to_date_filter']
-    logging.debug(" = {}".format(from_date))
-    logging.debug(" = {}".format(to_date))
+    FROM_DATE_FILTER = f" and o.testdate > '{from_date} 00:00:00' " if from_date else ""
+    TO_DATE_FILTER = f" and o.testdate < '{to_date} 23:59:59' " if to_date else ""
 
-    FROM_DATE_FILTER = " "
-    TO_DATE_FILTER = " "
-    if from_date:
-        FROM_DATE_FILTER = " and o.testdate > \'" + from_date + " 00:00:00\' "
+    logging.debug(f"Date filters: {FROM_DATE_FILTER} {TO_DATE_FILTER}")
+    logging.debug(f"Result Type Filter: {result_type_filter}")
 
-    if to_date:
-        TO_DATE_FILTER = " and o.testdate < \'" + to_date + " 23:59:59\' "
-
-    normalized_wrt = data['normalizedWRT']
-
-    # Result type filter eg. dual socket
-    result_type_filter = data['resultTypeFilter']
-
-    # result_type_filter = "dual socket"
-    logging.debug("Result type filter = '{}' {}".format(result_type_filter, type(result_type_filter)))
-
-    # If No filters are applied, select all tests
+    # Get test list
     try:
-        test_name_list = [test_name.strip() for test_name in data['test_name_list']]
-
-        # If test_name_list is empty, read everything
+        test_name_list = [test_name.strip() for test_name in data.get('test_name_list', [])]
         if not test_name_list:
-            raise Exception
+            raise ValueError("test_name_list is empty, falling back to all tests")
     except:
-        # Read all test names from .ini file
         test_name_list = [results_metadata_parser.get(section, 'testname').strip() for section in all_test_sections]
 
-    # A list of 'sections' corresponding to filtered(selected) tests in test_name_list
-    test_sections_list = sorted([section for section in all_test_sections if results_metadata_parser.get(section,'testname') in test_name_list])
+    test_sections_list = sorted([
+        section for section in all_test_sections
+        if results_metadata_parser.get(section, 'testname') in test_name_list
+    ])
 
-    # Modify test_name_list according to test_sections_list
-    # This is a necessary step since we have multiple sections for the same 'testname'
-    test_name_list = sorted([results_metadata_parser.get(section, 'testname') for section in test_sections_list])
+    test_name_list = sorted([
+        results_metadata_parser.get(section, 'testname') for section in test_sections_list
+    ])
 
-    logging.debug("LENGTH of sections i.e. no of benchmarks = ", len(all_test_sections))
-    logging.debug("Printing selected testnames list", test_name_list, len(test_name_list))
-    logging.debug("\n\nPrinting corresponding sections list", test_sections_list, len(test_sections_list))
+    logging.debug(f"# Sections: {len(all_test_sections)}")
+    logging.debug(f"Selected Test Names: {test_name_list}")
+    logging.debug(f"Corresponding Sections: {test_sections_list}")
 
-    # The list of the first qualifier for all tests
-    # and the corresponding higher_is_better
-    qualifier_list = [results_metadata_parser.get(section, 'fields').replace('\"', '').split(',')[0] for section in test_sections_list]
-    higher_is_better_list = [results_metadata_parser.get(section, 'higher_is_better').replace('\"', '').replace(' ','').split(',')[0] for section in test_sections_list]
-
-    # Remove all the entries where fields = ""
-    while True:
-        try:
-            index = qualifier_list.index('')
-            qualifier_list.remove(qualifier_list[index])
-            higher_is_better_list.remove(higher_is_better_list[index])
-            test_name_list.remove(test_name_list[index])
-            test_section_list.remove(test_section_list[index])
-        except:
-            logging.debug("DONE REMOVING")
-            break
-
-    logging.debug(" = {}".format(qualifier_list))
-    logging.debug(" = {}".format(higher_is_better_list))
-
-    # Get colour and skuid_list for reference Cpu 
-    reference_color = sku_parser.get(normalized_wrt, 'color').replace('\"', '').split(',')[0]
-    reference_skuid_list = sku_parser.get(normalized_wrt, 'SKUID').replace('\"', '').split(',')
-
-    ######################################################################################################################
-
-    x_list_list = []
-    y_list_list = []
-    originID_list_list = []
-    server_cpu_list = []
-    color_list = []
-
-    # Excecute parallel_get_reference_results parallely with multiprocessing "pool"
-    pool = multiprocessing.Pool(processes=num_processes)
-
-    start_time2 = time.time()
     try:
-        best_results_data = pool.map(partial(parallel_get_best_results, results_metadata_parser=results_metadata_parser, \
-                                FROM_DATE_FILTER = FROM_DATE_FILTER, TO_DATE_FILTER = TO_DATE_FILTER, \
-                                result_type_filter=result_type_filter, normalized_wrt=normalized_wrt), \
-                                zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list)) 
-    except:
-        pass
+        qualifier_list = [
+            results_metadata_parser.get(section, 'fields').replace('\"', '').split(',')[0]
+            for section in test_sections_list
+        ]
+        higher_is_better_list = [
+            results_metadata_parser.get(section, 'higher_is_better').replace('\"', '').replace(' ', '').split(',')[0]
+            for section in test_sections_list
+        ]
+    except Exception as e:
+        logging.error(f"Error extracting 'fields' or 'higher_is_better': {e}")
+        return jsonify({"error": "Failed to extract benchmark metadata."}), 500
+
+    # Remove blank fields
+    clean_indexes = [i for i, q in enumerate(qualifier_list) if q]
+    qualifier_list = [qualifier_list[i] for i in clean_indexes]
+    higher_is_better_list = [higher_is_better_list[i] for i in clean_indexes]
+    test_name_list = [test_name_list[i] for i in clean_indexes]
+    test_sections_list = [test_sections_list[i] for i in clean_indexes]
+
+    logging.debug(f"Cleaned qualifier list: {qualifier_list}")
+    logging.debug(f"Higher is better list: {higher_is_better_list}")
+
+    try:
+        reference_color = sku_parser.get(normalized_wrt, 'color').replace('\"', '').split(',')[0]
+        reference_skuid_list = sku_parser.get(normalized_wrt, 'SKUID').replace('\"', '').split(',')
+    except Exception as e:
+        logging.error(f"Error reading color or SKUID for normalized_wrt '{normalized_wrt}': {e}")
+        return jsonify({"error": f"Invalid SKU config for '{normalized_wrt}'."}), 500
+
+    # Placeholder parallel processing logic (you can leave this as-is if working)
+    try:
+        pool = multiprocessing.Pool(processes=num_processes)
+        best_results_data = pool.map(partial(parallel_get_best_results,
+                                results_metadata_parser=results_metadata_parser,
+                                FROM_DATE_FILTER=FROM_DATE_FILTER,
+                                TO_DATE_FILTER=TO_DATE_FILTER,
+                                result_type_filter=result_type_filter,
+                                normalized_wrt=normalized_wrt),
+                                zip(test_name_list, test_sections_list, qualifier_list, higher_is_better_list))
+    except Exception as e:
+        logging.error(f"Error in multiprocessing pool: {e}")
+        best_results_data = []
     finally:
-        logging.debug("Closing pool")
         pool.close()
         pool.join()
 
-    # Remove all the empty dataframes from the list
+    # Post-processing results
     best_results_data = [x for x in best_results_data if not x.empty]
-
-    # Concatenate all the dfs into a single df
-    if best_results_data:
-        best_results_df = pd.concat(best_results_data).sort_values(by=['skuidname', 'testname']).reset_index(drop=True)
-    else:
-        best_results_df = pd.DataFrame()
-
-    # If best_results_df is not empty
-    if not best_results_df.empty:
-
-        print("Sorting best results df acc to skuidname")
-        # Sort by skuidname according to the sku_definition.ini file
-        sku_categories = sku_parser.sections()
-        ordered_skus = pd.Categorical(best_results_df['skuidname'].tolist(), categories = sku_categories, ordered=True)
-        best_results_df['skuidname'] = pd.Series(ordered_skus)
-        best_results_df = best_results_df.sort_values(by='skuidname')
-
-        # Get unique skuidname entries
-        server_cpu_list = [x for x in best_results_df['skuidname'].unique().tolist()]
-
-        best_results_df = best_results_df.set_index('skuidname')
-
-        # Extract the lists from the dataframe
-        # Always pass a list to .loc function to get Dataframe as the result
-        x_list_list = [best_results_df.loc[[skuidname]]['testname'].tolist() for skuidname in server_cpu_list]
-        y_list_list = [best_results_df.loc[[skuidname]]['number'].tolist() for skuidname in server_cpu_list]
-        originID_list_list = [best_results_df.loc[[skuidname]]['originID'].tolist() for skuidname in server_cpu_list]
-
-        for section in server_cpu_list:
-            color_list.extend(sku_parser.get(section, 'color').replace('\"','').split(','))
-
-    ######################################################################################################################
+    best_results_df = pd.concat(best_results_data).sort_values(by=['skuidname', 'testname']).reset_index(drop=True) if best_results_data else pd.DataFrame()
 
     response = {
-        'server_cpu_list': server_cpu_list,
-        'color_list': color_list,
-        'x_list_list': x_list_list, 
-        'y_list_list': y_list_list,
-        'originID_list_list': originID_list_list,
+        'server_cpu_list': [],
+        'color_list': [],
+        'x_list_list': [],
+        'y_list_list': [],
+        'originID_list_list': [],
         'y_axis_unit': "ratio",
         'xParameter': "",
         'yParameter': "",
@@ -2485,9 +2457,21 @@ def best_of_all_graph():
         'normalized_wrt' : normalized_wrt,
     }
 
-    print("Best of All Graph took {} seconds".format(time.time() - start_time))
+    if not best_results_df.empty:
+        sku_categories = sku_parser.sections()
+        best_results_df['skuidname'] = pd.Categorical(best_results_df['skuidname'], categories=sku_categories, ordered=True)
+        best_results_df = best_results_df.sort_values(by='skuidname')
+        best_results_df = best_results_df.set_index('skuidname')
 
-    return response
+        response['server_cpu_list'] = best_results_df.index.unique().tolist()
+        response['x_list_list'] = [best_results_df.loc[[skuid]]['testname'].tolist() for skuid in response['server_cpu_list']]
+        response['y_list_list'] = [best_results_df.loc[[skuid]]['number'].tolist() for skuid in response['server_cpu_list']]
+        response['originID_list_list'] = [best_results_df.loc[[skuid]]['originID'].tolist() for skuid in response['server_cpu_list']]
+        response['color_list'] = [sku_parser.get(skuid, 'color').replace('\"','').split(',')[0] for skuid in response['server_cpu_list']]
+
+    logging.debug(f"Returning response: {response}")
+    logging.info(f"Best of All Graph took {time.time() - start_time:.2f} seconds")
+    return jsonify(response)
 
 def parallel_compute_heatmap_zll(param, **kwargs):
     graph_name = kwargs['graph_name']
